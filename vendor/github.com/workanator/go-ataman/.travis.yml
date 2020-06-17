@@ -1,0 +1,35 @@
+language: go
+sudo: false
+
+os:
+  - linux
+
+go:
+  - 1.7
+  - 1.8
+  - 1.9
+
+go_import_path: gopkg.in/workanator/go-ataman.v1
+
+install:
+  - go get github.com/mattn/goveralls
+  - go get golang.org/x/tools/cmd/cover
+
+script:
+  - go vet ./...
+  - go build -v ./...
+  - go install -v
+  - go test -v -covermode=count -coverprofile=coverage-tmp.out ./ansi
+  - cat coverage-tmp.out > coverage.out
+  - go test -v -covermode=count -coverprofile=coverage-tmp.out ./decorate
+  - sed -e '1d' < coverage-tmp.out >> coverage.out
+  - go test -v -covermode=count -coverprofile=coverage-tmp.out ./decorate/basic
+  - sed -e '1d' < coverage-tmp.out >> coverage.out
+  - go test -v -covermode=count -coverprofile=coverage-tmp.out ./decorate/curly
+  - sed -e '1d' < coverage-tmp.out >> coverage.out
+  - go test -v -covermode=count -coverprofile=coverage-tmp.out ./generic
+  - sed -e '1d' < coverage-tmp.out >> coverage.out
+  - $HOME/gopath/bin/goveralls -coverprofile=coverage.out -service=travis-ci
+
+after_success:
+  - coveralls

@@ -1,0 +1,27 @@
+language: go
+git:
+  depth: false
+go:
+- 1.14
+services: docker
+before_script:
+- pip install --user awscli
+- export PATH=$PATH:$HOME/.local/bin
+- export REPO=$TRAVIS_REPO_SLUG
+env:
+  global:
+  - AWS_REGION=eu-west-1
+  - secure: MwfAtTXTJlmL3JRUH/A5MxcSY/BmMGtzOqA9JtGjIYd/LBe0Fkr9IDLMIb5AP3FlIo99ZOSlAu6lAUF6JHM9iiYFoWyPa/kYzytY/I2HdVV5F5zYBAkgisBjfDYgIrvy6DMO7RRKL1wc2B33yemwAfHmty9ugs8vHR/oIns2YqOYeQyvU+nFS/TiRomgXhTQ3sOyCDT6cpew6LX+Gthimc33bfNxz2cUE5kDPUZmEWRYM10uc85kGl3c9II4YzV8x3oeesQ9JGjtSHDvetPx5gtf7AVRo+wqENi+RFiWz7XFvVgAIsQqiH02lR7VjZ63V43/J5PHJ0AISPkBDwRvKvg4XYrWE/08tMEb2nu9MT/eG/t9s1eY6Vo//vqMRV+JRzJCkjVEECsg2KbQnVvr3XlF7i+UIj7EURsuie9l61K4jld0Zlw2Za3X8zlZcdb0UMyvh7xmQLekDLTdUbg7o6RTzmfHWgnyw+l1zk4WPGJzgR+2D8J0I1qvAwNkMgJsyZGCsK3O+GGl20ZDuXcmY3DBhfJUp/OK7BKemfQI1q0kv46wINeik30GsNunWhQQ/8BRMn90cXiAcHzfk8Z4McmL5/8d3TM5/RK2TqM4qbrp3F0L7EonzVuOjnUsiP1uW/JNX+TvCyQxoM5ZXABaJxCM4gLh0bk69+O8dABcJpg=
+  - secure: pgZUJLeKrElOeOUeyH4ZtuN25ijZZMMtWpkXmxv7LnI1v2FAg+AXknd1zl6crusDfvkgQDJu2HzAKqh4i0wVOwO8c4E51K/tt8TisjpK9KbB/WwM1rr3ydMVBlxhw1GPlDjxXZ8CcW8KH4shmh65QuD8Vx27xGXhgMKBtirEppxbrjF8MlghiDZUqemLWQmfwxX8Xhia29sgCa2dpQQJiTLoOZy0eQaCbgGDbp68vlEemKQsdH4gXAxytdNVwp2HppY6vPPDNbwQKKBlAzOTIoiojSm/lQwEHhBmxPtztylMPzcPjHmZ3f5OUSgdpPnt+W01OQLF7jCSAreFPo8UU7ZW8WGodGgzsU4ygQMMtILPD+MMkxlQcZrhNF3OvtnFFp5BnfX6Jw94nAXe9bGu3GRrIadRLPHOguB0gpuPt6U9tgyJvzupG3vq0FZk5i5b/sNDCJbcyXNsAXvUWcJxuR8TagHWqkgbGDQh07PrX3VKxeQ2MxM10v2h4DlmjrXB3CMsrf9Pvek28IL9dU9ZoVJ8ADVA6Q5UxuK9lYMIdAaxSjpTiuOO2FIbb7LB7leX3+DaDByAiutrbi33MA2mcZnr2e78t3FRLlAki6xHOtzbwFCbz4YTF4ek94u28jrJ0SFK48HNMvE4zfkotvYtY4YQ3Z50Iukh7SEqTEo419c=
+  - secure: nFjWcCUeovjv6YLwlj4mo+BgQ+ThtK6xAccESVE5ce8kHjga3mqswQfE4AjOhgK/N65/rdLXe4+c01pnbnZeV/tpx1Axbs1oWdGrXaCLm9lm2aSP8sAKJnmFZctpL4ZP8n42Yh3NzTF8JJKx4WwIYpZ95fKQyaV7XZi7YyanjAXgc+iZA7SlCVK3u+NQSErSBTyiCSEaPZQEzd3Rc9pOvD8ujz9PdAdiY77kQ1iDL4T0TXvZIvRY4xkl+uVpxI+qlt6xjO1KIqDhgB8KgZbthfN+8rInSdj4Hh73orVbkbOB+9UbZ+TAfFPxPLA4F+0NtHA2FE0iYZJCNPhJqzkQwG0wbk0/leIYKnTnArBm1EzGEh3Rry8MRuUppbFUv6pe6/3d72l7hfAn2Xl3sAnn+NYzUY6UXZPQBaRjRR8/kA3e0h88ywr9yjCN3cA5wiobml4Ro++q+x4o7/N1oAmKLZc/bYBmlMYPygU3Hd19/TxeZpCbD00+7xwKv61KN5KeOFFUKH69SVZdcvHGvWqEu2InJJ7f42dVVUoPPBuLJMgzZ4splJ3mQTDnke+lkxGc296S1zr8vebrcqinzL3FEADuotPApWWoTfSnKnL7RkI09qtp8JoPmD6IWY0ltLTEPZMdUrR6g5LEbeFgzg/puLk710PFMAgcM3xfV5znAJA=
+jobs:
+  include:
+  - stage: test
+    name: Run Tests
+    script:
+    - make install-goimports
+    - make test
+  - stage: test
+    name: Security Scan
+    script:
+    - make scan-code

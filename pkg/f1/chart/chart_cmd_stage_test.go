@@ -1,0 +1,66 @@
+package chart
+
+import (
+	"fmt"
+	"testing"
+	"time"
+
+	"github.com/form3tech-oss/f1/pkg/f1/trigger"
+
+	"github.com/stretchr/testify/assert"
+)
+
+type ChartTestStage struct {
+	t      *testing.T
+	assert *assert.Assertions
+	err    error
+	args   []string
+}
+
+func NewChartTestStage(t *testing.T) (*ChartTestStage, *ChartTestStage, *ChartTestStage) {
+	stage := &ChartTestStage{
+		t:      t,
+		assert: assert.New(t),
+	}
+	return stage, stage, stage
+}
+
+func (s *ChartTestStage) and() *ChartTestStage {
+	return s
+}
+func (s *ChartTestStage) i_execute_the_chart_command() *ChartTestStage {
+	cmd := Cmd(trigger.GetBuilders())
+	cmd.SetArgs(s.args)
+	s.err = cmd.Execute()
+	return s
+}
+
+func (s *ChartTestStage) the_command_is_successful() *ChartTestStage {
+	s.assert.NoError(s.err)
+	return s
+}
+
+func (s *ChartTestStage) the_load_style_is_constant() *ChartTestStage {
+	s.args = append(s.args, "constant", "--rate", "10/s")
+	return s
+}
+
+func (s *ChartTestStage) jitter_is_applied() *ChartTestStage {
+	s.args = append(s.args, "--jitter", "20")
+	return s
+}
+
+func (s *ChartTestStage) the_load_style_is_staged(stages string) *ChartTestStage {
+	s.args = append(s.args, "staged", "--stages", stages)
+	return s
+}
+
+func (s *ChartTestStage) the_load_style_is_gaussian_with_a_volume_of(volume int) *ChartTestStage {
+	s.args = append(s.args, "gaussian", "--peak", "5m", "--repeat", "10m", "--volume", fmt.Sprint(volume), "--standard-deviation", "1m")
+	return s
+}
+
+func (s *ChartTestStage) the_chart_starts_at_a_fixed_time() *ChartTestStage {
+	s.args = append(s.args, "--chart-start", time.Now().Truncate(10*time.Minute).Format(time.RFC3339))
+	return s
+}
