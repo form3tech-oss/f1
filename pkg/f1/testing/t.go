@@ -2,6 +2,7 @@ package testing
 
 import (
 	"runtime"
+	"sync/atomic"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -18,7 +19,7 @@ type T struct {
 	Iteration string
 	// Logger with user and iteration tags
 	Log         *log.Logger
-	failed      bool
+	failed      int64
 	Require     *require.Assertions
 	Environment map[string]string
 	Scenario    string
@@ -37,17 +38,21 @@ func NewT(env map[string]string, vu, iter string, scenarioName string) *T {
 }
 
 func (t *T) Errorf(format string, args ...interface{}) {
-	t.failed = true
+	t.Fail()
 	t.Log.Errorf(format, args...)
 }
 
 func (t *T) FailNow() {
-	t.failed = true
+	t.Fail()
 	runtime.Goexit()
 }
 
+func (t *T) Fail() {
+	atomic.StoreInt64(&t.failed, int64(1))
+}
+
 func (t *T) HasFailed() bool {
-	return t.failed
+	return atomic.LoadInt64(&t.failed) == int64(1)
 }
 
 // Time records a metric for the duration of the given function
@@ -58,5 +63,5 @@ func (t *T) Time(stageName string, f func()) {
 }
 
 func recordTime(t *T, stageName string, start time.Time) {
-	metrics.Instance().Record(metrics.IterationResult, t.Scenario, stageName, metrics.Result(t.failed), time.Since(start).Nanoseconds())
+	metrics.Instance().Record(metrics.IterationResult, t.Scenario, stageName, metrics.Result(t.HasFailed()), time.Since(start).Nanoseconds())
 }

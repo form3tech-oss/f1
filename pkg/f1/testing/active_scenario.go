@@ -70,7 +70,7 @@ func (s *ActiveScenario) SetAutoTeardown(timer *CancellableTimer) {
 func (s *ActiveScenario) Run(metric metrics.MetricType, stage, vu, iter string, f func(t *T)) error {
 	t := NewT(s.env, vu, iter, s.Name)
 	start := time.Now()
-	done := make(chan bool)
+	done := make(chan struct{})
 	go func() {
 		defer s.checkResults(t, done)
 		f(t)
@@ -80,17 +80,17 @@ func (s *ActiveScenario) Run(metric metrics.MetricType, stage, vu, iter string, 
 	}
 	// wait for completion
 	<-done
-	s.m.Record(metric, s.Name, stage, metrics.Result(t.failed), time.Since(start).Nanoseconds())
+	s.m.Record(metric, s.Name, stage, metrics.Result(t.HasFailed()), time.Since(start).Nanoseconds())
 	if t.HasFailed() {
 		return errors.New("failed")
 	}
 	return nil
 }
 
-func (s *ActiveScenario) checkResults(t *T, done chan bool) {
+func (s *ActiveScenario) checkResults(t *T, done chan<- struct{}) {
 	r := recover()
 	if r != nil {
-		t.failed = true
+		t.Fail()
 		err, isError := r.(error)
 		if isError {
 			t.Log.WithError(err).Errorf("panic in `%s` test scenario on iteration `%s` for user `%s`", t.Scenario, t.Iteration, t.VirtualUser)
@@ -99,7 +99,7 @@ func (s *ActiveScenario) checkResults(t *T, done chan bool) {
 			t.Log.Errorf("panic in `%s` test scenario on iteration `%s` for user `%s`: %v", t.Scenario, t.Iteration, t.VirtualUser, r)
 		}
 	}
-	done <- true
+	close(done)
 }
 
 func (s *ActiveScenario) autoTeardown() {
