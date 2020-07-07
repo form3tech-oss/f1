@@ -1,0 +1,17 @@
+box: golang:1.12.7-stretch
+dev:
+build:
+  steps:
+    - setup-go-workspace
+    - script:
+        name: go get
+        code: |
+          go get -t -v ./...
+    - script:
+        name: lint
+        code: |
+          make lint
+    - script:
+        name: test
+        code: |
+          make test

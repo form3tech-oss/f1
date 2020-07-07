@@ -1,0 +1,11 @@
+# Snyk (https://snyk.io) policy file, patches or ignores known vulnerabilities.
+version: v1.13.5
+# ignores vulnerabilities until expiry date; change duration by modifying expiry date
+ignore:
+  # this dependency of go-chart has two licenses available - a GPL one and a
+  # BSD style one, which we would choose to use.
+  snyk:lic:golang:github.com:golang:freetype:GPL-2.0:
+    - '*':
+      reason: find a replacement with more permissive license
+      expires: 2020-12-01T00:00:00.000Z
+patch: {}

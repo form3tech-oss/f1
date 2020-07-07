@@ -1,0 +1,23 @@
+sudo: false
+language: go
+go:
+  - 1.11
+  - "1.12.x"
+  - tip
+matrix:
+  allow_failures:
+    - go: tip
+before_install:
+  - go get github.com/axw/gocov/gocov
+  - go get github.com/mattn/goveralls
+  - go get golang.org/x/tools/cmd/cover
+  - go get -t -v ./...
+  - make lint
+script:
+  - make test
+after_success:
+  - |
+    if [[ $TRAVIS_GO_VERSION = 1.12.x ]]
+    then
+      make coverage
+    fi

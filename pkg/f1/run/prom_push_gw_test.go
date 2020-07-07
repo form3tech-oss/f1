@@ -1,0 +1,141 @@
+package run
+
+import (
+	"context"
+	"fmt"
+	"net/http"
+	"sync"
+	"sync/atomic"
+
+	io_prometheus_client "github.com/prometheus/client_model/go"
+
+	"github.com/prometheus/common/expfmt"
+
+	"github.com/form3tech-oss/f1/internal/support/errorh"
+
+	log "github.com/sirupsen/logrus"
+)
+
+type FakePrometheus struct {
+	server         *http.Server
+	Port           interface{}
+	hasMetrics     int32
+	metricFamilies sync.Map
+}
+
+func (f *FakePrometheus) ServeHTTP(response http.ResponseWriter, request *http.Request) {
+	if request != nil && request.Body != nil {
+		defer errorh.SafeClose(request.Body)
+		metricFamily := &io_prometheus_client.MetricFamily{}
+		expfmt.NewDecoder(request.Body, expfmt.ResponseFormat(request.Header)).Decode(metricFamily)
+		mf, ok := f.metricFamilies.Load(*metricFamily.Name)
+		if !ok {
+			f.metricFamilies.Store(*metricFamily.Name, metricFamily)
+		} else {
+			value, ok := mf.(*io_prometheus_client.MetricFamily)
+			if !ok {
+				response.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+			value.Metric = append(value.Metric, metricFamily.Metric...)
+		}
+	}
+	f.setHasMetrics()
+	response.WriteHeader(202)
+}
+
+func (f *FakePrometheus) StartServer() {
+	f.metricFamilies = sync.Map{}
+	f.server = &http.Server{Addr: fmt.Sprintf("localhost:%d", f.Port)}
+	f.server.Handler = f
+	go func() {
+		if err := f.server.ListenAndServe(); err != nil {
+			log.WithError(err).Error("error starting server")
+		}
+	}()
+	log.Infof("Fake prometheus started on %s", f.server.Addr)
+}
+
+func (f *FakePrometheus) setHasMetrics() {
+	atomic.StoreInt32(&f.hasMetrics, 1)
+}
+
+func (f *FakePrometheus) StopServer() {
+	if err := f.server.Shutdown(context.Background()); err != nil {
+		log.WithError(err).Error("error shutting down server")
+	}
+}
+
+func (f *FakePrometheus) HasMetrics() bool {
+	return atomic.LoadInt32(&f.hasMetrics) != 0
+}
+
+func (f *FakePrometheus) GetIterationDuration(scenario string, q float64) float64 {
+	value, ok := f.metricFamilies.Load("form3_loadtest_iteration")
+	if !ok {
+		return 0.0
+	}
+	metrics, ok := value.(*io_prometheus_client.MetricFamily)
+	if !ok {
+		return 0.0
+	}
+	for _, metric := range metrics.Metric {
+		if metric.Summary == nil {
+			continue
+		}
+		test := ""
+		for _, label := range metric.Label {
+			if *label.Name == "test" {
+				test = *label.Value
+			}
+		}
+		if test != scenario {
+			continue
+		}
+		for _, quantile := range metric.Summary.Quantile {
+			if *((*quantile).Quantile) == q {
+				return *quantile.Value
+			}
+		}
+	}
+	return 0.0
+}
+
+func (f *FakePrometheus) GetMetricNames() []string {
+	names := []string{}
+	f.metricFamilies.Range(func(key, value interface{}) bool {
+		name, ok := key.(string)
+		if ok {
+			names = append(names, name)
+		}
+		return true
+	})
+	return names
+}
+
+func (f *FakePrometheus) GetMetricFamily(name string) *io_prometheus_client.MetricFamily {
+	value, ok := f.metricFamilies.Load(name)
+	if !ok {
+		return nil
+	}
+	metricFamily, ok := value.(*io_prometheus_client.MetricFamily)
+	if !ok {
+		return nil
+	}
+	return metricFamily
+}
+
+func (f *FakePrometheus) ClearMetrics() {
+	keys := []string{}
+	f.metricFamilies.Range(func(k, _ interface{}) bool {
+		key, ok := k.(string)
+		if ok {
+			keys = append(keys, key)
+		}
+		return true
+	})
+	for _, key := range keys {
+		f.metricFamilies.Delete(key)
+	}
+	atomic.StoreInt32(&f.hasMetrics, 0)
+}
