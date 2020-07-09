@@ -74,7 +74,7 @@ Once you have written a load test and compiled a binary test runner, you can use
 
 * `constant` - applies load at a constant rate (e.g. one request per second, irrespective of request duration).
 * `staged` - applies load at various stages (e.g. one request per second for 10s, then two per second for 10s).
-* `users` - applies load from a pool of virtual users (e.g. requests from two virtual users being sent sequentially - they are asa fast or as slow as the requests themselves).
+* `users` - applies load from a pool of virtual users (e.g. requests from two virtual users being sent sequentially - they are as fast or as slow as the requests themselves).
 * `gaussian` - applies load based on a [Gaussian distribution](https://en.wikipedia.org/wiki/Normal_distribution) (e.g. varies load throughout a given duration with a mean and standard deviation).
 
 ## Design decisions
