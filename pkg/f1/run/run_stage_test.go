@@ -342,16 +342,31 @@ func (s *RunTestStage) all_other_percentiles_are_fast() *RunTestStage {
 }
 
 func (s *RunTestStage) there_is_a_metric_called(metricName string) *RunTestStage {
-	s.assert.Contains(fakePrometheus.GetMetricNames(), metricName)
+	err := retry.Do(func() error {
+		metricNames := fakePrometheus.GetMetricNames()
+		for _, mn := range metricNames {
+			if mn == metricName {
+				return nil
+			}
+		}
+		return fmt.Errorf("%v did not contain %s", metricNames, metricName)
+	})
+	s.require.NoError(err)
 	return s
 }
 
 func (s *RunTestStage) the_iteration_metric_has_n_results(n int, result string) *RunTestStage {
-	metricFamily := fakePrometheus.GetMetricFamily("form3_loadtest_iteration")
-	s.require.NotNil(metricFamily)
-	successMetric := getMetricByResult(metricFamily, result)
-	s.require.NotNil(successMetric)
-	s.require.Equal(uint64(n), *successMetric.GetSummary().SampleCount)
+	err := retry.Do(func() error {
+		metricFamily := fakePrometheus.GetMetricFamily("form3_loadtest_iteration")
+		s.require.NotNil(metricFamily)
+		resultMetric := getMetricByResult(metricFamily, result)
+		s.require.NotNil(resultMetric)
+		if uint64(n) == *resultMetric.GetSummary().SampleCount {
+			return nil
+		}
+		return fmt.Errorf("expected %d to equal %d", uint64(n), *resultMetric.GetSummary().SampleCount)
+	})
+	s.require.NoError(err)
 	return s
 }
 
