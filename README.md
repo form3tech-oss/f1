@@ -11,7 +11,7 @@ import (
     "github.com/form3tech-oss/f1/pkg/f1"
 )
 
-function main() {
+func main() {
     f1.Execute()
 }
 ``` 
@@ -29,12 +29,12 @@ import (
     "fmt"
 )
 
-function main() {
+func main() {
     testing.Add("mySuperFastLoadTest", setupMySuperFastLoadTest)
     f1.Execute()
 }
 
-function setupMySuperFastLoadTest(t *testing.T) (testing.RunFn, testing.TeardownFn) {
+func setupMySuperFastLoadTest(t *testing.T) (testing.RunFn, testing.TeardownFn) {
     runFn := func(t *testing.T) {
         fmt.Println("Wow, super fast!")
     }
