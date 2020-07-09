@@ -164,29 +164,30 @@ func (r *Run) run() {
 	// Build a worker group to process the iterations.
 	workers := r.Options.Concurrency
 	doWorkChannel := make(chan int32, workers)
-	stopWorker := make(chan bool, workers)
+	stopWorkers := make(chan struct{})
 
 	wg := &sync.WaitGroup{}
 	defer wg.Wait()
+
 	r.busyWorkers = int32(0)
 	workDone := make(chan bool, workers)
 	for i := 0; i < workers; i++ {
 		wg.Add(1)
-		go r.runWorker(doWorkChannel, stopWorker, wg, fmt.Sprint(i), workDone)
+		go r.runWorker(doWorkChannel, stopWorkers, wg, fmt.Sprint(i), workDone)
 	}
-
-	// Cancel work slightly before end of duration to avoid starting a new iteration
 
 	// if the trigger has a limited duration, restrict the run to that duration.
 	duration := r.Options.MaxDuration
 	if r.trigger.Duration > 0 && r.trigger.Duration < r.Options.MaxDuration {
 		duration = r.trigger.Duration
 	}
+
+	// Cancel work slightly before end of duration to avoid starting a new iteration
 	durationElapsed := testing.NewCancellableTimer(duration - 5*time.Millisecond)
 	r.result.RecordStarted()
 	defer r.result.RecordTestFinished()
 
-	doWork := make(chan bool, r.Options.Concurrency)
+	doWork := make(chan bool, workers)
 	stopTrigger := make(chan bool, 1)
 	go r.trigger.Trigger(doWork, stopTrigger, workDone, r.Options)
 
@@ -203,9 +204,7 @@ func (r *Run) run() {
 			fmt.Println(r.result.MaxDurationElapsed())
 			log.Info("Stopping worker")
 			stopTrigger <- true
-			for i := 0; i < workers; i++ {
-				stopWorker <- true
-			}
+			close(stopWorkers)
 			wg.Wait()
 			return
 		case <-doWork:
@@ -214,7 +213,7 @@ func (r *Run) run() {
 	}
 }
 
-func (r *Run) doWork(doWorkChannel chan int32, durationElapsed *testing.CancellableTimer) {
+func (r *Run) doWork(doWorkChannel chan<- int32, durationElapsed *testing.CancellableTimer) {
 	if atomic.LoadInt32(&r.busyWorkers) >= int32(r.Options.Concurrency) {
 		r.activeScenario.RecordDroppedIteration()
 		r.notifyDropped.Do(func() {
@@ -281,13 +280,20 @@ func (r *Run) gatherProgressMetrics(duration time.Duration) {
 	}
 }
 
-func (r *Run) runWorker(input chan int32, stop chan bool, wg *sync.WaitGroup, worker string, workDone chan bool) {
+func (r *Run) runWorker(input <-chan int32, stop <-chan struct{}, wg *sync.WaitGroup, worker string, workDone chan<- bool) {
 	defer wg.Done()
 	for {
 		select {
 		case <-stop:
 			return
 		case iteration := <-input:
+			// if both stop chan is closed and input ch has more iterations,
+			// select will choose a random case. double check if we need to stop
+			select {
+			case <-stop:
+				return
+			default:
+			}
 			atomic.AddInt32(&r.busyWorkers, 1)
 			for _, stage := range r.activeScenario.Stages {
 				err := r.activeScenario.Run(metrics.IterationResult, stage.Name, worker, fmt.Sprint(iteration), stage.RunFn)
@@ -297,7 +303,14 @@ func (r *Run) runWorker(input chan int32, stop chan bool, wg *sync.WaitGroup, wo
 				}
 			}
 			atomic.AddInt32(&r.busyWorkers, -1)
-			workDone <- true
+
+			// if we need to stop - no one is listening for workDone,
+			// so it will block forever. check the stop channel to stop the worker
+			select {
+			case workDone <- true:
+			case <-stop:
+				return
+			}
 		}
 	}
 }
