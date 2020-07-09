@@ -335,8 +335,7 @@ func TestFailureCounts(t *testing.T) {
 
 	given.
 		a_rate_of("10/s").and().
-		a_duration_of(1 * time.Second).and().
-		an_iteration_limit_of(10).and().
+		a_duration_of(500 * time.Millisecond).and().
 		a_test_scenario_that_fails_intermittently()
 
 	when.i_execute_the_run_command()
