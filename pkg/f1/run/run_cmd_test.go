@@ -1,6 +1,7 @@
 package run
 
 import (
+	"os"
 	"testing"
 	"time"
 )
@@ -182,6 +183,11 @@ func TestParameterised(t *testing.T) {
 		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
+			if test.name == "limited iterations" {
+				os.Setenv("TRACE", "true")
+				defer os.Setenv("TRACE", "false")
+			}
+
 			given, when, then := NewRunTestStage(t)
 
 			given.
