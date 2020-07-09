@@ -23,7 +23,7 @@ require (
 	github.com/phayes/freeport v0.0.0-20180830031419-95f893ade6f2
 	github.com/philhofer/fwd v1.0.0 // indirect
 	github.com/pkg/errors v0.9.1
-	github.com/prometheus/client_golang v1.6.0
+	github.com/prometheus/client_golang v1.7.1
 	github.com/prometheus/client_model v0.2.0
 	github.com/prometheus/common v0.10.0
 	github.com/sirupsen/logrus v1.6.0
@@ -36,7 +36,6 @@ require (
 	go.uber.org/goleak v1.0.1-0.20200504231054-4eaa85786836
 	golang.org/x/image v0.0.0-20200119044424-58c23975cae1 // indirect
 	golang.org/x/lint v0.0.0-20200302205851-738671d3881b // indirect
-	golang.org/x/sys v0.0.0-20200501052902-10377860bb8e // indirect
 	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect
 	gopkg.in/workanator/go-ataman.v1 v1.0.0-20170925060702-9a33b5b3bca7 // indirect
 )
