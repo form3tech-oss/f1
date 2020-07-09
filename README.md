@@ -22,11 +22,9 @@ func main() {
 This will give you a basic `f1` command line runner with the various running modes (see below) that are bundled with it. You can get more information about the various options available by simply running `go run main.go --help`
 
 ### Writing load tests
-Test scenarios consist of three stages: `Setup`, `Run` and `Teardown`. Setup is called once at the start of a test; this may be useful for generating resources needed for all tests, or subscribing to message queues. Run is called for every iteration of the test, often in parallel with multiple goroutines. Teardown is called once after all iterations complete.
+Test scenarios consist of three stages: `Setup`, `Run` and `Teardown`. Setup is called once at the start of a test; this may be useful for generating resources needed for all tests, or subscribing to message queues. Run is called for every iteration of the test, often in parallel with multiple goroutines. Teardown is called once after all iterations complete. These Setup, Run and Teardown functions are defined as types in `f1`:
 
 ```golang
-package testing
-
 // SetupFn performs any setup required to run a scenario.
 // It returns a RunFn to be invoked for every iteration of the tests
 // and a TeardownFn to clear down any resources after all iterations complete
@@ -38,16 +36,7 @@ type RunFn func(t *T)
 
 // TeardownFn clears down any resources from a test run after all iterations complete.
 type TeardownFn RunFn
-
-type MultiStageSetupFn func(t *T) ([]Stage, TeardownFn)
-
-type Stage struct {
-    Name  string
-    RunFn RunFn
-}
 ```
-
-Each of these are invoked with the testing support struct shown above. This provides integration with Testify's assert and require capabilities, for making assertions during the tests. This allow clean implementation of scenario test code. It also has a logger pre-configured with markers for the specific test iteration.
 
 Writing tests is simply a case of implementing the types and registering them with `f1`:
 
