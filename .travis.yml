@@ -9,6 +9,7 @@ before_script:
 - export PATH=$PATH:$HOME/.local/bin
 - export REPO=$TRAVIS_REPO_SLUG
 - export TAG=$(git describe)
+if: tag IS blank
 env:
   global:
   - AWS_REGION=eu-west-1
