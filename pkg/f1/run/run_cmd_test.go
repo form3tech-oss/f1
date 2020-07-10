@@ -183,7 +183,7 @@ func TestParameterised(t *testing.T) {
 		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			if test.name == "limited iterations" {
+			if test.name == "limited iterations running for multiple loops" || test.name == "limited iterations" {
 				os.Setenv("TRACE", "true")
 				defer os.Setenv("TRACE", "false")
 			}
