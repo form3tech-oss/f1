@@ -301,14 +301,7 @@ func (r *Run) runWorker(input <-chan int32, stop <-chan struct{}, wg *sync.WaitG
 			trace.Event("Stopping worker (%v)", worker)
 			return
 		case iteration := <-input:
-			// if both stop chan is closed and input ch has more iterations,
-			// select will choose a random case. double check if we need to stop
 			trace.Event("Received work (%v) from Channel 'doWork' iteration (%v)", worker, iteration)
-			select {
-			case <-stop:
-				return
-			default:
-			}
 			atomic.AddInt32(&r.busyWorkers, 1)
 			for _, stage := range r.activeScenario.Stages {
 				err := r.activeScenario.Run(metrics.IterationResult, stage.Name, worker, fmt.Sprint(iteration), stage.RunFn)
