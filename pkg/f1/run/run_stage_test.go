@@ -2,6 +2,7 @@ package run
 
 import (
 	"fmt"
+	"math"
 	"sync/atomic"
 	"syscall"
 	"testing"
@@ -104,7 +105,12 @@ func (s *RunTestStage) i_start_a_timer() *RunTestStage {
 
 func (s *RunTestStage) the_command_should_have_run_for_approx(expectedDuration time.Duration) *RunTestStage {
 	if expectedDuration > 0 {
-		s.assert.Equal(expectedDuration, s.runResult.TestDuration.Round(expectedDuration/5), "test run time")
+		diff := s.runResult.TestDuration - expectedDuration
+		msg := fmt.Sprintf(
+			"difference between expected (%f) an actual (%f) durations was more than 20%%",
+			expectedDuration.Seconds(),
+			s.runResult.TestDuration.Seconds())
+		s.assert.LessOrEqual(math.Abs(diff.Seconds()), expectedDuration.Seconds()*0.2, msg)
 	}
 	return s
 }
