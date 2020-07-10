@@ -106,11 +106,18 @@ func (s *RunTestStage) i_start_a_timer() *RunTestStage {
 func (s *RunTestStage) the_command_should_have_run_for_approx(expectedDuration time.Duration) *RunTestStage {
 	if expectedDuration > 0 {
 		diff := s.runResult.TestDuration - expectedDuration
+		// Generally, we want timings to be within 100ms of our expected values, but where the expectation
+		// is greater than 1 second, within 500ms is close enough.
+		marginForError := (100 * time.Millisecond).Seconds()
+		if expectedDuration.Seconds() > 1 {
+			marginForError = (500 * time.Millisecond).Seconds()
+		}
 		msg := fmt.Sprintf(
-			"difference between expected (%f) an actual (%f) durations was more than 20%%",
+			"difference between expected (%fs) an actual (%fs) durations was more than %fs",
 			expectedDuration.Seconds(),
-			s.runResult.TestDuration.Seconds())
-		s.assert.LessOrEqual(math.Abs(diff.Seconds()), expectedDuration.Seconds()*0.2, msg)
+			s.runResult.TestDuration.Seconds(),
+			marginForError)
+		s.assert.LessOrEqual(math.Abs(diff.Seconds()), marginForError, msg)
 	}
 	return s
 }
