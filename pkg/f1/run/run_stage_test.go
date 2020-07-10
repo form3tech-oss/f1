@@ -2,6 +2,7 @@ package run
 
 import (
 	"fmt"
+	"math"
 	"sync/atomic"
 	"syscall"
 	"testing"
@@ -104,7 +105,19 @@ func (s *RunTestStage) i_start_a_timer() *RunTestStage {
 
 func (s *RunTestStage) the_command_should_have_run_for_approx(expectedDuration time.Duration) *RunTestStage {
 	if expectedDuration > 0 {
-		s.assert.Equal(expectedDuration, s.runResult.TestDuration.Round(expectedDuration/5), "test run time")
+		diff := s.runResult.TestDuration - expectedDuration
+		// Generally, we want timings to be within 100ms of our expected values, but where the expectation
+		// is greater than 1 second, within 500ms is close enough.
+		marginForError := (100 * time.Millisecond).Seconds()
+		if expectedDuration.Seconds() > 1 {
+			marginForError = (500 * time.Millisecond).Seconds()
+		}
+		msg := fmt.Sprintf(
+			"difference between expected (%fs) an actual (%fs) durations was more than %fs",
+			expectedDuration.Seconds(),
+			s.runResult.TestDuration.Seconds(),
+			marginForError)
+		s.assert.LessOrEqual(math.Abs(diff.Seconds()), marginForError, msg)
 	}
 	return s
 }
@@ -342,16 +355,31 @@ func (s *RunTestStage) all_other_percentiles_are_fast() *RunTestStage {
 }
 
 func (s *RunTestStage) there_is_a_metric_called(metricName string) *RunTestStage {
-	s.assert.Contains(fakePrometheus.GetMetricNames(), metricName)
+	err := retry.Do(func() error {
+		metricNames := fakePrometheus.GetMetricNames()
+		for _, mn := range metricNames {
+			if mn == metricName {
+				return nil
+			}
+		}
+		return fmt.Errorf("%v did not contain %s", metricNames, metricName)
+	})
+	s.require.NoError(err)
 	return s
 }
 
 func (s *RunTestStage) the_iteration_metric_has_n_results(n int, result string) *RunTestStage {
-	metricFamily := fakePrometheus.GetMetricFamily("form3_loadtest_iteration")
-	s.require.NotNil(metricFamily)
-	successMetric := getMetricByResult(metricFamily, result)
-	s.require.NotNil(successMetric)
-	s.require.Equal(uint64(n), *successMetric.GetSummary().SampleCount)
+	err := retry.Do(func() error {
+		metricFamily := fakePrometheus.GetMetricFamily("form3_loadtest_iteration")
+		s.require.NotNil(metricFamily)
+		resultMetric := getMetricByResult(metricFamily, result)
+		s.require.NotNil(resultMetric)
+		if uint64(n) == *resultMetric.GetSummary().SampleCount {
+			return nil
+		}
+		return fmt.Errorf("expected %d to equal %d", uint64(n), *resultMetric.GetSummary().SampleCount)
+	})
+	s.require.NoError(err)
 	return s
 }
 

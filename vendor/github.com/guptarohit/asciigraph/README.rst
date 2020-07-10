@@ -94,6 +94,8 @@ CLI Installation
 
     go install github.com/guptarohit/asciigraph/cmd/asciigraph
 
+or download binaries from the `releases <https://github.com/guptarohit/asciigraph/releases>`_ page.
+
 Feed it data points via stdin:
 
 ::
@@ -115,10 +117,30 @@ Feed it data points via stdin:
 
 ..
 
+Realtime graph for data points via stdin:
+
+::
+
+ $ ping -i.2 google.com | grep -oP '(?<=time=).*(?=ms)' --line-buffered | asciigraph -r -h 10 -w 40 -c "realtime plot data (google ping in ms) from stdin"
+ 8.26 ┤                 ╭╮
+ 7.77 ┤                 ││
+ 7.27 ┤                 ││
+ 6.78 ┤                 ││             ╭╮
+ 6.29 ┤    ╭╮ ╭╮        ││             ││
+ 5.79 ┤    ││ ││        ││             │╰╮
+ 5.30 ┤    ││ ││      ╭╮││             │ │   ╭
+ 4.81 ┤    ││ ││      ││││             │ │   │
+ 4.32 ┤ ╭╮ ││╭╯│   ╭╮ ││││             │ │  ╭╯
+ 3.82 ┼╮│╰─╯╰╯ │╭──╯╰─╯╰╯╰──╮ ╭───╮╭───╯ ╰──╯
+ 3.33 ┤╰╯      ╰╯           ╰─╯   ╰╯
+         realtime plot data (google ping in ms) from stdin
+
+..
+
 
 Acknowledgement
 ----------------
-This package is golang port of library `asciichart <https://github.com/kroitor/asciichart>`_ written by `@kroitor <https://github.com/kroitor>`_.
+This package started as golang port of `asciichart <https://github.com/kroitor/asciichart>`_.
 
 Contributing
 ------------
