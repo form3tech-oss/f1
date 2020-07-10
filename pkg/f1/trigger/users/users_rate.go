@@ -16,16 +16,16 @@ func UsersRate() api.Builder {
 		Description: "triggers test iterations from a static set of virtual users controlled by the --concurrency flag",
 		Flags:       flags,
 		New: func(params *pflag.FlagSet) (*api.Trigger, error) {
-			trigger := func(doWork chan<- bool, stop <-chan bool, workDone <-chan bool, options options.RunOptions) {
+			trigger := func(workTriggered chan<- bool, stop <-chan bool, workDone <-chan bool, options options.RunOptions) {
 				for i := 0; i < options.Concurrency; i++ {
-					doWork <- true
+					workTriggered <- true
 				}
 				for {
 					select {
 					case <-stop:
 						return
 					case <-workDone:
-						doWork <- true
+						workTriggered <- true
 					}
 				}
 			}

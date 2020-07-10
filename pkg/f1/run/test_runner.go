@@ -12,20 +12,20 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/form3tech-oss/f1/pkg/f1/raterunner"
-
-	"github.com/form3tech-oss/f1/pkg/f1/options"
-
-	"github.com/pkg/errors"
-
 	"github.com/form3tech-oss/f1/pkg/f1/logging"
+	"github.com/form3tech-oss/f1/pkg/f1/options"
+	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
+
+	"github.com/form3tech-oss/f1/pkg/f1/trace"
+
+	"github.com/form3tech-oss/f1/pkg/f1/raterunner"
 
 	"github.com/form3tech-oss/f1/pkg/f1/trigger/api"
 
 	"github.com/aholic/ggtimer"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/push"
-	log "github.com/sirupsen/logrus"
 
 	"github.com/form3tech-oss/f1/pkg/f1/metrics"
 	"github.com/form3tech-oss/f1/pkg/f1/testing"
@@ -187,12 +187,26 @@ func (r *Run) run() {
 	r.result.RecordStarted()
 	defer r.result.RecordTestFinished()
 
-	doWork := make(chan bool, workers)
+	workTriggered := make(chan bool, workers)
 	stopTrigger := make(chan bool, 1)
-	go r.trigger.Trigger(doWork, stopTrigger, workDone, r.Options)
+	go r.trigger.Trigger(workTriggered, stopTrigger, workDone, r.Options)
+
+	// This blocks waiting for cancellable timer
+	go func() {
+		elapsed := <-durationElapsed.C
+		trace.ReceivedFromChannel("C")
+		if elapsed {
+			fmt.Println(r.result.MaxDurationElapsed())
+		}
+		log.Info("Stopping worker")
+		stopTrigger <- true
+		close(stopWorkers)
+		wg.Wait()
+	}()
 
 	// run more iterations on every tick, until duration has elapsed.
 	for {
+		trace.Event("Run loop ")
 		select {
 		case <-r.interrupt:
 			fmt.Println(r.result.Interrupted())
@@ -200,15 +214,13 @@ func (r *Run) run() {
 			// stop listening to interrupts - second interrupt will terminate immediately
 			signal.Stop(r.interrupt)
 			durationElapsed.Cancel()
-		case <-durationElapsed.C:
-			fmt.Println(r.result.MaxDurationElapsed())
-			log.Info("Stopping worker")
-			stopTrigger <- true
-			close(stopWorkers)
+		case <-workTriggered:
+			trace.ReceivedFromChannel("workTriggered")
+			r.doWork(doWorkChannel, durationElapsed)
+			trace.Event("Called do work")
+		case <-stopWorkers:
 			wg.Wait()
 			return
-		case <-doWork:
-			r.doWork(doWorkChannel, durationElapsed)
 		}
 	}
 }
@@ -223,10 +235,14 @@ func (r *Run) doWork(doWorkChannel chan<- int32, durationElapsed *testing.Cancel
 		return
 	}
 	iteration := atomic.AddInt32(&r.iteration, 1)
-	if r.Options.MaxIterations > 0 && iteration == r.Options.MaxIterations {
-		doWorkChannel <- iteration
-		durationElapsed.Cancel()
-	} else if r.Options.MaxIterations <= 0 || iteration < r.Options.MaxIterations {
+	if r.Options.MaxIterations > 0 && iteration > r.Options.MaxIterations {
+		trace.Event("Max iterations exceeded Calling Cancel on iteration  '%v' .", iteration)
+		if durationElapsed.Cancel() {
+			fmt.Println(r.result.MaxIterationsReached())
+		}
+		trace.Event("Max iterations exceeded Called Cancel on iteration  '%v' .", iteration)
+	} else if r.Options.MaxIterations <= 0 || iteration <= r.Options.MaxIterations {
+		trace.Event("Within Max iterations So calling dowork() on iteration  '%v' .", iteration)
 		doWorkChannel <- iteration
 	}
 }
@@ -282,18 +298,14 @@ func (r *Run) gatherProgressMetrics(duration time.Duration) {
 
 func (r *Run) runWorker(input <-chan int32, stop <-chan struct{}, wg *sync.WaitGroup, worker string, workDone chan<- bool) {
 	defer wg.Done()
+	trace.Event("Started worker (%v)", worker)
 	for {
 		select {
 		case <-stop:
+			trace.Event("Stopping worker (%v)", worker)
 			return
 		case iteration := <-input:
-			// if both stop chan is closed and input ch has more iterations,
-			// select will choose a random case. double check if we need to stop
-			select {
-			case <-stop:
-				return
-			default:
-			}
+			trace.Event("Received work (%v) from Channel 'doWork' iteration (%v)", worker, iteration)
 			atomic.AddInt32(&r.busyWorkers, 1)
 			for _, stage := range r.activeScenario.Stages {
 				err := r.activeScenario.Run(metrics.IterationResult, stage.Name, worker, fmt.Sprint(iteration), stage.RunFn)
@@ -311,6 +323,9 @@ func (r *Run) runWorker(input <-chan int32, stop <-chan struct{}, wg *sync.WaitG
 			case <-stop:
 				return
 			}
+
+			trace.Event("Completed iteration (%v).", iteration)
+
 		}
 	}
 }
