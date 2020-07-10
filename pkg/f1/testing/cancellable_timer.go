@@ -47,11 +47,13 @@ func (c *CancellableTimer) wait() {
 }
 
 // Cancel makes all the waiters receive false
-func (c *CancellableTimer) Cancel() {
+func (c *CancellableTimer) Cancel() bool {
 	trace.Event("Closing Channel 'cancel'")
 	if atomic.CompareAndSwapInt32(&c.cancelled, 0, 1) {
 		close(c.cancel)
+		return true
 	}
+	return false
 }
 
 func (c *CancellableTimer) Reset(duration time.Duration) {

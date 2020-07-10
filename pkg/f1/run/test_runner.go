@@ -193,9 +193,11 @@ func (r *Run) run() {
 
 	// This blocks waiting for cancellable timer
 	go func() {
-		<-durationElapsed.C
+		elapsed := <-durationElapsed.C
 		trace.ReceivedFromChannel("C")
-		fmt.Println(r.result.MaxDurationElapsed())
+		if elapsed {
+			fmt.Println(r.result.MaxDurationElapsed())
+		}
 		log.Info("Stopping worker")
 		stopTrigger <- true
 		close(stopWorkers)
@@ -235,7 +237,9 @@ func (r *Run) doWork(doWorkChannel chan<- int32, durationElapsed *testing.Cancel
 	iteration := atomic.AddInt32(&r.iteration, 1)
 	if r.Options.MaxIterations > 0 && iteration > r.Options.MaxIterations {
 		trace.Event("Max iterations exceeded Calling Cancel on iteration  '%v' .", iteration)
-		durationElapsed.Cancel()
+		if durationElapsed.Cancel() {
+			fmt.Println(r.result.MaxIterationsReached())
+		}
 		trace.Event("Max iterations exceeded Called Cancel on iteration  '%v' .", iteration)
 	} else if r.Options.MaxIterations <= 0 || iteration <= r.Options.MaxIterations {
 		trace.Event("Within Max iterations So calling dowork() on iteration  '%v' .", iteration)

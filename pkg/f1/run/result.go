@@ -156,6 +156,9 @@ var (
 	timeout = template.Must(template.New("timeout").
 		Funcs(templateFunctions).
 		Parse(`{cyan}[{{durationSeconds .Duration | printf "%5s"}}]  Max Duration Elapsed - waiting for active tests to complete{-}`))
+	maxIterationsReached = template.Must(template.New("maxIterationsReached").
+				Funcs(templateFunctions).
+				Parse(`{cyan}[{{durationSeconds .Duration | printf "%5s"}}]  Max Iterations Reached - waiting for active tests to complete{-}`))
 	interrupt = template.Must(template.New("interrupt").
 			Funcs(templateFunctions).
 			Parse(`{cyan}[{{durationSeconds .Duration | printf "%5s"}}]  Interrupted - waiting for active tests to complete{-}`))
@@ -238,4 +241,10 @@ func (r *RunResult) RecordTestFinished() {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	r.TestDuration = time.Since(r.startTime)
+}
+
+func (r *RunResult) MaxIterationsReached() string {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	return renderTemplate(maxIterationsReached, r)
 }
