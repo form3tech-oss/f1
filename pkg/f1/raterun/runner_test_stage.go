@@ -1,4 +1,4 @@
-package raterunner
+package raterun
 
 import (
 	"sync"
@@ -12,7 +12,7 @@ import (
 
 type RatedRunnerStage struct {
 	rates    []Rate
-	runner   *RateRunner
+	runner   Runner
 	m        sync.Mutex
 	funcRuns map[time.Duration]int
 	t        *testing.T

@@ -1,4 +1,4 @@
-package raterunner
+package raterun
 
 import (
 	"testing"
