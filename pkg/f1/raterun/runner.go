@@ -14,8 +14,11 @@ type Rate struct {
 }
 
 type Runner interface {
+	// Terminate cancels scheduling for the next run
 	Terminate()
+	// RestartRate resets function calling back to first defined rate
 	RestartRate()
+	// run starts running the function at rates provided to the constructor
 	Run()
 }
 
@@ -50,17 +53,14 @@ type rrInstance struct {
 	rateTimer *time.Timer
 }
 
-// Terminate finishes the runner
 func (rr *rrInstance) Terminate() {
 	rr.terminateRunner <- true
 }
 
-// RestartRate resets function calling back to first defined rate
 func (rr *rrInstance) RestartRate() {
 	rr.restartRates <- true
 }
 
-// run starts running the function following the rates given to the constructor
 func (rr *rrInstance) Run() {
 	go func() {
 		rr.rateTimer = time.NewTimer(rr.rates[0].Start)
