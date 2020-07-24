@@ -29,7 +29,7 @@ func NewT(env map[string]string, vu, iter string, scenarioName string) *T {
 	t := &T{
 		VirtualUser: vu,
 		Iteration:   iter,
-		Log:         log.New().WithField("u", vu).WithField("i", iter).WithField("scenario", scenarioName).Logger,
+		Log:         log.WithField("u", vu).WithField("i", iter).WithField("scenario", scenarioName).Logger,
 		Environment: env,
 		Scenario:    scenarioName,
 	}
