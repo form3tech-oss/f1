@@ -19,7 +19,7 @@ import (
 
 	"github.com/form3tech-oss/f1/pkg/f1/trace"
 
-	"github.com/form3tech-oss/f1/pkg/f1/raterunner"
+	"github.com/form3tech-oss/f1/pkg/f1/raterun"
 
 	"github.com/form3tech-oss/f1/pkg/f1/trigger/api"
 
@@ -46,10 +46,10 @@ func NewRun(options options.RunOptions, t *api.Trigger) (*Run, error) {
 	}
 	run.result.IgnoreDropped = options.IgnoreDropped
 
-	progressRunner, _ := raterunner.New(func(rate time.Duration, t time.Time) {
+	progressRunner, _ := raterun.New(func(rate time.Duration, t time.Time) {
 		run.gatherProgressMetrics(rate)
 		fmt.Println(run.result.Progress())
-	}, []raterunner.Rate{
+	}, []raterun.Rate{
 		{Start: time.Nanosecond, Rate: time.Second},
 		{Start: time.Minute, Rate: time.Second * 10},
 		{Start: time.Minute * 5, Rate: time.Minute / 2},
@@ -72,7 +72,7 @@ type Run struct {
 	RateDescription string
 	pusher          *push.Pusher
 	notifyDropped   sync.Once
-	progressRunner  *raterunner.RateRunner
+	progressRunner  raterun.Runner
 }
 
 var startTemplate = template.Must(template.New("result parse").

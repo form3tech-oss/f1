@@ -1,4 +1,4 @@
-package raterunner
+package raterun
 
 import (
 	"errors"
@@ -13,13 +13,22 @@ type Rate struct {
 	Rate  time.Duration // run in amount of Duration
 }
 
+type Runner interface {
+	// Terminate cancels scheduling for the next run
+	Terminate()
+	// RestartRate resets function calling back to first defined rate
+	RestartRate()
+	// run starts running the function at rates provided to the constructor
+	Run()
+}
+
 // New creates a new runner which varies in time according to given rates
-func New(fn RunFunction, rates []Rate) (*RateRunner, error) {
+func New(fn RunFunction, rates []Rate) (*rrInstance, error) {
 	if len(rates) == 0 {
 		return nil, errors.New("empty rates")
 	}
 
-	rateRunner := &RateRunner{
+	rateRunner := &rrInstance{
 		terminateRunner: make(chan bool, 1),
 		restartRates:    make(chan bool, 1),
 		runFunction:     fn,
@@ -30,7 +39,7 @@ func New(fn RunFunction, rates []Rate) (*RateRunner, error) {
 	return rateRunner, nil
 }
 
-type RateRunner struct {
+type rrInstance struct {
 	terminateRunner chan bool
 	restartRates    chan bool
 	// function that is going to be run at specific timed intervals, according to current rate set at a specific moment in time
@@ -44,18 +53,15 @@ type RateRunner struct {
 	rateTimer *time.Timer
 }
 
-// Terminate finishes the runner
-func (rr *RateRunner) Terminate() {
+func (rr *rrInstance) Terminate() {
 	rr.terminateRunner <- true
 }
 
-// RestartRate resets function calling back to first defined rate
-func (rr *RateRunner) RestartRate() {
+func (rr *rrInstance) RestartRate() {
 	rr.restartRates <- true
 }
 
-// run starts running the function following the rates given to the constructor
-func (rr *RateRunner) Run() {
+func (rr *rrInstance) Run() {
 	go func() {
 		rr.rateTimer = time.NewTimer(rr.rates[0].Start)
 		rr.fnTicker = time.NewTicker(time.Hour)
@@ -80,7 +86,7 @@ func (rr *RateRunner) Run() {
 	}()
 }
 
-func (rr *RateRunner) scheduleNextRate(rateIndex int) {
+func (rr *rrInstance) scheduleNextRate(rateIndex int) {
 	if rateIndex < len(rr.rates) {
 		nextRate := rr.rates[rateIndex]
 		// close rateTimer if it hasn't run yet to prevent double runs
@@ -89,7 +95,7 @@ func (rr *RateRunner) scheduleNextRate(rateIndex int) {
 	}
 }
 
-func (rr *RateRunner) runAtRate(rate Rate) {
+func (rr *rrInstance) runAtRate(rate Rate) {
 	rr.fnTicker.Stop()
 	rr.fnTicker = time.NewTicker(rate.Rate)
 }
