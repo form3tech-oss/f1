@@ -8,7 +8,6 @@ before_script:
 - pip install --user awscli
 - export PATH=$PATH:$HOME/.local/bin
 - export REPO=$TRAVIS_REPO_SLUG
-- export TAG=$(git describe)
 if: tag IS blank
 env:
   global:
@@ -39,16 +38,14 @@ jobs:
     - make scan-code
   - stage: deploy
     name: GitHub Release
-    if: "(commit_message =~ /(--release)/ OR branch = master) AND type != pull_request
-      AND tag IS blank"
+    if: "(commit_message =~ /(--release)/ OR branch = master) AND type != pull_request"
     script:
-    - git tag $TAG
-    on:
-      tags: false
+    - CURR_TAG=$(git tag | sort -V | tail -1); CURR_PATCH_V=$(echo $CURR_TAG | grep -oP "[0-9]+$"); NEXT_PATCH_V=$(($CURR_PATCH_V + 1)); NEXT_TAG=$(echo $CURR_TAG | sed "s/[0-9]*\$/$NEXT_PATCH_V/g"); git tag -a $NEXT_TAG -m "Auto-Release - $NEXT_TAG"
     deploy:
     - provider: releases
       api_key: "$GITHUB_TOKEN"
       skip_cleanup: true
-      name: Auto-release ${TAG}
-      body: "${TAG}"
+      name: Auto-release ${NEXT_TAG}
+      body: "${NEXT_TAG}"
       prerelease: false
+
