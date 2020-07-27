@@ -40,7 +40,7 @@ jobs:
     name: GitHub Release
     if: "(commit_message =~ /(--release)/ OR branch = master) AND type != pull_request"
     script:
-    - CURR_TAG=$(git tag | sort -V | tail -1); CURR_PATCH_V=$(echo $CURR_TAG | grep -oP "[0-9]+$"); NEXT_PATCH_V=$(($CURR_PATCH_V + 1)); NEXT_TAG=$(echo $CURR_TAG | sed "s/[0-9]*\$/$NEXT_PATCH_V/g"); git tag -a $NEXT_TAG -m "Auto-Release - $NEXT_TAG"
+    - CURR_TAG=$(git tag | sort -V | tail -1 | grep -oP "^v[0-9]+\.[0-9]+\.[0-9]+"); CURR_PATCH_V=$(echo $CURR_TAG | grep -oP "[0-9]+$"); NEXT_PATCH_V=$(($CURR_PATCH_V + 1)); NEXT_TAG=$(echo $CURR_TAG | sed "s/[0-9]*\$/$NEXT_PATCH_V/g"); git tag -a $NEXT_TAG -m "Auto-Release - $NEXT_TAG"
     deploy:
     - provider: releases
       api_key: "$GITHUB_TOKEN"
