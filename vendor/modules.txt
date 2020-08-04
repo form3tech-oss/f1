@@ -79,7 +79,7 @@ github.com/prometheus/client_golang/prometheus/push
 # github.com/prometheus/client_model v0.2.0
 ## explicit
 github.com/prometheus/client_model/go
-# github.com/prometheus/common v0.10.0
+# github.com/prometheus/common v0.11.1
 ## explicit
 github.com/prometheus/common/expfmt
 github.com/prometheus/common/internal/bitbucket.org/ww/goautoneg
@@ -129,7 +129,7 @@ golang.org/x/image/math/fixed
 ## explicit
 golang.org/x/lint
 golang.org/x/lint/golint
-# golang.org/x/sys v0.0.0-20200615200032-f1bc736245b1
+# golang.org/x/sys v0.0.0-20200625212154-ddb9806d33ae
 golang.org/x/sys/internal/unsafeheader
 golang.org/x/sys/unix
 golang.org/x/sys/windows
