@@ -1,6 +1,7 @@
 package labels
+
 const (
-	Test = "test"
-	Stage = "stage"
+	Test   = "test"
+	Stage  = "stage"
 	Result = "result"
 )

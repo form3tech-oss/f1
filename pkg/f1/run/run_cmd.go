@@ -95,7 +95,7 @@ func runCmdExecute(t api.Builder, hookFunc logging.RegisterLogHookFunc) func(cmd
 		}
 
 		run, err := NewRun(options.RunOptions{
-			RunName: 			 runName,
+			RunName:             runName,
 			Scenario:            scenarioName,
 			MaxDuration:         duration,
 			Concurrency:         concurrency,

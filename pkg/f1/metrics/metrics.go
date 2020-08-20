@@ -1,8 +1,9 @@
 package metrics
 
 import (
-	"github.com/form3tech-oss/f1/pkg/f1/metrics/labels"
 	"sync"
+
+	"github.com/form3tech-oss/f1/pkg/f1/metrics/labels"
 
 	"github.com/prometheus/client_golang/prometheus"
 )
