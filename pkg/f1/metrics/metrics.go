@@ -1,6 +1,7 @@
 package metrics
 
 import (
+	"github.com/form3tech-oss/f1/pkg/f1/metrics/labels"
 	"sync"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -37,14 +38,14 @@ func Instance() *Metrics {
 				Name:       "setup",
 				Help:       "Duration of setup functions.",
 				Objectives: percentileObjectives,
-			}, []string{"test", "result"}),
+			}, []string{labels.Test, labels.Result}),
 			Iteration: prometheus.NewSummaryVec(prometheus.SummaryOpts{
 				Namespace:  "form3",
 				Subsystem:  "loadtest",
 				Name:       "iteration",
 				Help:       "Duration of iteration functions.",
 				Objectives: percentileObjectives,
-			}, []string{"test", "stage", "result"}),
+			}, []string{labels.Test, labels.Stage, labels.Result}),
 			Progress: prometheus.NewSummaryVec(prometheus.SummaryOpts{
 				Namespace:  "form3",
 				Subsystem:  "loadtest",
@@ -58,7 +59,7 @@ func Instance() *Metrics {
 				Name:       "teardown",
 				Help:       "Duration of teardown functions.",
 				Objectives: percentileObjectives,
-			}, []string{"test", "result"}),
+			}, []string{labels.Test, labels.Result}),
 		}
 		prometheus.MustRegister(
 			m.Setup,
@@ -85,14 +86,14 @@ func (metrics *Metrics) Reset() {
 	metrics.Teardown.Reset()
 }
 
-func (metrics *Metrics) Record(metric MetricType, name string, stage string, result string, nanoseconds int64) {
+func (metrics *Metrics) Record(metric MetricType, test string, stage string, result string, nanoseconds int64) {
 	switch metric {
 	case SetupResult:
-		metrics.Setup.WithLabelValues(name, result).Observe(float64(nanoseconds))
+		metrics.Setup.WithLabelValues(test, result).Observe(float64(nanoseconds))
 	case IterationResult:
-		metrics.Iteration.WithLabelValues(name, stage, result).Observe(float64(nanoseconds))
-		metrics.Progress.WithLabelValues(name, stage, result).Observe(float64(nanoseconds))
+		metrics.Iteration.WithLabelValues(test, stage, result).Observe(float64(nanoseconds))
+		metrics.Progress.WithLabelValues(test, stage, result).Observe(float64(nanoseconds))
 	case TeardownResult:
-		metrics.Teardown.WithLabelValues(name, result).Observe(float64(nanoseconds))
+		metrics.Teardown.WithLabelValues(test, result).Observe(float64(nanoseconds))
 	}
 }

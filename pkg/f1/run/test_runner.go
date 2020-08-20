@@ -39,7 +39,7 @@ func NewRun(options options.RunOptions, t *api.Trigger) (*Run, error) {
 	}
 	prometheusUrl := os.Getenv("PROMETHEUS_PUSH_GATEWAY")
 	if prometheusUrl != "" {
-		run.pusher = push.New(prometheusUrl, "f1-"+options.Scenario).Gatherer(prometheus.DefaultGatherer)
+		run.pusher = push.New(prometheusUrl, "f1").Gatherer(prometheus.DefaultGatherer)
 	}
 	if run.Options.RegisterLogHookFunc == nil {
 		run.Options.RegisterLogHookFunc = logging.NoneRegisterLogHookFunc
@@ -90,7 +90,7 @@ func (r *Run) Do() *RunResult {
 
 	metrics.Instance().Reset()
 	var err error
-	r.activeScenario, err = testing.NewActiveScenarios(r.Options.Scenario, r.Options.Env, testing.GetScenario(r.Options.Scenario), 0)
+	r.activeScenario, err = testing.NewActiveScenarios(r.Options.RunName, r.Options.Env, testing.GetScenario(r.Options.Scenario), 0)
 	r.pushMetrics()
 	fmt.Println(r.result.Setup())
 
