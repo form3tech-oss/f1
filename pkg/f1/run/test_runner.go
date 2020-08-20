@@ -78,7 +78,7 @@ type Run struct {
 var startTemplate = template.Must(template.New("result parse").
 	Funcs(templateFunctions).
 	Parse(`{u}{bold}{intensive_blue}F1 Load Tester{-}
-Running {yellow}{{.Options.Scenario}}{-} scenario for {{if .Options.MaxIterations}}up to {{.Options.MaxIterations}} iterations or up to {{end}}{{duration .Options.MaxDuration}} at a rate of {{.RateDescription}}.
+Running {yellow}{{.Options.ScenarioName}}{-} scenario for {{if .Options.MaxIterations}}up to {{.Options.MaxIterations}} iterations or up to {{end}}{{duration .Options.MaxDuration}} at a rate of {{.RateDescription}}.
 `))
 
 func (r *Run) Do() *RunResult {
@@ -90,7 +90,7 @@ func (r *Run) Do() *RunResult {
 
 	metrics.Instance().Reset()
 	var err error
-	r.activeScenario, err = testing.NewActiveScenarios(r.Options.RunName, r.Options.Env, testing.GetScenario(r.Options.Scenario), 0)
+	r.activeScenario, err = testing.NewActiveScenarios(r.Options.ScenarioName, r.Options.RunName, r.Options.Env, testing.GetScenario(r.Options.ScenarioName), 0)
 	r.pushMetrics()
 	fmt.Println(r.result.Setup())
 
@@ -120,9 +120,9 @@ func (r *Run) Do() *RunResult {
 }
 
 func (r *Run) configureLogging() {
-	r.Options.RegisterLogHookFunc(r.Options.Scenario)
+	r.Options.RegisterLogHookFunc(r.Options.ScenarioName)
 	if !r.Options.Verbose {
-		r.result.LogFile = redirectLoggingToFile(r.Options.Scenario)
+		r.result.LogFile = redirectLoggingToFile(r.Options.ScenarioName)
 		welcomeMessage := renderTemplate(startTemplate, r)
 		log.Info(welcomeMessage)
 		fmt.Printf("Saving logs to %s\n\n", r.result.LogFile)
@@ -140,7 +140,7 @@ func (r *Run) teardown() {
 			r.fail(err, "teardown failed")
 		}
 	} else {
-		log.Infof("nil teardown function for scenario %s", r.Options.Scenario)
+		log.Infof("nil teardown function for scenario %s", r.Options.ScenarioName)
 	}
 }
 

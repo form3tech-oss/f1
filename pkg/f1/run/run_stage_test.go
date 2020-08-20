@@ -82,7 +82,7 @@ func (s *RunTestStage) a_concurrency_of(concurrency int) *RunTestStage {
 func (s *RunTestStage) i_execute_the_run_command() *RunTestStage {
 	run, err := NewRun(
 		options.RunOptions{
-			Scenario:            s.scenario,
+			ScenarioName:        s.scenario,
 			MaxDuration:         s.duration,
 			Concurrency:         s.concurrency,
 			MaxIterations:       s.maxIterations,
@@ -244,7 +244,7 @@ func (s *RunTestStage) an_iteration_limit_of(iterations int32) *RunTestStage {
 func (s *RunTestStage) the_test_run_is_started() *RunTestStage {
 	go func() {
 		run, err := NewRun(options.RunOptions{
-			Scenario:            s.scenario,
+			ScenarioName:        s.scenario,
 			MaxDuration:         s.duration,
 			Concurrency:         s.concurrency,
 			MaxIterations:       s.maxIterations,
