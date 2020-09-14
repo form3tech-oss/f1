@@ -48,15 +48,15 @@ func Plot(series []float64, options ...Option) string {
 	rows := int(math.Abs(float64(intmax2 - intmin2)))
 	width := len(series) + config.Offset
 
-	var plot [][]string
+	plot := make([][]string, rows+1)
 
 	// initialise empty 2D grid
 	for i := 0; i < rows+1; i++ {
-		var line []string
+		line := make([]string, width)
 		for j := 0; j < width; j++ {
-			line = append(line, " ")
+			line[j] = " "
 		}
-		plot = append(plot, line)
+		plot[i] = line
 	}
 
 	precision := 2
@@ -69,9 +69,9 @@ func Plot(series []float64, options ...Option) string {
 		// negative log
 		if math.Mod(logMaximum, 1) != 0 {
 			// non-zero digits after decimal
-			precision = precision + int(math.Abs(logMaximum))
+			precision += int(math.Abs(logMaximum))
 		} else {
-			precision = precision + int(math.Abs(logMaximum)-1.0)
+			precision += int(math.Abs(logMaximum) - 1.0)
 		}
 	} else if logMaximum > 2 {
 		precision = 0
@@ -108,8 +108,29 @@ func Plot(series []float64, options ...Option) string {
 	plot[rows-y0][config.Offset-1] = "┼" // first value
 
 	for x := 0; x < len(series)-1; x++ { // plot the line
-		y0 = int(round(series[x+0]*ratio) - float64(intmin2))
-		y1 = int(round(series[x+1]*ratio) - float64(intmin2))
+
+		d0 := series[x]
+		d1 := series[x+1]
+
+		if math.IsNaN(d0) && math.IsNaN(d1) {
+			continue
+		}
+
+		if math.IsNaN(d1) && !math.IsNaN(d0) {
+			y0 = int(round(d0*ratio) - float64(intmin2))
+			plot[rows-y0][x+config.Offset] = "╴"
+			continue
+		}
+
+		if math.IsNaN(d0) && !math.IsNaN(d1) {
+			y1 = int(round(d1*ratio) - float64(intmin2))
+			plot[rows-y1][x+config.Offset] = "╶"
+			continue
+		}
+
+		y0 = int(round(d0*ratio) - float64(intmin2))
+		y1 = int(round(d1*ratio) - float64(intmin2))
+
 		if y0 == y1 {
 			plot[rows-y0][x+config.Offset] = "─"
 		} else {
@@ -135,7 +156,17 @@ func Plot(series []float64, options ...Option) string {
 		if h != 0 {
 			lines.WriteRune('\n')
 		}
-		for _, v := range horizontal {
+
+		// remove trailing spaces
+		lastCharIndex := 0
+		for i := width - 1; i >= 0; i-- {
+			if horizontal[i] != " " {
+				lastCharIndex = i
+				break
+			}
+		}
+
+		for _, v := range horizontal[:lastCharIndex+1] {
 			lines.WriteString(v)
 		}
 	}
@@ -143,7 +174,10 @@ func Plot(series []float64, options ...Option) string {
 	// add caption if not empty
 	if config.Caption != "" {
 		lines.WriteRune('\n')
-		lines.WriteString(strings.Repeat(" ", config.Offset+maxWidth+2))
+		lines.WriteString(strings.Repeat(" ", config.Offset+maxWidth))
+		if len(config.Caption) < len(series) {
+			lines.WriteString(strings.Repeat(" ", (len(series)-len(config.Caption))/2))
+		}
 		lines.WriteString(config.Caption)
 	}
 
