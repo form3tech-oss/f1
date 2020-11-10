@@ -95,7 +95,7 @@ func (s *ActiveScenario) checkResults(t *T, done chan<- struct{}) {
 		t.Fail()
 		err, isError := r.(error)
 		if isError {
-			message := fmt.Sprintf("panic in `%s` test scenario on iteration `%s` for user `%s`", t.Scenario, t.Iteration, t.VirtualUser)
+			message := fmt.Sprintf("panic in `%s` test scenario on iteration `%s` for user\n`%s`", t.Scenario, t.Iteration, t.VirtualUser)
 
 			t.Log.WithField("stack_trace", debug.Stack()).WithError(err).Errorf(message)
 			_, _ = os.Stderr.Write([]byte(fmt.Sprintf("%s: %v", message, err)))
