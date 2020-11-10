@@ -2,6 +2,8 @@ package testing
 
 import (
 	"errors"
+	"fmt"
+	"os"
 	"runtime/debug"
 	"sync"
 	"time"
@@ -93,8 +95,10 @@ func (s *ActiveScenario) checkResults(t *T, done chan<- struct{}) {
 		t.Fail()
 		err, isError := r.(error)
 		if isError {
-			t.Log.WithError(err).Errorf("panic in `%s` test scenario on iteration `%s` for user `%s`", t.Scenario, t.Iteration, t.VirtualUser)
-			debug.PrintStack()
+			message := fmt.Sprintf("panic in `%s` test scenario on iteration `%s` for user `%s`", t.Scenario, t.Iteration, t.VirtualUser)
+
+			t.Log.WithField("stack_trace", debug.Stack()).WithError(err).Errorf(message)
+			_, _ = os.Stderr.Write([]byte(fmt.Sprintf("%s: %v", message, err)))
 		} else {
 			t.Log.Errorf("panic in `%s` test scenario on iteration `%s` for user `%s`: %v", t.Scenario, t.Iteration, t.VirtualUser, r)
 		}
