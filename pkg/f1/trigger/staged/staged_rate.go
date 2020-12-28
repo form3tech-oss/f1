@@ -15,7 +15,7 @@ func StagedRate() api.Builder {
 	flags.StringP("stages", "s", "0s:1, 10s:1", "Comma separated list of <stage_duration>:<target_concurrent_iterations>. During the stage, the number of concurrent iterations will ramp up or down to the target. ")
 	flags.DurationP("iterationFrequency", "f", 1*time.Second, "How frequently iterations should be started")
 	flags.Float64P("jitter", "j", 0.0, "vary the rate randomly by up to jitter percent")
-	flags.String("distribution", "none", "optional parameter to distribute the rate over steps of 100ms")
+	flags.String("distribution", "none", "optional parameter to distribute the rate over steps of 100ms, which can be none|regular|random")
 
 	return api.Builder{
 		Name:        "staged",

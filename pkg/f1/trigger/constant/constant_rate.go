@@ -17,7 +17,7 @@ func ConstantRate() api.Builder {
 	flags := pflag.NewFlagSet("constant", pflag.ContinueOnError)
 	flags.StringP("rate", "r", "1/s", "number of iterations to start per interval, in the form <request>/<duration>")
 	flags.Float64P("jitter", "j", 0.0, "vary the rate randomly by up to jitter percent")
-	flags.String("distribution", "none", "optional parameter to distribute the rate over steps of 100ms")
+	flags.String("distribution", "none", "optional parameter to distribute the rate over steps of 100ms, which can be none|regular|random")
 
 	return api.Builder{
 		Name:        "constant",
