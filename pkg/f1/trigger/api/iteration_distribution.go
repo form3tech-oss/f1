@@ -65,6 +65,10 @@ func WithRandomDistribution(iterationDuration time.Duration, rateFn RateFunction
 			currentRate = remainingRate
 		} else {
 			currentRate = randFn(remainingRate)
+
+			if currentRate > remainingRate {
+				currentRate = remainingRate
+			}
 		}
 		remainingRate -= currentRate
 		remainingSteps--
