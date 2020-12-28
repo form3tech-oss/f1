@@ -65,7 +65,7 @@ func StagedRate() api.Builder {
 			return &api.Trigger{
 					Trigger:     api.NewIterationWorker(distributedIterationDuration, distributedRateFn),
 					DryRun:      distributedRateFn,
-					Description: fmt.Sprintf("Starting iterations every %s in numbers varying by time: %s,", distributedIterationDuration, stg),
+					Description: fmt.Sprintf("Starting iterations every %s in numbers varying by time: %s, using distribution %s", frequency, stg, distributionTypeArg),
 					Duration:    calculator.MaxDuration(),
 				},
 				nil

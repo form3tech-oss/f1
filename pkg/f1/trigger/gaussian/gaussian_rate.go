@@ -97,10 +97,18 @@ func GaussianRate() api.Builder {
 			}
 
 			return &api.Trigger{
-					Trigger:     api.NewIterationWorker(distributedIterationDuration, distributedRateFn),
-					DryRun:      distributedRateFn,
-					Description: fmt.Sprintf("Gaussian distribution triggering %d iterations per %s, peaking at %s with standard deviation of %s%s", int(volume), repeat, peak, stddev, jitterDesc),
-					Duration:    time.Hour * 24 * 356,
+					Trigger: api.NewIterationWorker(distributedIterationDuration, distributedRateFn),
+					DryRun:  distributedRateFn,
+					Description: fmt.Sprintf(
+						"Gaussian distribution triggering %d iterations per %s, peaking at %s with standard deviation of %s%s, using distribution %s",
+						int(volume),
+						repeat,
+						peak,
+						stddev,
+						jitterDesc,
+						distributionTypeArg,
+					),
+					Duration: time.Hour * 24 * 356,
 				},
 				nil
 		},

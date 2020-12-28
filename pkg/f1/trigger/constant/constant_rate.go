@@ -76,7 +76,7 @@ func ConstantRate() api.Builder {
 
 			return &api.Trigger{
 					Trigger:     api.NewIterationWorker(distributedIterationDuration, distributedRateFn),
-					Description: fmt.Sprintf("%d iterations every %s", rate, distributedIterationDuration),
+					Description: fmt.Sprintf("%d iterations every %s, using distribution %s", rate, iterationDuration, distributionTypeArg),
 					DryRun:      distributedRateFn,
 				},
 				nil
