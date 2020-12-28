@@ -93,7 +93,7 @@ func GaussianRate() api.Builder {
 				randomFn := func(limit int) int { return rand.Intn(limit) }
 				distributedIterationDuration, distributedRateFn = api.WithRandomDistribution(frequency, rateFn, randomFn)
 			default:
-				return nil, fmt.Errorf("unable to parse distribution-type #{distributionTypeArg}")
+				return nil, fmt.Errorf("unable to parse distribution %s", distributionTypeArg)
 			}
 
 			return &api.Trigger{

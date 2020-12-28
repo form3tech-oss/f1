@@ -71,7 +71,7 @@ func ConstantRate() api.Builder {
 				randomFn := func(limit int) int { return rand.Intn(limit) }
 				distributedIterationDuration, distributedRateFn = api.WithRandomDistribution(iterationDuration, rateFn, randomFn)
 			default:
-				return nil, fmt.Errorf("unable to parse distribution-type #{distributionTypeArg}")
+				return nil, fmt.Errorf("unable to parse distribution %s", distributionTypeArg)
 			}
 
 			return &api.Trigger{
