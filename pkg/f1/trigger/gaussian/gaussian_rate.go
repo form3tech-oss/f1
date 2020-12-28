@@ -3,6 +3,7 @@ package gaussian
 import (
 	"fmt"
 	"math"
+	"math/rand"
 	"strconv"
 	"strings"
 	"time"
@@ -22,6 +23,7 @@ func GaussianRate() api.Builder {
 	flags.Duration("peak", 14*time.Hour, "The offset within the repetition window when the load should reach its maximum. Default 14 hours (with 24 hour default repeat)")
 	flags.Duration("standard-deviation", 150*time.Minute, "The standard deviation to use for the distribution of load")
 	flags.Float64P("jitter", "j", 0.0, "vary the rate randomly by up to jitter percent")
+	flags.String("distribution", "none", "optional parameter to distribute the rate over steps of 100ms")
 
 	return api.Builder{
 		Name:        "gaussian",
@@ -56,6 +58,10 @@ func GaussianRate() api.Builder {
 			if err != nil {
 				return nil, err
 			}
+			distributionTypeArg, err := flags.GetString("distribution")
+			if err != nil {
+				return nil, err
+			}
 			var weightsSlice []float64
 			for _, s := range strings.Split(weights, ",") {
 				if s == "" {
@@ -74,9 +80,25 @@ func GaussianRate() api.Builder {
 			if jitter != 0 {
 				jitterDesc = fmt.Sprintf(" with jitter of %.2f%%", jitter)
 			}
+			rateFn := api.WithJitter(calculator.For, jitter)
+
+			var distributedIterationDuration time.Duration
+			var distributedRateFn func(time time.Time) int
+			switch distributionTypeArg {
+			case "none":
+				distributedIterationDuration, distributedRateFn = frequency, rateFn
+			case "regular":
+				distributedIterationDuration, distributedRateFn = api.WithRegularDistribution(frequency, rateFn)
+			case "random":
+				randomFn := func(limit int) int { return rand.Intn(limit) }
+				distributedIterationDuration, distributedRateFn = api.WithRandomDistribution(frequency, rateFn, randomFn)
+			default:
+				return nil, fmt.Errorf("unable to parse distribution-type #{distributionTypeArg}")
+			}
+
 			return &api.Trigger{
-					Trigger:     api.NewIterationWorker(frequency, api.WithJitter(calculator.For, jitter)),
-					DryRun:      api.WithJitter(calculator.For, jitter),
+					Trigger:     api.NewIterationWorker(distributedIterationDuration, distributedRateFn),
+					DryRun:      distributedRateFn,
 					Description: fmt.Sprintf("Gaussian distribution triggering %d iterations per %s, peaking at %s with standard deviation of %s%s", int(volume), repeat, peak, stddev, jitterDesc),
 					Duration:    time.Hour * 24 * 356,
 				},
