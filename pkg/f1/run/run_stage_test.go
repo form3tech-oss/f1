@@ -70,8 +70,9 @@ func (s *RunTestStage) and() *RunTestStage {
 	return s
 }
 
+// Set the test duration 10ms earlier to avoid potential unwanted iterations and have flaky tests
 func (s *RunTestStage) a_duration_of(i time.Duration) *RunTestStage {
-	s.duration = i
+	s.duration = i - 10*time.Millisecond
 	return s
 }
 
