@@ -10,11 +10,9 @@ import (
 
 func TestConstantRateDistribution(t *testing.T) {
 	for i, test := range []struct {
-		iterationDuration           time.Duration
-		rate                        int
-		expectedDistributedDuration time.Duration
-		expectedDistributedRates    []int
-		expectedDistributedSteps    int
+		iterationDuration        time.Duration
+		rate                     int
+		expectedDistributedRates []int
 	}{
 		{
 			iterationDuration:        100 * time.Millisecond,
@@ -167,6 +165,55 @@ func TestConstantRateDistributionWithVariableRate(t *testing.T) {
 
 	require.Equal(t, 100*time.Millisecond, distributedIterationDuration)
 	require.Equal(t, expectedDistributedRates, result)
+}
+
+func TestRandomRateDistribution(t *testing.T) {
+	for i, test := range []struct {
+		iterationDuration        time.Duration
+		rate                     int
+		randomValues             []int
+		expectedDistributedRates []int
+	}{
+		{
+			iterationDuration:        100 * time.Millisecond,
+			rate:                     1,
+			randomValues:             []int{},
+			expectedDistributedRates: []int{1},
+		},
+		{
+			iterationDuration:        1 * time.Second,
+			rate:                     1,
+			randomValues:             []int{0, 0, 0, 0, 0, 0, 0, 0, 0},
+			expectedDistributedRates: []int{0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
+		},
+		{
+			iterationDuration:        1 * time.Second,
+			rate:                     1,
+			randomValues:             []int{1},
+			expectedDistributedRates: []int{1, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+		},
+		{
+			iterationDuration:        1 * time.Second,
+			rate:                     100,
+			randomValues:             []int{20, 5, 5, 10, 0, 5, 15, 10, 10},
+			expectedDistributedRates: []int{20, 5, 5, 10, 0, 5, 15, 10, 10, 20},
+		},
+	} {
+		t.Run(fmt.Sprintf("%d: iteration duration %s, rate %d", i, test.iterationDuration, test.rate), func(t *testing.T) {
+			rateFn := func(time time.Time) int { return test.rate }
+			var idx = -1
+			randFn := func(limit int) int { idx++; return test.randomValues[idx] }
+
+			distributedIterationDuration, distributedRate := WithRandomDistribution(test.iterationDuration, rateFn, randFn)
+			var result []int
+			for i := 0; i < len(test.expectedDistributedRates); i++ {
+				result = append(result, distributedRate(time.Now()))
+			}
+
+			require.Equal(t, 100*time.Millisecond, distributedIterationDuration)
+			require.Equal(t, test.expectedDistributedRates, result)
+		})
+	}
 }
 
 func repeatSlice(arr []int, times int) []int {

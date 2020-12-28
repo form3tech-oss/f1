@@ -41,3 +41,40 @@ func WithConstantDistribution(iterationDuration time.Duration, rateFn RateFuncti
 
 	return distributedIterationDuration, distributedRateFn
 }
+
+// WithRandomDistribution distributes the rate randomly across 100ms intervals
+func WithRandomDistribution(iterationDuration time.Duration, rateFn RateFunction, randFn func(int) int) (time.Duration, RateFunction) {
+	distributedIterationDuration := 100 * time.Millisecond
+
+	if iterationDuration < distributedIterationDuration {
+		return iterationDuration, rateFn
+	}
+
+	remainingSteps := 0
+	remainingRate := 0
+	tickSteps := int(iterationDuration.Milliseconds() / distributedIterationDuration.Milliseconds())
+
+	distributedRateFn := func(time time.Time) int {
+		if remainingSteps == 0 {
+			remainingRate = rateFn(time)
+			remainingSteps = tickSteps
+		}
+
+		var currentRate int
+		if remainingSteps == 1 || remainingRate == 0 {
+			currentRate = remainingRate
+		} else {
+			currentRate = randFn(remainingRate)
+		}
+		remainingRate -= currentRate
+		remainingSteps--
+
+		if currentRate < 1 {
+			return 0
+		}
+
+		return currentRate
+	}
+
+	return distributedIterationDuration, distributedRateFn
+}
