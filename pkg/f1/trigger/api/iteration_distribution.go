@@ -5,8 +5,8 @@ import (
 	"time"
 )
 
-// WithConstantDistribution distributes the rate constantly across 100ms intervals
-func WithConstantDistribution(iterationDuration time.Duration, rateFn RateFunction) (time.Duration, RateFunction) {
+// WithRegularDistribution distributes the rate constantly across 100ms intervals
+func WithRegularDistribution(iterationDuration time.Duration, rateFn RateFunction) (time.Duration, RateFunction) {
 	distributedIterationDuration := 100 * time.Millisecond
 
 	if iterationDuration < distributedIterationDuration {

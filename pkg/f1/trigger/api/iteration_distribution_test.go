@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestConstantRateDistribution(t *testing.T) {
+func TestRegularRateDistribution(t *testing.T) {
 	for i, test := range []struct {
 		iterationDuration        time.Duration
 		rate                     int
@@ -123,7 +123,7 @@ func TestConstantRateDistribution(t *testing.T) {
 		t.Run(fmt.Sprintf("%d: iteration duration %s, rate %d", i, test.iterationDuration, test.rate), func(t *testing.T) {
 			rateFn := func(time time.Time) int { return test.rate }
 
-			distributedIterationDuration, distributedRate := WithConstantDistribution(test.iterationDuration, rateFn)
+			distributedIterationDuration, distributedRate := WithRegularDistribution(test.iterationDuration, rateFn)
 			var result []int
 			for i := 0; i < len(test.expectedDistributedRates); i++ {
 				result = append(result, distributedRate(time.Now()))
@@ -135,17 +135,17 @@ func TestConstantRateDistribution(t *testing.T) {
 	}
 }
 
-func TestConstantRateDistributionWithSmallIterationDuration(t *testing.T) {
+func TestRegularRateDistributionWithSmallIterationDuration(t *testing.T) {
 	iterationDuration := 10 * time.Millisecond
 	rateFn := func(time time.Time) int { return 10_000 }
 
-	distributedIterationDuration, distributedRate := WithConstantDistribution(iterationDuration, rateFn)
+	distributedIterationDuration, distributedRate := WithRegularDistribution(iterationDuration, rateFn)
 
 	require.Equal(t, 10*time.Millisecond, distributedIterationDuration)
 	require.Equal(t, 10_000, distributedRate(time.Now()))
 }
 
-func TestConstantRateDistributionWithVariableRate(t *testing.T) {
+func TestRegularRateDistributionWithVariableRate(t *testing.T) {
 	iterationDuration := 1 * time.Second
 	rates := []int{5, 15, 12, 8}
 	var idx = -1
@@ -157,7 +157,7 @@ func TestConstantRateDistributionWithVariableRate(t *testing.T) {
 		0, 1, 1, 1, 1, 0, 1, 1, 1, 1,
 	}
 
-	distributedIterationDuration, distributedRate := WithConstantDistribution(iterationDuration, rateFn)
+	distributedIterationDuration, distributedRate := WithRegularDistribution(iterationDuration, rateFn)
 	var result []int
 	for i := 0; i < len(expectedDistributedRates); i++ {
 		result = append(result, distributedRate(time.Now()))

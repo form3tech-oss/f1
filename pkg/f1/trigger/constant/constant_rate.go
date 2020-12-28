@@ -2,6 +2,7 @@ package constant
 
 import (
 	"fmt"
+	"math/rand"
 	"strconv"
 	"strings"
 	"time"
@@ -16,6 +17,8 @@ func ConstantRate() api.Builder {
 	flags := pflag.NewFlagSet("constant", pflag.ContinueOnError)
 	flags.StringP("rate", "r", "1/s", "number of iterations to start per interval, in the form <request>/<duration>")
 	flags.Float64P("jitter", "j", 0.0, "vary the rate randomly by up to jitter percent")
+	flags.String("distribution", "none", "optional parameter to distribute the rate over steps of 100ms")
+
 	return api.Builder{
 		Name:        "constant",
 		Description: "triggers test iterations at a constant rate",
@@ -26,6 +29,10 @@ func ConstantRate() api.Builder {
 				return nil, err
 			}
 			jitterArg, err := params.GetFloat64("jitter")
+			if err != nil {
+				return nil, err
+			}
+			distributionTypeArg, err := params.GetString("distribution")
 			if err != nil {
 				return nil, err
 			}
@@ -52,10 +59,25 @@ func ConstantRate() api.Builder {
 			}
 
 			rateFn := api.WithJitter(func(time.Time) int { return rate }, jitterArg)
+
+			var distributedIterationDuration time.Duration
+			var distributedRateFn func(time time.Time) int
+			switch distributionTypeArg {
+			case "none":
+				distributedIterationDuration, distributedRateFn = iterationDuration, rateFn
+			case "regular":
+				distributedIterationDuration, distributedRateFn = api.WithRegularDistribution(iterationDuration, rateFn)
+			case "random":
+				randomFn := func(limit int) int { return rand.Intn(limit) }
+				distributedIterationDuration, distributedRateFn = api.WithRandomDistribution(iterationDuration, rateFn, randomFn)
+			default:
+				return nil, fmt.Errorf("unable to parse distribution-type #{distributionTypeArg}")
+			}
+
 			return &api.Trigger{
-					Trigger:     api.NewIterationWorker(iterationDuration, rateFn),
-					Description: fmt.Sprintf("%d iterations every %s", rate, iterationDuration),
-					DryRun:      rateFn,
+					Trigger:     api.NewIterationWorker(distributedIterationDuration, distributedRateFn),
+					Description: fmt.Sprintf("%d iterations every %s", rate, distributedIterationDuration),
+					DryRun:      distributedRateFn,
 				},
 				nil
 		},

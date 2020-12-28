@@ -30,21 +30,22 @@ import (
 )
 
 type RunTestStage struct {
-	duration      time.Duration
-	runCount      int32
-	startTime     time.Time
-	t             *testing.T
-	scenario      string
-	runResult     *RunResult
-	concurrency   int
-	tearDownCount *int32
-	assert        *assert.Assertions
-	rate          string
-	maxIterations int32
-	triggerType   TriggerType
-	stages        string
-	frequency     string
-	require       *require.Assertions
+	duration         time.Duration
+	runCount         int32
+	startTime        time.Time
+	t                *testing.T
+	scenario         string
+	runResult        *RunResult
+	concurrency      int
+	tearDownCount    *int32
+	assert           *assert.Assertions
+	rate             string
+	maxIterations    int32
+	triggerType      TriggerType
+	stages           string
+	frequency        string
+	require          *require.Assertions
+	distributionType string
 }
 
 func NewRunTestStage(t *testing.T) (*RunTestStage, *RunTestStage, *RunTestStage) {
@@ -266,6 +267,11 @@ func (s *RunTestStage) build_trigger() *api.Trigger {
 		err = flags.Set("rate", s.rate)
 		require.NoError(s.t, err)
 
+		if s.distributionType != "" {
+			err = flags.Set("distribution", s.distributionType)
+			require.NoError(s.t, err)
+		}
+
 		t, err = constant.ConstantRate().New(flags)
 		require.NoError(s.t, err)
 	} else if s.triggerType == Staged {
@@ -276,6 +282,11 @@ func (s *RunTestStage) build_trigger() *api.Trigger {
 
 		err = flags.Set("iterationFrequency", s.frequency)
 		require.NoError(s.t, err)
+
+		if s.distributionType != "" {
+			err = flags.Set("distribution", s.distributionType)
+			require.NoError(s.t, err)
+		}
 
 		t, err = staged.StagedRate().New(flags)
 		require.Nil(s.t, err)
@@ -317,6 +328,11 @@ func (s *RunTestStage) a_stage_of(stages string) *RunTestStage {
 
 func (s *RunTestStage) an_iteration_frequency_of(frequency string) *RunTestStage {
 	s.frequency = frequency
+	return s
+}
+
+func (s *RunTestStage) a_distribution_type(distributionType string) *RunTestStage {
+	s.distributionType = distributionType
 	return s
 }
 

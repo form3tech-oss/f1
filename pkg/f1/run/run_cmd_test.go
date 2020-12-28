@@ -25,6 +25,7 @@ func TestSimpleFlow(t *testing.T) {
 		a_rate_of(test.constantRate).and().
 		a_stage_of(test.stages).and().
 		an_iteration_frequency_of(test.iterationFrequency).and().
+		a_distribution_type(test.distributionType).and().
 		a_duration_of(test.testDuration).and().
 		a_concurrency_of(test.concurrency).and().
 		an_iteration_limit_of(test.maxIterations).and().
@@ -63,6 +64,7 @@ type TestParam struct {
 	maxIterations             int32
 	stages                    string
 	iterationFrequency        string
+	distributionType          string
 }
 
 func TestParameterised(t *testing.T) {
@@ -134,6 +136,36 @@ func TestParameterised(t *testing.T) {
 			expectedCompletedTests: 17,
 		},
 		{
+			name:                   "regular distribution of a constant rate",
+			constantRate:           "10/s",
+			testDuration:           2 * time.Second,
+			concurrency:            100,
+			iterationDuration:      1 * time.Millisecond,
+			expectedRunTime:        2 * time.Second,
+			expectedCompletedTests: 20,
+			distributionType:       "regular",
+		},
+		{
+			name:                   "random distribution of a constant rate",
+			constantRate:           "10/s",
+			testDuration:           2 * time.Second,
+			concurrency:            100,
+			iterationDuration:      1 * time.Millisecond,
+			expectedRunTime:        2 * time.Second,
+			expectedCompletedTests: 20,
+			distributionType:       "random",
+		},
+		{
+			name:                   "run only half of requests on half of the time using regular distribution",
+			constantRate:           "10/2s",
+			testDuration:           1 * time.Second,
+			concurrency:            100,
+			iterationDuration:      1 * time.Millisecond,
+			expectedRunTime:        1 * time.Second,
+			expectedCompletedTests: 5,
+			distributionType:       "regular",
+		},
+		{
 			name:                   "simple staged test",
 			triggerType:            Staged,
 			stages:                 "0ms:0, 50ms: 100, 100ms: 100, 50ms:0",
@@ -152,6 +184,39 @@ func TestParameterised(t *testing.T) {
 			concurrency:            100,
 			iterationDuration:      1 * time.Millisecond,
 			expectedCompletedTests: 23,
+		},
+		{
+			name:                   "regular distribution of a staged trigger",
+			triggerType:            Staged,
+			stages:                 "0ms:0, 50ms: 100, 100ms: 100, 50ms:0",
+			iterationFrequency:     "100ms",
+			testDuration:           200 * time.Millisecond,
+			concurrency:            100,
+			iterationDuration:      1 * time.Millisecond,
+			expectedCompletedTests: 100,
+			distributionType:       "regular",
+		},
+		{
+			name:                   "random distribution of a staged trigger",
+			triggerType:            Staged,
+			stages:                 "0ms:0, 50ms: 100, 100ms: 100, 50ms:0",
+			iterationFrequency:     "100ms",
+			testDuration:           200 * time.Millisecond,
+			concurrency:            100,
+			iterationDuration:      1 * time.Millisecond,
+			expectedCompletedTests: 100,
+			distributionType:       "random",
+		},
+		{
+			name:                   "run half of requests on half of the time on staged test using regular distribution",
+			triggerType:            Staged,
+			stages:                 "0ms:0, 4s: 100",
+			iterationFrequency:     "1s",
+			testDuration:           3500 * time.Millisecond,
+			concurrency:            100,
+			iterationDuration:      1 * time.Millisecond,
+			expectedCompletedTests: 112,
+			distributionType:       "regular",
 		},
 		{
 			name:                   "users test slow iterations",
@@ -189,6 +254,7 @@ func TestParameterised(t *testing.T) {
 				a_rate_of(test.constantRate).and().
 				a_stage_of(test.stages).and().
 				an_iteration_frequency_of(test.iterationFrequency).and().
+				a_distribution_type(test.distributionType).and().
 				a_duration_of(test.testDuration).and().
 				a_concurrency_of(test.concurrency).and().
 				an_iteration_limit_of(test.maxIterations).and().
