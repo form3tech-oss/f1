@@ -64,3 +64,8 @@ func (s *ChartTestStage) the_chart_starts_at_a_fixed_time() *ChartTestStage {
 	s.args = append(s.args, "--chart-start", time.Now().Truncate(10*time.Minute).Format(time.RFC3339))
 	return s
 }
+
+func (s *ChartTestStage) the_load_style_is_defined_in_the_config_file(filename string) *ChartTestStage {
+	s.args = append(s.args, "file", "--config-file", filename, "--chart-duration", "60s")
+	return s
+}

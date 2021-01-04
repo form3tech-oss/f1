@@ -19,10 +19,11 @@ type Parameter struct {
 }
 
 type Builder struct {
-	Name        string
-	Description string
-	New         Constructor
-	Flags       *pflag.FlagSet
+	Name              string
+	Description       string
+	New               Constructor
+	Flags             *pflag.FlagSet
+	IgnoreCommonFlags bool
 }
 
 type Constructor func(*pflag.FlagSet) (*Trigger, error)
@@ -32,4 +33,19 @@ type Trigger struct {
 	DryRun      RateFunction
 	Description string
 	Duration    time.Duration
+	Options     Options
+}
+
+type Options struct {
+	MaxDuration   time.Duration
+	Concurrency   int
+	Verbose       bool
+	VerboseFail   bool
+	MaxIterations int32
+	IgnoreDropped bool
+}
+
+type Rates struct {
+	IterationDuration, DistributedIterationDuration, Duration time.Duration
+	Rate, DistributedRate                                     RateFunction
 }

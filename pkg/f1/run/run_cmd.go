@@ -35,10 +35,12 @@ func Cmd(builders []api.Builder, hookFunc logging.RegisterLogHookFunc) *cobra.Co
 		}
 		triggerCmd.Flags().BoolP("verbose", "v", false, "enables log output to stdout")
 		triggerCmd.Flags().Bool("verbose-fail", false, "log output to stdout on failure")
-		triggerCmd.Flags().DurationP("max-duration", "d", time.Second, "--max-duration 1s (stop after 1 second)")
-		triggerCmd.Flags().IntP("concurrency", "c", 100, "--concurrency 2 (allow at most 2 groups of iterations to run concurrently)")
-		triggerCmd.Flags().Int32P("max-iterations", "i", 0, "--max-iterations 100 (stop after 100 iterations, regardless of remaining duration)")
 		triggerCmd.Flags().Bool("ignore-dropped", false, "dropped requests will not fail the run")
+		if t.IgnoreCommonFlags == false {
+			triggerCmd.Flags().DurationP("max-duration", "d", time.Second, "--max-duration 1s (stop after 1 second)")
+			triggerCmd.Flags().IntP("concurrency", "c", 100, "--concurrency 2 (allow at most 2 groups of iterations to run concurrently)")
+			triggerCmd.Flags().Int32P("max-iterations", "i", 0, "--max-iterations 100 (stop after 100 iterations, regardless of remaining duration)")
+		}
 		triggerCmd.Flags().AddFlagSet(t.Flags)
 		runCmd.AddCommand(triggerCmd)
 	}
@@ -51,18 +53,34 @@ func runCmdExecute(t api.Builder, hookFunc logging.RegisterLogHookFunc) func(cmd
 		cmd.SilenceUsage = true
 
 		scenarioName := args[0]
-		duration, err := cmd.Flags().GetDuration("max-duration")
+
+		trig, err := t.New(cmd.Flags())
 		if err != nil {
-			return errors.New(fmt.Sprintf("Invalid duration value: %s", err))
+			return errors.Wrap(err, "error creating trigger command")
 		}
-		concurrency, err := cmd.Flags().GetInt("concurrency")
-		if err != nil || concurrency < 1 {
-			return errors.New(fmt.Sprintf("Invalid concurrency value: %s", err))
+
+		var duration time.Duration
+		var concurrency int
+		var maxIterations int32
+		if t.IgnoreCommonFlags {
+			duration = trig.Options.MaxDuration
+			concurrency = trig.Options.Concurrency
+			maxIterations = trig.Options.MaxIterations
+		} else {
+			duration, err = cmd.Flags().GetDuration("max-duration")
+			if err != nil {
+				return errors.New(fmt.Sprintf("Invalid duration value: %s", err))
+			}
+			concurrency, err = cmd.Flags().GetInt("concurrency")
+			if err != nil || concurrency < 1 {
+				return errors.New(fmt.Sprintf("Invalid concurrency value: %s", err))
+			}
+			maxIterations, err = cmd.Flags().GetInt32("max-iterations")
+			if err != nil {
+				return errors.New(fmt.Sprintf("Invalid maxIterations value: %s", err))
+			}
 		}
-		maxIterations, err := cmd.Flags().GetInt32("max-iterations")
-		if err != nil {
-			return errors.New(fmt.Sprintf("Invalid maxIterations value: %s", err))
-		}
+
 		verbose, err := cmd.Flags().GetBool("verbose")
 		if err != nil {
 			return errors.New(fmt.Sprintf("Invalid verbose value: %s", err))
@@ -76,11 +94,6 @@ func runCmdExecute(t api.Builder, hookFunc logging.RegisterLogHookFunc) func(cmd
 		ignoreDropped, err := cmd.Flags().GetBool("ignore-dropped")
 		if err != nil {
 			return errors.New(fmt.Sprintf("Invalid ignore-dropped value: %s", err))
-		}
-
-		trig, err := t.New(cmd.Flags())
-		if err != nil {
-			return errors.Wrap(err, "error creating trigger command")
 		}
 
 		run, err := NewRun(options.RunOptions{

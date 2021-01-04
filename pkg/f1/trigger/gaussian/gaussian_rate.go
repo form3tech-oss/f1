@@ -22,6 +22,7 @@ func GaussianRate() api.Builder {
 	flags.Duration("peak", 14*time.Hour, "The offset within the repetition window when the load should reach its maximum. Default 14 hours (with 24 hour default repeat)")
 	flags.Duration("standard-deviation", 150*time.Minute, "The standard deviation to use for the distribution of load")
 	flags.Float64P("jitter", "j", 0.0, "vary the rate randomly by up to jitter percent")
+	flags.String("distribution", "none", "optional parameter to distribute the rate over steps of 100ms, which can be none|regular|random")
 
 	return api.Builder{
 		Name:        "gaussian",
@@ -56,29 +57,34 @@ func GaussianRate() api.Builder {
 			if err != nil {
 				return nil, err
 			}
-			var weightsSlice []float64
-			for _, s := range strings.Split(weights, ",") {
-				if s == "" {
-					continue
-				}
-				weight, err := strconv.ParseFloat(s, 10)
-				if err != nil {
-					return nil, fmt.Errorf("unable to parse weights")
-				}
-				weightsSlice = append(weightsSlice, weight)
+			distributionTypeArg, err := flags.GetString("distribution")
+			if err != nil {
+				return nil, err
 			}
-
-			calculator := NewGaussianRateCalculator(peak, stddev, frequency, weightsSlice, volume, repeat)
 
 			jitterDesc := ""
 			if jitter != 0 {
 				jitterDesc = fmt.Sprintf(" with jitter of %.2f%%", jitter)
 			}
+
+			rates, err := CalculateGaussianRate(volume, jitter, repeat, frequency, peak, stddev, weights, distributionTypeArg)
+			if err != nil {
+				return nil, err
+			}
+
 			return &api.Trigger{
-					Trigger:     api.NewIterationWorker(frequency, api.WithJitter(calculator.For, jitter)),
-					DryRun:      api.WithJitter(calculator.For, jitter),
-					Description: fmt.Sprintf("Gaussian distribution triggering %d iterations per %s, peaking at %s with standard deviation of %s%s", int(volume), repeat, peak, stddev, jitterDesc),
-					Duration:    time.Hour * 24 * 356,
+					Trigger: api.NewIterationWorker(rates.DistributedIterationDuration, rates.DistributedRate),
+					DryRun:  rates.DistributedRate,
+					Description: fmt.Sprintf(
+						"Gaussian distribution triggering %d iterations per %s, peaking at %s with standard deviation of %s%s, using distribution %s",
+						int(volume),
+						repeat,
+						peak,
+						stddev,
+						jitterDesc,
+						distributionTypeArg,
+					),
+					Duration: rates.Duration,
 				},
 				nil
 		},
@@ -94,6 +100,36 @@ type gaussianRateCalculator struct {
 	remainder     float64
 	multiplier    float64
 	averageWeight float64
+}
+
+func CalculateGaussianRate(volume, jitter float64, repeat, frequency, peak, stddev time.Duration, weights, distributionTypeArg string) (*api.Rates, error) {
+	var weightsSlice []float64
+	for _, s := range strings.Split(weights, ",") {
+		if s == "" {
+			continue
+		}
+		weight, err := strconv.ParseFloat(s, 10)
+		if err != nil {
+			return nil, fmt.Errorf("unable to parse weights")
+		}
+		weightsSlice = append(weightsSlice, weight)
+	}
+
+	calculator := NewGaussianRateCalculator(peak, stddev, frequency, weightsSlice, volume, repeat)
+
+	rateFn := api.WithJitter(calculator.For, jitter)
+	distributedIterationDuration, distributedRateFn, err := api.NewDistribution(distributionTypeArg, frequency, rateFn)
+	if err != nil {
+		return nil, err
+	}
+
+	return &api.Rates{
+		IterationDuration:            frequency,
+		DistributedIterationDuration: distributedIterationDuration,
+		Rate:                         rateFn,
+		DistributedRate:              distributedRateFn,
+		Duration:                     time.Hour * 24 * 356,
+	}, nil
 }
 
 func (c *gaussianRateCalculator) For(now time.Time) int {

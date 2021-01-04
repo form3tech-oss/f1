@@ -38,6 +38,7 @@ require (
 	golang.org/x/lint v0.0.0-20200302205851-738671d3881b // indirect
 	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect
 	gopkg.in/workanator/go-ataman.v1 v1.0.0-20170925060702-9a33b5b3bca7 // indirect
+	gopkg.in/yaml.v2 v2.3.0
 )
 
 replace (

@@ -77,3 +77,17 @@ func TestChartGaussianWithJitter(t *testing.T) {
 		the_command_is_successful()
 
 }
+
+func TestChartFileConfig(t *testing.T) {
+	given, when, then := NewChartTestStage(t)
+
+	given.
+		the_load_style_is_defined_in_the_config_file("testdata/config-file.yaml")
+
+	when.
+		i_execute_the_chart_command()
+
+	then.
+		the_command_is_successful()
+
+}

@@ -8,6 +8,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/form3tech-oss/f1/pkg/f1/trigger/file"
+
 	io_prometheus_client "github.com/prometheus/client_model/go"
 
 	"github.com/form3tech-oss/f1/pkg/f1/options"
@@ -30,21 +32,23 @@ import (
 )
 
 type RunTestStage struct {
-	duration      time.Duration
-	runCount      int32
-	startTime     time.Time
-	t             *testing.T
-	scenario      string
-	runResult     *RunResult
-	concurrency   int
-	tearDownCount *int32
-	assert        *assert.Assertions
-	rate          string
-	maxIterations int32
-	triggerType   TriggerType
-	stages        string
-	frequency     string
-	require       *require.Assertions
+	duration         time.Duration
+	runCount         int32
+	startTime        time.Time
+	t                *testing.T
+	scenario         string
+	runResult        *RunResult
+	concurrency      int
+	tearDownCount    *int32
+	assert           *assert.Assertions
+	rate             string
+	maxIterations    int32
+	triggerType      TriggerType
+	stages           string
+	frequency        string
+	require          *require.Assertions
+	distributionType string
+	configFile       string
 }
 
 func NewRunTestStage(t *testing.T) (*RunTestStage, *RunTestStage, *RunTestStage) {
@@ -76,6 +80,11 @@ func (s *RunTestStage) a_duration_of(i time.Duration) *RunTestStage {
 
 func (s *RunTestStage) a_concurrency_of(concurrency int) *RunTestStage {
 	s.concurrency = concurrency
+	return s
+}
+
+func (s *RunTestStage) a_config_file_location_of(commandsFile string) *RunTestStage {
+	s.configFile = commandsFile
 	return s
 }
 
@@ -266,6 +275,11 @@ func (s *RunTestStage) build_trigger() *api.Trigger {
 		err = flags.Set("rate", s.rate)
 		require.NoError(s.t, err)
 
+		if s.distributionType != "" {
+			err = flags.Set("distribution", s.distributionType)
+			require.NoError(s.t, err)
+		}
+
 		t, err = constant.ConstantRate().New(flags)
 		require.NoError(s.t, err)
 	} else if s.triggerType == Staged {
@@ -277,11 +291,24 @@ func (s *RunTestStage) build_trigger() *api.Trigger {
 		err = flags.Set("iterationFrequency", s.frequency)
 		require.NoError(s.t, err)
 
+		if s.distributionType != "" {
+			err = flags.Set("distribution", s.distributionType)
+			require.NoError(s.t, err)
+		}
+
 		t, err = staged.StagedRate().New(flags)
 		require.Nil(s.t, err)
 	} else if s.triggerType == Users {
 		flags := users.UsersRate().Flags
 		t, err = users.UsersRate().New(flags)
+		require.Nil(s.t, err)
+	} else if s.triggerType == File {
+		flags := file.FileRate().Flags
+
+		err = flags.Set("config-file", s.configFile)
+		require.NoError(s.t, err)
+
+		t, err = file.FileRate().New(flags)
 		require.Nil(s.t, err)
 	}
 	return t
@@ -317,6 +344,11 @@ func (s *RunTestStage) a_stage_of(stages string) *RunTestStage {
 
 func (s *RunTestStage) an_iteration_frequency_of(frequency string) *RunTestStage {
 	s.frequency = frequency
+	return s
+}
+
+func (s *RunTestStage) a_distribution_type(distributionType string) *RunTestStage {
+	s.distributionType = distributionType
 	return s
 }
 
