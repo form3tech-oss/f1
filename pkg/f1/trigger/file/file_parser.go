@@ -59,16 +59,23 @@ func parseConfigFile(fileContent []byte, now time.Time) (*runnableStages, error)
 	var stages []runnableStage
 	stagesTotalDuration := 0 * time.Second
 	for i, stageConfig := range configFile.Stages {
+		if stageConfig.Duration == nil {
+			if configFile.Default.Duration == nil {
+				return nil, fmt.Errorf("missing duration at stage %d", i)
+			} else {
+				stageConfig.Duration = configFile.Default.Duration
+			}
+		}
+		if stageConfig.Mode == nil {
+			if configFile.Default.Mode == nil {
+				return nil, fmt.Errorf("missing stage mode at stage %d", i)
+			} else {
+				stageConfig.Mode = configFile.Default.Mode
+			}
+		}
 		stagesTotalDuration += *stageConfig.Duration
 
 		if configFile.Schedule.StageStart == nil || configFile.Schedule.StageStart.Add(stagesTotalDuration).After(now) {
-			if stageConfig.Mode == nil {
-				if configFile.Default.Mode == nil {
-					return nil, fmt.Errorf("missing stage mode at stage %d", i)
-				} else {
-					stageConfig.Mode = configFile.Default.Mode
-				}
-			}
 
 			var stage runnableStage
 

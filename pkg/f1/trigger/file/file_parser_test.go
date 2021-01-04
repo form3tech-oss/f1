@@ -236,6 +236,7 @@ stages:
 			testName: "Users mode single stage using default values",
 			fileContent: `
 default:
+  duration: 10s
   mode: users
   users: 100
   parameters:
@@ -245,7 +246,7 @@ limits:
   concurrency: 50
   max-iterations: 100
 stages:
-- duration: 10s
+- mode: users
 `,
 			expectedMaxDuration:   1 * time.Minute,
 			expectedConcurrency:   50,
