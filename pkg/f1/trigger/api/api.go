@@ -43,6 +43,7 @@ type Options struct {
 	VerboseFail   bool
 	MaxIterations int32
 	IgnoreDropped bool
+	Scenario      string
 }
 
 type Rates struct {

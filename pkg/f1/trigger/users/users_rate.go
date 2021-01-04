@@ -12,7 +12,7 @@ func UsersRate() api.Builder {
 	flags := pflag.NewFlagSet("users", pflag.ContinueOnError)
 
 	return api.Builder{
-		Name:        "users",
+		Name:        "users <scenario>",
 		Description: "triggers test iterations from a static set of virtual users controlled by the --concurrency flag",
 		Flags:       flags,
 		New: func(params *pflag.FlagSet) (*api.Trigger, error) {

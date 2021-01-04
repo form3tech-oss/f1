@@ -19,7 +19,7 @@ func ConstantRate() api.Builder {
 	flags.String("distribution", "none", "optional parameter to distribute the rate over steps of 100ms, which can be none|regular|random")
 
 	return api.Builder{
-		Name:        "constant",
+		Name:        "constant <scenario>",
 		Description: "triggers test iterations at a constant rate",
 		Flags:       flags,
 		New: func(params *pflag.FlagSet) (*api.Trigger, error) {

@@ -17,7 +17,7 @@ func StagedRate() api.Builder {
 	flags.String("distribution", "none", "optional parameter to distribute the rate over steps of 100ms, which can be none|regular|random")
 
 	return api.Builder{
-		Name:        "staged",
+		Name:        "staged <scenario>",
 		Description: "triggers iterations at varying rates",
 		Flags:       flags,
 		New: func(params *pflag.FlagSet) (*api.Trigger, error) {

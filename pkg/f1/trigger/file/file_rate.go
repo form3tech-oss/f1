@@ -10,6 +10,7 @@ import (
 )
 
 type runnableStages struct {
+	scenario            string
 	stages              []runnableStage
 	stagesTotalDuration time.Duration
 	maxDuration         time.Duration
@@ -57,6 +58,7 @@ func FileRate() api.Builder {
 					MaxDuration:   runnableStages.maxDuration,
 					Concurrency:   runnableStages.concurrency,
 					MaxIterations: runnableStages.maxIterations,
+					Scenario:      runnableStages.scenario,
 				},
 			}, nil
 		},

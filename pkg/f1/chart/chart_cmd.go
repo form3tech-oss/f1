@@ -26,7 +26,7 @@ func Cmd(builders []api.Builder) *cobra.Command {
 
 	for _, t := range builders {
 		triggerCmd := &cobra.Command{
-			Use:   t.Name + " <scenario>",
+			Use:   t.Name,
 			Short: t.Description,
 			RunE:  chartCmdExecute(t),
 		}

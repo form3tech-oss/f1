@@ -27,7 +27,7 @@ func Cmd(builders []api.Builder, hookFunc logging.RegisterLogHookFunc) *cobra.Co
 
 	for _, t := range builders {
 		triggerCmd := &cobra.Command{
-			Use:       t.Name + " <scenario>",
+			Use:       t.Name,
 			Short:     t.Description,
 			RunE:      runCmdExecute(t, hookFunc),
 			Args:      cobra.ExactValidArgs(1),
@@ -52,21 +52,22 @@ func runCmdExecute(t api.Builder, hookFunc logging.RegisterLogHookFunc) func(cmd
 	return func(cmd *cobra.Command, args []string) error {
 		cmd.SilenceUsage = true
 
-		scenarioName := args[0]
-
 		trig, err := t.New(cmd.Flags())
 		if err != nil {
 			return errors.Wrap(err, "error creating trigger command")
 		}
 
+		var scenarioName string
 		var duration time.Duration
 		var concurrency int
 		var maxIterations int32
 		if t.IgnoreCommonFlags {
+			scenarioName = trig.Options.Scenario
 			duration = trig.Options.MaxDuration
 			concurrency = trig.Options.Concurrency
 			maxIterations = trig.Options.MaxIterations
 		} else {
+			scenarioName = args[0]
 			duration, err = cmd.Flags().GetDuration("max-duration")
 			if err != nil {
 				return errors.New(fmt.Sprintf("Invalid duration value: %s", err))

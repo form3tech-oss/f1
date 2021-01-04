@@ -11,8 +11,9 @@ import (
 )
 
 type ConfigFile struct {
-	Default  Stage `yaml:"default"`
-	Limits   Limits
+	Scenario string   `yaml:"scenario"`
+	Default  Stage    `yaml:"default"`
+	Limits   Limits   `yaml:"limits"`
 	Schedule Schedule `yaml:"schedule"`
 	Stages   []Stage  `yaml:"stages"`
 }
@@ -142,6 +143,7 @@ func parseConfigFile(fileContent []byte, now time.Time) (*runnableStages, error)
 	}
 
 	return &runnableStages{
+		scenario:            configFile.Scenario,
 		stages:              stages,
 		stagesTotalDuration: stagesTotalDuration,
 		maxDuration:         configFile.Limits.MaxDuration,
@@ -151,11 +153,16 @@ func parseConfigFile(fileContent []byte, now time.Time) (*runnableStages, error)
 }
 
 func (r *ConfigFile) validateCommonFields() error {
+	if r.Scenario == "" {
+		return fmt.Errorf("missing scenario")
+	}
 	if r.Limits.MaxDuration == 0*time.Second {
 		return fmt.Errorf("missing max-duration")
-	} else if r.Limits.Concurrency == 0 {
+	}
+	if r.Limits.Concurrency == 0 {
 		return fmt.Errorf("missing concurrency")
-	} else if r.Limits.MaxIterations == 0 {
+	}
+	if r.Limits.MaxIterations == 0 {
 		return fmt.Errorf("missing max-iterations")
 	}
 

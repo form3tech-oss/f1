@@ -12,6 +12,7 @@ func TestFileRate_SimpleStages(t *testing.T) {
 		{
 			testName: "Constant mode single stage",
 			fileContent: `
+scenario: template
 limits:
   max-duration: 1m
   concurrency: 50
@@ -25,6 +26,7 @@ stages:
   parameters:
     SOP: 1
 `,
+			expectedScenario:          "template",
 			expectedMaxDuration:       1 * time.Minute,
 			expectedConcurrency:       50,
 			expectedMaxIterations:     100,
@@ -36,6 +38,7 @@ stages:
 		{
 			testName: "Staged mode single stage",
 			fileContent: `
+scenario: template
 limits:
   max-duration: 1m
   concurrency: 50
@@ -51,6 +54,7 @@ stages:
   parameters:
     SOP: 1
 `,
+			expectedScenario:          "template",
 			expectedMaxDuration:       1 * time.Minute,
 			expectedConcurrency:       50,
 			expectedMaxIterations:     100,
@@ -62,6 +66,7 @@ stages:
 		{
 			testName: "Gaussian mode single stage",
 			fileContent: `
+scenario: template
 limits:
   max-duration: 1m
   concurrency: 50
@@ -80,6 +85,7 @@ stages:
   parameters:
     SOP: 1
 `,
+			expectedScenario:          "template",
 			expectedMaxDuration:       1 * time.Minute,
 			expectedConcurrency:       50,
 			expectedMaxIterations:     100,
@@ -95,6 +101,7 @@ stages:
 		{
 			testName: "Users mode single stage",
 			fileContent: `
+scenario: template
 limits:
   max-duration: 1m
   concurrency: 50
@@ -106,6 +113,7 @@ stages:
   parameters:
     SOP: 1
 `,
+			expectedScenario:      "template",
 			expectedMaxDuration:   1 * time.Minute,
 			expectedConcurrency:   50,
 			expectedMaxIterations: 100,
@@ -116,6 +124,7 @@ stages:
 		{
 			testName: "Start with the stage corresponding to a given time",
 			fileContent: `
+scenario: template
 limits:
   max-duration: 1m
   concurrency: 50
@@ -138,6 +147,7 @@ stages:
   parameters:
     SOP: 1
 `,
+			expectedScenario:          "template",
 			expectedMaxDuration:       1 * time.Minute,
 			expectedConcurrency:       50,
 			expectedMaxIterations:     100,
@@ -149,6 +159,7 @@ stages:
 		{
 			testName: "Constant mode single stage using default values",
 			fileContent: `
+scenario: template
 default:
   mode: constant
   rate: 6/s
@@ -163,6 +174,7 @@ limits:
 stages:
 - duration: 5s
 `,
+			expectedScenario:          "template",
 			expectedMaxDuration:       1 * time.Minute,
 			expectedConcurrency:       50,
 			expectedMaxIterations:     100,
@@ -174,6 +186,7 @@ stages:
 		{
 			testName: "Staged mode single stage using default values",
 			fileContent: `
+scenario: template
 default:
   mode: staged
   start-rate: 0
@@ -190,6 +203,7 @@ limits:
 stages:
 - duration: 10s
 `,
+			expectedScenario:          "template",
 			expectedMaxDuration:       1 * time.Minute,
 			expectedConcurrency:       50,
 			expectedMaxIterations:     100,
@@ -201,6 +215,7 @@ stages:
 		{
 			testName: "Gaussian mode single stage using default values",
 			fileContent: `
+scenario: template
 default:
   mode: gaussian
 limits:
@@ -220,6 +235,7 @@ stages:
   parameters:
     SOP: 1
 `,
+			expectedScenario:          "template",
 			expectedMaxDuration:       1 * time.Minute,
 			expectedConcurrency:       50,
 			expectedMaxIterations:     100,
@@ -235,6 +251,7 @@ stages:
 		{
 			testName: "Users mode single stage using default values",
 			fileContent: `
+scenario: template
 default:
   duration: 10s
   mode: users
@@ -248,6 +265,7 @@ limits:
 stages:
 - mode: users
 `,
+			expectedScenario:      "template",
 			expectedMaxDuration:   1 * time.Minute,
 			expectedConcurrency:   50,
 			expectedMaxIterations: 100,
@@ -263,6 +281,7 @@ stages:
 
 			require.NoError(t, err)
 			require.Equal(t, 1, len(stagesToRun.stages))
+			require.Equal(t, test.expectedScenario, stagesToRun.scenario)
 			require.Equal(t, test.expectedMaxDuration, stagesToRun.maxDuration)
 			require.Equal(t, test.expectedConcurrency, stagesToRun.concurrency)
 			require.Equal(t, test.expectedMaxIterations, stagesToRun.maxIterations)
@@ -292,6 +311,7 @@ func TestFileRate_FileErrors(t *testing.T) {
 		{
 			testName: "missing max-duration",
 			fileContent: `
+scenario: template
 limits:
   concurrency: 50
   max-iterations: 100
@@ -301,6 +321,7 @@ limits:
 		{
 			testName: "missing concurrency",
 			fileContent: `
+scenario: template
 limits:
   max-duration: 1m
   max-iterations: 100
@@ -310,6 +331,7 @@ limits:
 		{
 			testName: "missing max-iterations",
 			fileContent: `
+scenario: template
 limits:
   max-duration: 1m
   concurrency: 50
@@ -319,6 +341,7 @@ limits:
 		{
 			testName: "missing constant rate",
 			fileContent: `
+scenario: template
 limits:
   max-duration: 1m
   concurrency: 50
@@ -334,6 +357,7 @@ stages:
 		{
 			testName: "missing constant distribution",
 			fileContent: `
+scenario: template
 limits:
   max-duration: 1m
   concurrency: 50
@@ -350,6 +374,7 @@ stages:
 		{
 			testName: "missing staged start rate",
 			fileContent: `
+scenario: template
 limits:
   max-duration: 1m
   concurrency: 50
@@ -365,6 +390,7 @@ stages:
 		{
 			testName: "missing staged end rate",
 			fileContent: `
+scenario: template
 limits:
   max-duration: 1m
   concurrency: 50
@@ -381,6 +407,7 @@ stages:
 		{
 			testName: "missing staged iteration-frequency",
 			fileContent: `
+scenario: template
 limits:
   max-duration: 1m
   concurrency: 50
@@ -398,6 +425,7 @@ stages:
 		{
 			testName: "missing staged distribution",
 			fileContent: `
+scenario: template
 limits:
   max-duration: 1m
   concurrency: 50
@@ -416,6 +444,7 @@ stages:
 		{
 			testName: "missing users stage users value",
 			fileContent: `
+scenario: template
 limits:
   max-duration: 1m
   concurrency: 50
@@ -431,6 +460,7 @@ stages:
 		{
 			testName: "missing gaussian volume",
 			fileContent: `
+scenario: template
 limits:
   max-duration: 1m
   concurrency: 50
@@ -446,6 +476,7 @@ stages:
 		{
 			testName: "missing gaussian repeat",
 			fileContent: `
+scenario: template
 limits:
   max-duration: 1m
   concurrency: 50
@@ -462,6 +493,7 @@ stages:
 		{
 			testName: "missing gaussian iteration-frequency",
 			fileContent: `
+scenario: template
 limits:
   max-duration: 1m
   concurrency: 50
@@ -479,6 +511,7 @@ stages:
 		{
 			testName: "missing stage mode",
 			fileContent: `
+scenario: template
 limits:
   max-duration: 1m
   concurrency: 50
@@ -489,6 +522,31 @@ stages:
 - duration: 10s
 `,
 			expectedError: "missing stage mode at stage 0",
+		},
+		{
+			testName: "invalid file content",
+			fileContent: `
+invalid file content
+`,
+			expectedError: "yaml: unmarshal errors:\n  line 2: cannot unmarshal !!str `invalid...` into file.ConfigFile",
+		},
+		{
+			testName: "missing scenario",
+			fileContent: `
+limits:
+  max-duration: 1m
+  concurrency: 50
+  max-iterations: 100
+stages:
+- duration: 5s
+  mode: constant
+  rate: 6/s
+  jitter: 0
+  distribution: none
+  parameters:
+    SOP: 1
+`,
+			expectedError: "missing scenario",
 		},
 		{
 			testName: "invalid file content",
@@ -512,6 +570,7 @@ invalid file content
 type testData struct {
 	testName                  string
 	fileContent               string
+	expectedScenario          string
 	expectedTotalDuration     time.Duration
 	expectedIterationDuration time.Duration
 	expectedRates             []int
