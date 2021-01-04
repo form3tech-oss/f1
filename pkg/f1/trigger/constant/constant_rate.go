@@ -36,20 +36,6 @@ func ConstantRate() api.Builder {
 				return nil, err
 			}
 
-			// Solve this duplicated block?
-			rate := 0
-			if strings.Contains(rateArg, "/") {
-				rate, err = strconv.Atoi((rateArg)[0:strings.Index(rateArg, "/")])
-				if err != nil {
-					return nil, fmt.Errorf("unable to parse rate %s", rateArg)
-				}
-			} else {
-				rate, err = strconv.Atoi(rateArg)
-				if err != nil {
-					return nil, fmt.Errorf("unable to parse unit %s", rateArg)
-				}
-			}
-
 			rates, err := CalculateConstantRate(jitterArg, rateArg, distributionTypeArg)
 			if err != nil {
 				return nil, err
@@ -57,7 +43,7 @@ func ConstantRate() api.Builder {
 
 			return &api.Trigger{
 					Trigger:     api.NewIterationWorker(rates.DistributedIterationDuration, rates.DistributedRate),
-					Description: fmt.Sprintf("%d iterations every %s, using distribution %s", rate, rates.IterationDuration, distributionTypeArg),
+					Description: fmt.Sprintf("%s constant rate, using distribution %s", rateArg, distributionTypeArg),
 					DryRun:      rates.DistributedRate,
 				},
 				nil
