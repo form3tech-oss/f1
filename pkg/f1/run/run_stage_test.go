@@ -305,7 +305,7 @@ func (s *RunTestStage) build_trigger() *api.Trigger {
 	} else if s.triggerType == File {
 		flags := file.FileRate().Flags
 
-		err = flags.Set("config-file", s.configFile)
+		err := flags.Parse([]string{s.configFile})
 		require.NoError(s.t, err)
 
 		t, err = file.FileRate().New(flags)

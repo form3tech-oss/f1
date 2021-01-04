@@ -21,28 +21,43 @@ import (
 
 func Cmd(builders []api.Builder, hookFunc logging.RegisterLogHookFunc) *cobra.Command {
 	runCmd := &cobra.Command{
-		Use:   "run <subcommand> <scenario>",
+		Use:   "run <subcommand>",
 		Short: "Runs a test scenario",
 	}
 
 	for _, t := range builders {
-		triggerCmd := &cobra.Command{
-			Use:       t.Name,
-			Short:     t.Description,
-			RunE:      runCmdExecute(t, hookFunc),
-			Args:      cobra.ExactValidArgs(1),
-			ValidArgs: testing.GetScenarioNames(),
-		}
-		triggerCmd.Flags().BoolP("verbose", "v", false, "enables log output to stdout")
-		triggerCmd.Flags().Bool("verbose-fail", false, "log output to stdout on failure")
-		triggerCmd.Flags().Bool("ignore-dropped", false, "dropped requests will not fail the run")
-		if t.IgnoreCommonFlags == false {
+		if t.IgnoreCommonFlags == true {
+			triggerCmd := &cobra.Command{
+				Use:   t.Name,
+				Short: t.Description,
+				RunE:  runCmdExecute(t, hookFunc),
+				Args:  cobra.ExactValidArgs(1),
+			}
+			triggerCmd.Flags().BoolP("verbose", "v", false, "enables log output to stdout")
+			triggerCmd.Flags().Bool("verbose-fail", false, "log output to stdout on failure")
+			triggerCmd.Flags().Bool("ignore-dropped", false, "dropped requests will not fail the run")
+
+			triggerCmd.Flags().AddFlagSet(t.Flags)
+			runCmd.AddCommand(triggerCmd)
+		} else {
+			triggerCmd := &cobra.Command{
+				Use:       t.Name,
+				Short:     t.Description,
+				RunE:      runCmdExecute(t, hookFunc),
+				Args:      cobra.ExactValidArgs(1),
+				ValidArgs: testing.GetScenarioNames(),
+			}
+			triggerCmd.Flags().BoolP("verbose", "v", false, "enables log output to stdout")
+			triggerCmd.Flags().Bool("verbose-fail", false, "log output to stdout on failure")
+			triggerCmd.Flags().Bool("ignore-dropped", false, "dropped requests will not fail the run")
+
 			triggerCmd.Flags().DurationP("max-duration", "d", time.Second, "--max-duration 1s (stop after 1 second)")
 			triggerCmd.Flags().IntP("concurrency", "c", 100, "--concurrency 2 (allow at most 2 groups of iterations to run concurrently)")
 			triggerCmd.Flags().Int32P("max-iterations", "i", 0, "--max-iterations 100 (stop after 100 iterations, regardless of remaining duration)")
+
+			triggerCmd.Flags().AddFlagSet(t.Flags)
+			runCmd.AddCommand(triggerCmd)
 		}
-		triggerCmd.Flags().AddFlagSet(t.Flags)
-		runCmd.AddCommand(triggerCmd)
 	}
 
 	return runCmd

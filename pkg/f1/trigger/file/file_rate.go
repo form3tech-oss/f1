@@ -29,17 +29,13 @@ type runnableStage struct {
 
 func FileRate() api.Builder {
 	flags := pflag.NewFlagSet("file", pflag.ContinueOnError)
-	flags.String("config-file", "config-file.yaml", "filename containing list of stages to run")
 
 	return api.Builder{
-		Name:        "file",
+		Name:        "file <filename>",
 		Description: "triggers test iterations from a yaml config file",
 		Flags:       flags,
 		New: func(flags *pflag.FlagSet) (*api.Trigger, error) {
-			filename, err := flags.GetString("config-file")
-			if err != nil {
-				return nil, err
-			}
+			filename := flags.Arg(0)
 			fileContent, err := ioutil.ReadFile(filename)
 			if err != nil {
 				return nil, err

@@ -66,6 +66,6 @@ func (s *ChartTestStage) the_chart_starts_at_a_fixed_time() *ChartTestStage {
 }
 
 func (s *ChartTestStage) the_load_style_is_defined_in_the_config_file(filename string) *ChartTestStage {
-	s.args = append(s.args, "file", "--config-file", filename, "--chart-duration", "60s")
+	s.args = append(s.args, "file", filename, "--chart-duration", "60s")
 	return s
 }
