@@ -183,7 +183,11 @@ func (r *Stage) validateConstantStage(idx int, defaults Stage) (*Stage, error) {
 		r.Jitter = defaults.Jitter
 	}
 	if r.Parameters == nil {
-		r.Parameters = defaults.Parameters
+		if defaults.Parameters == nil {
+			r.Parameters = &map[string]string{}
+		} else {
+			r.Parameters = defaults.Parameters
+		}
 	}
 
 	return r, nil
@@ -222,7 +226,11 @@ func (r *Stage) validateStagedStage(idx int, defaults Stage) (*Stage, error) {
 		r.Jitter = defaults.Jitter
 	}
 	if r.Parameters == nil {
-		r.Parameters = defaults.Parameters
+		if defaults.Parameters == nil {
+			r.Parameters = &map[string]string{}
+		} else {
+			r.Parameters = defaults.Parameters
+		}
 	}
 
 	return r, nil
@@ -282,7 +290,11 @@ func (r *Stage) validateGaussianStage(idx int, defaults Stage) (*Stage, error) {
 		r.Jitter = defaults.Jitter
 	}
 	if r.Parameters == nil {
-		r.Parameters = defaults.Parameters
+		if defaults.Parameters == nil {
+			r.Parameters = &map[string]string{}
+		} else {
+			r.Parameters = defaults.Parameters
+		}
 	}
 
 	return r, nil
@@ -297,7 +309,11 @@ func (r *Stage) validateUsersStage(idx int, defaults Stage) (*Stage, error) {
 		}
 	}
 	if r.Parameters == nil {
-		r.Parameters = defaults.Parameters
+		if defaults.Parameters == nil {
+			r.Parameters = &map[string]string{}
+		} else {
+			r.Parameters = defaults.Parameters
+		}
 	}
 
 	return r, nil
