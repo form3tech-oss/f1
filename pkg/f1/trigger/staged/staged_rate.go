@@ -2,7 +2,6 @@ package staged
 
 import (
 	"fmt"
-	"math/rand"
 	"time"
 
 	"github.com/form3tech-oss/f1/pkg/f1/trigger/api"
@@ -47,24 +46,14 @@ func StagedRate() api.Builder {
 
 			calculator := newRateCalculator(stages)
 			rateFn := api.WithJitter(calculator.Rate, jitterArg)
-
-			var distributedIterationDuration time.Duration
-			var distributedRateFn func(time time.Time) int
-			switch distributionTypeArg {
-			case "none":
-				distributedIterationDuration, distributedRateFn = frequency, rateFn
-			case "regular":
-				distributedIterationDuration, distributedRateFn = api.WithRegularDistribution(frequency, rateFn)
-			case "random":
-				randomFn := func(limit int) int { return rand.Intn(limit) }
-				distributedIterationDuration, distributedRateFn = api.WithRandomDistribution(frequency, rateFn, randomFn)
-			default:
-				return nil, fmt.Errorf("unable to parse distribution %s", distributionTypeArg)
+			distributedIterationDuration, distributedRateFn, err := api.NewDistribution(distributionTypeArg, frequency, rateFn)
+			if err != nil {
+				return nil, err
 			}
 
 			return &api.Trigger{
 					Trigger:     api.NewIterationWorker(distributedIterationDuration, distributedRateFn),
-					DryRun:      distributedRateFn,
+					DryRun:      rateFn,
 					Description: fmt.Sprintf("Starting iterations every %s in numbers varying by time: %s, using distribution %s", frequency, stg, distributionTypeArg),
 					Duration:    calculator.MaxDuration(),
 				},

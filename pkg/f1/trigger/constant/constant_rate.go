@@ -2,7 +2,6 @@ package constant
 
 import (
 	"fmt"
-	"math/rand"
 	"strconv"
 	"strings"
 	"time"
@@ -59,25 +58,15 @@ func ConstantRate() api.Builder {
 			}
 
 			rateFn := api.WithJitter(func(time.Time) int { return rate }, jitterArg)
-
-			var distributedIterationDuration time.Duration
-			var distributedRateFn func(time time.Time) int
-			switch distributionTypeArg {
-			case "none":
-				distributedIterationDuration, distributedRateFn = iterationDuration, rateFn
-			case "regular":
-				distributedIterationDuration, distributedRateFn = api.WithRegularDistribution(iterationDuration, rateFn)
-			case "random":
-				randomFn := func(limit int) int { return rand.Intn(limit) }
-				distributedIterationDuration, distributedRateFn = api.WithRandomDistribution(iterationDuration, rateFn, randomFn)
-			default:
-				return nil, fmt.Errorf("unable to parse distribution %s", distributionTypeArg)
+			distributedIterationDuration, distributedRateFn, err := api.NewDistribution(distributionTypeArg, iterationDuration, rateFn)
+			if err != nil {
+				return nil, err
 			}
 
 			return &api.Trigger{
 					Trigger:     api.NewIterationWorker(distributedIterationDuration, distributedRateFn),
 					Description: fmt.Sprintf("%d iterations every %s, using distribution %s", rate, iterationDuration, distributionTypeArg),
-					DryRun:      distributedRateFn,
+					DryRun:      rateFn,
 				},
 				nil
 		},

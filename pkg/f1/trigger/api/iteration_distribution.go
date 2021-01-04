@@ -1,12 +1,29 @@
 package api
 
 import (
+	"fmt"
 	"math"
+	"math/rand"
 	"time"
 )
 
-// WithRegularDistribution distributes the rate constantly across 100ms intervals
-func WithRegularDistribution(iterationDuration time.Duration, rateFn RateFunction) (time.Duration, RateFunction) {
+func NewDistribution(distributionTypeArg string, iterationDuration time.Duration, rateFn RateFunction) (time.Duration, RateFunction, error) {
+	switch distributionTypeArg {
+	case "none":
+		return iterationDuration, rateFn, nil
+	case "regular":
+		distributedIterationDuration, distributedRateFn := withRegularDistribution(iterationDuration, rateFn)
+		return distributedIterationDuration, distributedRateFn, nil
+	case "random":
+		randomFn := func(limit int) int { return rand.Intn(limit) }
+		distributedIterationDuration, distributedRateFn := withRandomDistribution(iterationDuration, rateFn, randomFn)
+		return distributedIterationDuration, distributedRateFn, nil
+	default:
+		return iterationDuration, rateFn, fmt.Errorf("unable to parse distribution %s", distributionTypeArg)
+	}
+}
+
+func withRegularDistribution(iterationDuration time.Duration, rateFn RateFunction) (time.Duration, RateFunction) {
 	distributedIterationDuration := 100 * time.Millisecond
 
 	if iterationDuration < distributedIterationDuration {
@@ -42,8 +59,7 @@ func WithRegularDistribution(iterationDuration time.Duration, rateFn RateFunctio
 	return distributedIterationDuration, distributedRateFn
 }
 
-// WithRandomDistribution distributes the rate randomly across 100ms intervals
-func WithRandomDistribution(iterationDuration time.Duration, rateFn RateFunction, randFn func(int) int) (time.Duration, RateFunction) {
+func withRandomDistribution(iterationDuration time.Duration, rateFn RateFunction, randFn func(int) int) (time.Duration, RateFunction) {
 	distributedIterationDuration := 100 * time.Millisecond
 
 	if iterationDuration < distributedIterationDuration {

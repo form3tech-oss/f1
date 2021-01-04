@@ -3,7 +3,6 @@ package gaussian
 import (
 	"fmt"
 	"math"
-	"math/rand"
 	"strconv"
 	"strings"
 	"time"
@@ -81,24 +80,14 @@ func GaussianRate() api.Builder {
 				jitterDesc = fmt.Sprintf(" with jitter of %.2f%%", jitter)
 			}
 			rateFn := api.WithJitter(calculator.For, jitter)
-
-			var distributedIterationDuration time.Duration
-			var distributedRateFn func(time time.Time) int
-			switch distributionTypeArg {
-			case "none":
-				distributedIterationDuration, distributedRateFn = frequency, rateFn
-			case "regular":
-				distributedIterationDuration, distributedRateFn = api.WithRegularDistribution(frequency, rateFn)
-			case "random":
-				randomFn := func(limit int) int { return rand.Intn(limit) }
-				distributedIterationDuration, distributedRateFn = api.WithRandomDistribution(frequency, rateFn, randomFn)
-			default:
-				return nil, fmt.Errorf("unable to parse distribution %s", distributionTypeArg)
+			distributedIterationDuration, distributedRateFn, err := api.NewDistribution(distributionTypeArg, frequency, rateFn)
+			if err != nil {
+				return nil, err
 			}
 
 			return &api.Trigger{
 					Trigger: api.NewIterationWorker(distributedIterationDuration, distributedRateFn),
-					DryRun:  distributedRateFn,
+					DryRun:  rateFn,
 					Description: fmt.Sprintf(
 						"Gaussian distribution triggering %d iterations per %s, peaking at %s with standard deviation of %s%s, using distribution %s",
 						int(volume),

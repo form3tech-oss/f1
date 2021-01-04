@@ -61,6 +61,11 @@ func TestRegularRateDistribution(t *testing.T) {
 		},
 		{
 			iterationDuration:        1 * time.Second,
+			rate:                     25,
+			expectedDistributedRates: []int{2, 3, 2, 3, 2, 3, 2, 3, 2, 3},
+		},
+		{
+			iterationDuration:        1 * time.Second,
 			rate:                     100,
 			expectedDistributedRates: []int{10, 10, 10, 10, 10, 10, 10, 10, 10, 10},
 		},
@@ -123,7 +128,7 @@ func TestRegularRateDistribution(t *testing.T) {
 		t.Run(fmt.Sprintf("%d: iteration duration %s, rate %d", i, test.iterationDuration, test.rate), func(t *testing.T) {
 			rateFn := func(time time.Time) int { return test.rate }
 
-			distributedIterationDuration, distributedRate := WithRegularDistribution(test.iterationDuration, rateFn)
+			distributedIterationDuration, distributedRate := withRegularDistribution(test.iterationDuration, rateFn)
 			var result []int
 			for i := 0; i < len(test.expectedDistributedRates); i++ {
 				result = append(result, distributedRate(time.Now()))
@@ -139,7 +144,7 @@ func TestRegularRateDistributionWithSmallIterationDuration(t *testing.T) {
 	iterationDuration := 10 * time.Millisecond
 	rateFn := func(time time.Time) int { return 10_000 }
 
-	distributedIterationDuration, distributedRate := WithRegularDistribution(iterationDuration, rateFn)
+	distributedIterationDuration, distributedRate := withRegularDistribution(iterationDuration, rateFn)
 
 	require.Equal(t, 10*time.Millisecond, distributedIterationDuration)
 	require.Equal(t, 10_000, distributedRate(time.Now()))
@@ -157,7 +162,7 @@ func TestRegularRateDistributionWithVariableRate(t *testing.T) {
 		0, 1, 1, 1, 1, 0, 1, 1, 1, 1,
 	}
 
-	distributedIterationDuration, distributedRate := WithRegularDistribution(iterationDuration, rateFn)
+	distributedIterationDuration, distributedRate := withRegularDistribution(iterationDuration, rateFn)
 	var result []int
 	for i := 0; i < len(expectedDistributedRates); i++ {
 		result = append(result, distributedRate(time.Now()))
@@ -222,7 +227,7 @@ func TestRandomRateDistribution(t *testing.T) {
 			var idx = -1
 			randFn := func(limit int) int { idx++; return test.randomValues[idx] }
 
-			distributedIterationDuration, distributedRate := WithRandomDistribution(test.iterationDuration, rateFn, randFn)
+			distributedIterationDuration, distributedRate := withRandomDistribution(test.iterationDuration, rateFn, randFn)
 			var result []int
 			for i := 0; i < len(test.expectedDistributedRates); i++ {
 				result = append(result, distributedRate(time.Now()))
@@ -254,7 +259,7 @@ func TestRandomRateDistributionWithVariableRate(t *testing.T) {
 		0, 1, 1, 1, 1, 0, 1, 1, 1, 1,
 	}
 
-	distributedIterationDuration, distributedRate := WithRandomDistribution(iterationDuration, rateFn, randFn)
+	distributedIterationDuration, distributedRate := withRandomDistribution(iterationDuration, rateFn, randFn)
 	var result []int
 	for i := 0; i < len(expectedDistributedRates); i++ {
 		result = append(result, distributedRate(time.Now()))
