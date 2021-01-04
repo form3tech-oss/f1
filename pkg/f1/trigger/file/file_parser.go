@@ -29,8 +29,8 @@ type Limits struct {
 
 type Stage struct {
 	Mode               *string            `yaml:"mode"`
-	StartRate          *string            `yaml:"start_rate"`
-	EndRate            *string            `yaml:"end_rate"`
+	StartRate          *string            `yaml:"start-rate"`
+	EndRate            *string            `yaml:"end-rate"`
 	Rate               *string            `yaml:"rate"`
 	Distribution       *string            `yaml:"distribution"`
 	Weights            *string            `yaml:"weights"`

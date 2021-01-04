@@ -43,8 +43,8 @@ limits:
 stages:
 - duration: 10s
   mode: stage
-  start_rate: 0
-  end_rate: 10
+  start-rate: 0
+  end-rate: 10
   iteration-frequency: 1s
   jitter: 0
   distribution: none
@@ -176,8 +176,8 @@ stages:
 			fileContent: `
 default:
   mode: stage
-  start_rate: 0
-  end_rate: 10
+  start-rate: 0
+  end-rate: 10
   iteration-frequency: 1s
   jitter: 0
   distribution: none
@@ -374,7 +374,7 @@ schedule:
 stages:
 - duration: 10s
   mode: stage
-  start_rate: 0
+  start-rate: 0
 `,
 			expectedError: "missing end rate at stage 0",
 		},
@@ -390,8 +390,8 @@ schedule:
 stages:
 - duration: 10s
   mode: stage
-  start_rate: 0
-  end_rate: 10
+  start-rate: 0
+  end-rate: 10
 `,
 			expectedError: "missing iteration-frequency at stage 0",
 		},
@@ -407,8 +407,8 @@ schedule:
 stages:
 - duration: 10s
   mode: stage
-  start_rate: 0
-  end_rate: 10
+  start-rate: 0
+  end-rate: 10
   iteration-frequency: 1s
 `,
 			expectedError: "missing distribution at stage 0",
