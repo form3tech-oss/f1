@@ -18,7 +18,7 @@ stages:
     jitter: 0
     distribution: none
   - duration: 300ms
-    mode: stage
+    mode: staged
     start-rate: 0
     end-rate: 30
     iteration-frequency: 100ms

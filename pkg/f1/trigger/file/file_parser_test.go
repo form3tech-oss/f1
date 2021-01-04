@@ -42,7 +42,7 @@ limits:
   max-iterations: 100
 stages:
 - duration: 10s
-  mode: stage
+  mode: staged
   start-rate: 0
   end-rate: 10
   iteration-frequency: 1s
@@ -175,7 +175,7 @@ stages:
 			testName: "Staged mode single stage using default values",
 			fileContent: `
 default:
-  mode: stage
+  mode: staged
   start-rate: 0
   end-rate: 10
   iteration-frequency: 1s
@@ -358,7 +358,7 @@ schedule:
   stage_start: "2020-12-10T10:00:00+00:00"
 stages:
 - duration: 10s
-  mode: stage
+  mode: staged
 `,
 			expectedError: "missing start rate at stage 0",
 		},
@@ -373,7 +373,7 @@ schedule:
   stage_start: "2020-12-10T10:00:00+00:00"
 stages:
 - duration: 10s
-  mode: stage
+  mode: staged
   start-rate: 0
 `,
 			expectedError: "missing end rate at stage 0",
@@ -389,7 +389,7 @@ schedule:
   stage_start: "2020-12-10T10:00:00+00:00"
 stages:
 - duration: 10s
-  mode: stage
+  mode: staged
   start-rate: 0
   end-rate: 10
 `,
@@ -406,7 +406,7 @@ schedule:
   stage_start: "2020-12-10T10:00:00+00:00"
 stages:
 - duration: 10s
-  mode: stage
+  mode: staged
   start-rate: 0
   end-rate: 10
   iteration-frequency: 1s

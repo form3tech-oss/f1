@@ -86,7 +86,7 @@ func parseConfigFile(fileContent []byte, now time.Time) (*runnableStages, error)
 					rate:              rates.DistributedRate,
 					params:            *validatedConstantStage.Parameters,
 				}
-			case "stage":
+			case "staged":
 				validatedStagedStage, err := validatedStage.validateStagedStage(i, configFile.Default)
 				if err != nil {
 					return nil, err
