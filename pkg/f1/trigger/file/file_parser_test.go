@@ -128,11 +128,15 @@ stages:
   rate: 1/s
   jitter: 0
   distribution: none
+  parameters:
+    SOP: 1
 - duration: 5s
   mode: constant
   rate: 2/s
   jitter: 0
   distribution: none
+  parameters:
+    SOP: 1
 `,
 			expectedMaxDuration:       1 * time.Minute,
 			expectedConcurrency:       50,
@@ -140,6 +144,115 @@ stages:
 			expectedTotalDuration:     5 * time.Second,
 			expectedIterationDuration: 1 * time.Second,
 			expectedRates:             []int{2, 2, 2, 2, 2},
+			expectedParameters:        map[string]string{"SOP": "1"},
+		},
+		{
+			testName: "Constant mode single stage using default values",
+			fileContent: `
+default:
+  mode: constant
+  rate: 6/s
+  jitter: 0
+  distribution: none
+  parameters:
+    SOP: 1
+limits:
+  max-duration: 1m
+  concurrency: 50
+  max-iterations: 100
+stages:
+- duration: 5s
+`,
+			expectedMaxDuration:       1 * time.Minute,
+			expectedConcurrency:       50,
+			expectedMaxIterations:     100,
+			expectedTotalDuration:     5 * time.Second,
+			expectedIterationDuration: 1 * time.Second,
+			expectedRates:             []int{6, 6, 6, 6, 6, 6},
+			expectedParameters:        map[string]string{"SOP": "1"},
+		},
+		{
+			testName: "Staged mode single stage using default values",
+			fileContent: `
+default:
+  mode: stage
+  start_rate: 0
+  end_rate: 10
+  iteration-frequency: 1s
+  jitter: 0
+  distribution: none
+  parameters:
+    SOP: 1
+limits:
+  max-duration: 1m
+  concurrency: 50
+  max-iterations: 100
+stages:
+- duration: 10s
+`,
+			expectedMaxDuration:       1 * time.Minute,
+			expectedConcurrency:       50,
+			expectedMaxIterations:     100,
+			expectedTotalDuration:     10 * time.Second,
+			expectedIterationDuration: 1 * time.Second,
+			expectedRates:             []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
+			expectedParameters:        map[string]string{"SOP": "1"},
+		},
+		{
+			testName: "Gaussian mode single stage using default values",
+			fileContent: `
+default:
+  mode: gaussian
+limits:
+  max-duration: 1m
+  concurrency: 50
+  max-iterations: 100
+stages:
+- duration: 10s
+  volume: 100
+  repeat: 20s
+  iteration-frequency: 1s
+  peak: 10s
+  weights: "1.0,1.0"
+  standard-deviation: 3s
+  jitter: 0
+  distribution: none
+  parameters:
+    SOP: 1
+`,
+			expectedMaxDuration:       1 * time.Minute,
+			expectedConcurrency:       50,
+			expectedMaxIterations:     100,
+			expectedTotalDuration:     10 * time.Second,
+			expectedIterationDuration: 1 * time.Second,
+			expectedRates: []int{
+				0, 0, 1, 2, 3, 6, 8, 10, 13, 13, 13, 10, 9, 5, 3, 2, 1, 0, 1, 0,
+				0, 0, 1, 2, 3, 6, 8, 10, 13, 13, 13, 11, 8, 5, 3, 2, 1, 0, 1, 0,
+				0, 0, 1, 2, 3, 6, 8, 10, 13, 13, 13, 11, 8, 5, 3, 2, 1, 1, 0, 0,
+			},
+			expectedParameters: map[string]string{"SOP": "1"},
+		},
+		{
+			testName: "Users mode single stage using default values",
+			fileContent: `
+default:
+  mode: users
+  users: 100
+  parameters:
+    SOP: 1
+limits:
+  max-duration: 1m
+  concurrency: 50
+  max-iterations: 100
+stages:
+- duration: 10s
+`,
+			expectedMaxDuration:   1 * time.Minute,
+			expectedConcurrency:   50,
+			expectedMaxIterations: 100,
+			expectedTotalDuration: 10 * time.Second,
+			expectedUsers:         100,
+			expectedParameters:    map[string]string{"SOP": "1"},
 		},
 	} {
 		t.Run(test.testName, func(t *testing.T) {
