@@ -95,6 +95,7 @@ func TestParameterised(t *testing.T) {
 			iterationDuration:      2 * time.Second,
 			expectedRunTime:        2 * time.Second,
 			expectedCompletedTests: 1,
+			distributionType:       "none",
 		},
 		{
 			name:                   "next iteration can start if previous still running",
@@ -104,6 +105,7 @@ func TestParameterised(t *testing.T) {
 			iterationDuration:      2 * time.Second,
 			expectedRunTime:        3 * time.Second,
 			expectedCompletedTests: 20,
+			distributionType:       "none",
 		},
 		{
 			name:                      "next iteration won't start if previous still running and limited by concurrency",
@@ -115,6 +117,7 @@ func TestParameterised(t *testing.T) {
 			iterationDuration:         2 * time.Second,
 			expectedDroppedIterations: 10,
 			expectedFailure:           true,
+			distributionType:          "none",
 		},
 		{
 			name:                   "limited iterations",
@@ -339,7 +342,8 @@ func TestRunScenarioThatFailsOccasionally(t *testing.T) {
 		a_rate_of("100/1s").and().
 		// Run less than 1 second, since if we run exactly for 1 second the test might run into another iteration.
 		// This would then lead to 200 requests being made, making the test fail
-		a_duration_of(500 * time.Millisecond)
+		a_duration_of(500 * time.Millisecond).and().
+		a_distribution_type("none")
 
 	when.i_execute_the_run_command()
 
@@ -354,7 +358,8 @@ func TestInterruptedRun(t *testing.T) {
 	given.
 		a_rate_of("5/10ms").and().
 		a_duration_of(5 * time.Second).and().
-		a_scenario_where_each_iteration_takes(0 * time.Second)
+		a_scenario_where_each_iteration_takes(0 * time.Second).and().
+		a_distribution_type("none")
 
 	when.the_test_run_is_started().and().
 		the_test_run_is_interrupted()
@@ -402,7 +407,8 @@ func TestFailureCounts(t *testing.T) {
 	given.
 		a_rate_of("10/s").and().
 		a_duration_of(500 * time.Millisecond).and().
-		a_test_scenario_that_fails_intermittently()
+		a_test_scenario_that_fails_intermittently().and().
+		a_distribution_type("none")
 
 	when.i_execute_the_run_command()
 
