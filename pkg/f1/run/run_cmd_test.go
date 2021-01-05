@@ -11,14 +11,13 @@ func TestSimpleFlow(t *testing.T) {
 	given, when, then := NewRunTestStage(t)
 
 	test := TestParam{
-		name:                   "simple staged test",
-		triggerType:            Staged,
-		stages:                 "0ms:0, 50ms: 100, 100ms: 100, 50ms:0",
-		iterationFrequency:     "100ms",
-		testDuration:           200 * time.Millisecond,
+		name:                   "basic test",
+		constantRate:           "10/100ms",
+		testDuration:           100 * time.Millisecond,
 		concurrency:            100,
-		iterationDuration:      1 * time.Millisecond,
-		expectedCompletedTests: 100,
+		iterationDuration:      100 * time.Millisecond,
+		expectedRunTime:        100 * time.Millisecond,
+		expectedCompletedTests: 10,
 	}
 	given.
 		a_trigger_type_of(test.triggerType).and().
@@ -274,6 +273,60 @@ func TestParameterised(t *testing.T) {
 				teardown_is_called_once()
 		})
 	}
+}
+
+func TestNoneDistribution(t *testing.T) {
+	given, when, then := NewRunTestStage(t)
+
+	given.
+		a_trigger_type_of(Constant).and().
+		a_rate_of("10/s").and().
+		a_distribution_type("none").and().
+		a_duration_of(500 * time.Millisecond).and().
+		a_concurrency_of(50).and().
+		an_iteration_limit_of(1000).and().
+		a_scenario_where_each_iteration_takes(1 * time.Millisecond)
+
+	when.i_start_a_timer().and().
+		i_execute_the_run_command()
+
+	then.there_should_be_x_requests_sent_over_y_intervals_of_x_ms(10, 1, 1000)
+}
+
+func TestRegularDistribution(t *testing.T) {
+	given, when, then := NewRunTestStage(t)
+
+	given.
+		a_trigger_type_of(Constant).and().
+		a_rate_of("10/s").and().
+		a_distribution_type("regular").and().
+		a_duration_of(500 * time.Millisecond).and().
+		a_concurrency_of(50).and().
+		an_iteration_limit_of(1000).and().
+		a_scenario_where_each_iteration_takes(1 * time.Millisecond)
+
+	when.i_start_a_timer().and().
+		i_execute_the_run_command()
+
+	then.there_should_be_x_requests_sent_over_y_intervals_of_x_ms(1, 5, 100)
+}
+
+func TestRandomDistribution(t *testing.T) {
+	given, when, then := NewRunTestStage(t)
+
+	given.
+		a_trigger_type_of(Constant).and().
+		a_rate_of("10/s").and().
+		a_distribution_type("random").and().
+		a_duration_of(500 * time.Millisecond).and().
+		a_concurrency_of(50).and().
+		an_iteration_limit_of(1000).and().
+		a_scenario_where_each_iteration_takes(1 * time.Millisecond)
+
+	when.i_start_a_timer().and().
+		i_execute_the_run_command()
+
+	then.the_requests_are_not_sent_all_at_once()
 }
 
 func TestRunScenarioThatFailsSetup(t *testing.T) {
