@@ -1,4 +1,7 @@
 scenario: test
+default:
+  jitter: 0
+  distribution: none
 limits:
   max-duration: 5s
   concurrency: 50
@@ -16,15 +19,11 @@ stages:
   - duration: 200ms
     mode: constant
     rate: 5/100ms
-    jitter: 0
-    distribution: none
   - duration: 300ms
     mode: staged
     start-rate: 0
     end-rate: 30
     iteration-frequency: 100ms
-    jitter: 0
-    distribution: none
   - duration: 1s
     mode: gaussian
     volume: 100

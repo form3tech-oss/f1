@@ -26,7 +26,7 @@ func Cmd(builders []api.Builder, hookFunc logging.RegisterLogHookFunc) *cobra.Co
 	}
 
 	for _, t := range builders {
-		if t.IgnoreCommonFlags == true {
+		if t.IgnoreCommonFlags {
 			triggerCmd := &cobra.Command{
 				Use:   t.Name,
 				Short: t.Description,

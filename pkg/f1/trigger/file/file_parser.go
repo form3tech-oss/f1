@@ -11,7 +11,7 @@ import (
 )
 
 type ConfigFile struct {
-	Scenario string   `yaml:"scenario"`
+	Scenario *string  `yaml:"scenario"`
 	Default  Stage    `yaml:"default"`
 	Limits   Limits   `yaml:"limits"`
 	Schedule Schedule `yaml:"schedule"`
@@ -19,13 +19,13 @@ type ConfigFile struct {
 }
 
 type Schedule struct {
-	StageStart *time.Time `yaml:"stage_start"`
+	StageStart *time.Time `yaml:"stage-start"`
 }
 
 type Limits struct {
-	MaxDuration   time.Duration `yaml:"max-duration"`
-	Concurrency   int           `yaml:"concurrency"`
-	MaxIterations int32         `yaml:"max-iterations"`
+	MaxDuration   *time.Duration `yaml:"max-duration"`
+	Concurrency   *int           `yaml:"concurrency"`
+	MaxIterations *int32         `yaml:"max-iterations"`
 }
 
 type Stage struct {
@@ -59,286 +59,289 @@ func parseConfigFile(fileContent []byte, now time.Time) (*runnableStages, error)
 
 	var stages []runnableStage
 	stagesTotalDuration := 0 * time.Second
-	for i, stageConfig := range configFile.Stages {
-		validatedStage, err := stageConfig.validateCommonFieldsOfStage(i, configFile.Default)
+	for idx, stageConfig := range configFile.Stages {
+		validatedStage, err := stageConfig.validateCommonFieldsOfStage(idx, configFile.Default)
 		if err != nil {
 			return nil, err
 		}
 		stagesTotalDuration += *validatedStage.Duration
 
 		if configFile.Schedule.StageStart == nil || configFile.Schedule.StageStart.Add(stagesTotalDuration).After(now) {
-
-			var stage runnableStage
-
-			switch *validatedStage.Mode {
-			case "constant":
-				validatedConstantStage, err := validatedStage.validateConstantStage(i, configFile.Default)
-				if err != nil {
-					return nil, err
-				}
-				rates, err := constant.CalculateConstantRate(*validatedConstantStage.Jitter, *validatedConstantStage.Rate, *validatedConstantStage.Distribution)
-				if err != nil {
-					return nil, err
-				}
-
-				stage = runnableStage{
-					stageDuration:     *validatedConstantStage.Duration,
-					iterationDuration: rates.DistributedIterationDuration,
-					rate:              rates.DistributedRate,
-					params:            *validatedConstantStage.Parameters,
-				}
-			case "staged":
-				validatedStagedStage, err := validatedStage.validateStagedStage(i, configFile.Default)
-				if err != nil {
-					return nil, err
-				}
-				stg := fmt.Sprintf("0s:%s, %s:%s", *validatedStagedStage.StartRate, *validatedStagedStage.Duration, *validatedStagedStage.EndRate)
-				rates, err := staged.CalculateStagedRate(*validatedStagedStage.Jitter, *validatedStagedStage.IterationFrequency, stg, *validatedStagedStage.Distribution)
-				if err != nil {
-					return nil, err
-				}
-
-				stage = runnableStage{
-					stageDuration:     *validatedStagedStage.Duration,
-					iterationDuration: rates.DistributedIterationDuration,
-					rate:              rates.DistributedRate,
-					params:            *validatedStagedStage.Parameters,
-				}
-			case "gaussian":
-				validatedGaussianStage, err := validatedStage.validateGaussianStage(i, configFile.Default)
-				if err != nil {
-					return nil, err
-				}
-				rates, err := gaussian.CalculateGaussianRate(
-					*validatedGaussianStage.Volume, *validatedGaussianStage.Jitter, *validatedGaussianStage.Repeat,
-					*validatedGaussianStage.IterationFrequency, *validatedGaussianStage.Peak, *validatedGaussianStage.StandardDeviation,
-					*validatedGaussianStage.Weights, *validatedGaussianStage.Distribution,
-				)
-				if err != nil {
-					return nil, err
-				}
-
-				stage = runnableStage{
-					stageDuration:     *validatedGaussianStage.Duration,
-					iterationDuration: rates.DistributedIterationDuration,
-					rate:              rates.DistributedRate,
-					params:            *validatedGaussianStage.Parameters,
-				}
-			case "users":
-				validatedUsersStage, err := validatedStage.validateUsersStage(i, configFile.Default)
-				if err != nil {
-					return nil, err
-				}
-				stage = runnableStage{
-					stageDuration: *validatedUsersStage.Duration,
-					params:        *validatedUsersStage.Parameters,
-					users:         *validatedUsersStage.Users,
-				}
-			default:
-				return nil, fmt.Errorf("missing stage mode at stage %d", i)
+			parsedStage, err := validatedStage.parseStage(idx, configFile.Default)
+			if err != nil {
+				return nil, err
 			}
-
-			stages = append(stages, stage)
+			stages = append(stages, *parsedStage)
 		}
 	}
 
 	return &runnableStages{
-		scenario:            configFile.Scenario,
+		scenario:            *configFile.Scenario,
 		stages:              stages,
 		stagesTotalDuration: stagesTotalDuration,
-		maxDuration:         configFile.Limits.MaxDuration,
-		concurrency:         configFile.Limits.Concurrency,
-		maxIterations:       configFile.Limits.MaxIterations,
+		maxDuration:         *configFile.Limits.MaxDuration,
+		concurrency:         *configFile.Limits.Concurrency,
+		maxIterations:       *configFile.Limits.MaxIterations,
 	}, nil
 }
 
-func (r *ConfigFile) validateCommonFields() error {
-	if r.Scenario == "" {
+func (s *Stage) parseStage(stageIdx int, defaults Stage) (*runnableStage, error) {
+	switch *s.Mode {
+	case "constant":
+		validatedConstantStage, err := s.validateConstantStage(stageIdx, defaults)
+		if err != nil {
+			return nil, err
+		}
+		rates, err := constant.CalculateConstantRate(*validatedConstantStage.Jitter, *validatedConstantStage.Rate, *validatedConstantStage.Distribution)
+		if err != nil {
+			return nil, err
+		}
+
+		return &runnableStage{
+			stageDuration:     *validatedConstantStage.Duration,
+			iterationDuration: rates.DistributedIterationDuration,
+			rate:              rates.DistributedRate,
+			params:            *validatedConstantStage.Parameters,
+		}, nil
+	case "staged":
+		validatedStagedStage, err := s.validateStagedStage(stageIdx, defaults)
+		if err != nil {
+			return nil, err
+		}
+		stg := fmt.Sprintf("0s:%s, %s:%s", *validatedStagedStage.StartRate, *validatedStagedStage.Duration, *validatedStagedStage.EndRate)
+		rates, err := staged.CalculateStagedRate(*validatedStagedStage.Jitter, *validatedStagedStage.IterationFrequency, stg, *validatedStagedStage.Distribution)
+		if err != nil {
+			return nil, err
+		}
+
+		return &runnableStage{
+			stageDuration:     *validatedStagedStage.Duration,
+			iterationDuration: rates.DistributedIterationDuration,
+			rate:              rates.DistributedRate,
+			params:            *validatedStagedStage.Parameters,
+		}, nil
+	case "gaussian":
+		validatedGaussianStage, err := s.validateGaussianStage(stageIdx, defaults)
+		if err != nil {
+			return nil, err
+		}
+		rates, err := gaussian.CalculateGaussianRate(
+			*validatedGaussianStage.Volume, *validatedGaussianStage.Jitter, *validatedGaussianStage.Repeat,
+			*validatedGaussianStage.IterationFrequency, *validatedGaussianStage.Peak, *validatedGaussianStage.StandardDeviation,
+			*validatedGaussianStage.Weights, *validatedGaussianStage.Distribution,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		return &runnableStage{
+			stageDuration:     *validatedGaussianStage.Duration,
+			iterationDuration: rates.DistributedIterationDuration,
+			rate:              rates.DistributedRate,
+			params:            *validatedGaussianStage.Parameters,
+		}, nil
+	case "users":
+		validatedUsersStage, err := s.validateUsersStage(stageIdx, defaults)
+		if err != nil {
+			return nil, err
+		}
+		return &runnableStage{
+			stageDuration: *validatedUsersStage.Duration,
+			params:        *validatedUsersStage.Parameters,
+			users:         *validatedUsersStage.Users,
+		}, nil
+	default:
+		return nil, fmt.Errorf("invalid stage mode at stage %d", stageIdx)
+	}
+}
+
+func (c *ConfigFile) validateCommonFields() error {
+	if c.Scenario == nil {
 		return fmt.Errorf("missing scenario")
 	}
-	if r.Limits.MaxDuration == 0*time.Second {
+	if c.Limits.MaxDuration == nil {
 		return fmt.Errorf("missing max-duration")
 	}
-	if r.Limits.Concurrency == 0 {
+	if c.Limits.Concurrency == nil {
 		return fmt.Errorf("missing concurrency")
 	}
-	if r.Limits.MaxIterations == 0 {
+	if c.Limits.MaxIterations == nil {
 		return fmt.Errorf("missing max-iterations")
 	}
 
 	return nil
 }
 
-func (r *Stage) validateCommonFieldsOfStage(idx int, defaults Stage) (*Stage, error) {
-	if r.Duration == nil {
+func (s *Stage) validateCommonFieldsOfStage(idx int, defaults Stage) (*Stage, error) {
+	if s.Duration == nil {
 		if defaults.Duration == nil {
 			return nil, fmt.Errorf("missing duration at stage %d", idx)
 		} else {
-			r.Duration = defaults.Duration
+			s.Duration = defaults.Duration
 		}
 	}
-	if r.Mode == nil {
+	if s.Mode == nil {
 		if defaults.Mode == nil {
 			return nil, fmt.Errorf("missing stage mode at stage %d", idx)
 		} else {
-			r.Mode = defaults.Mode
+			s.Mode = defaults.Mode
 		}
 	}
 
-	return r, nil
+	return s, nil
 }
 
-func (r *Stage) validateConstantStage(idx int, defaults Stage) (*Stage, error) {
-	if r.Rate == nil {
+func (s *Stage) validateConstantStage(idx int, defaults Stage) (*Stage, error) {
+	if s.Rate == nil {
 		if defaults.Rate == nil {
 			return nil, fmt.Errorf("missing rate at stage %d", idx)
 		} else {
-			r.Rate = defaults.Rate
+			s.Rate = defaults.Rate
 		}
 	}
-	if r.Distribution == nil {
+	if s.Distribution == nil {
 		if defaults.Distribution == nil {
 			return nil, fmt.Errorf("missing distribution at stage %d", idx)
 		} else {
-			r.Distribution = defaults.Distribution
+			s.Distribution = defaults.Distribution
 		}
 	}
-	if r.Jitter == nil {
-		r.Jitter = defaults.Jitter
+	if s.Jitter == nil {
+		s.Jitter = defaults.Jitter
 	}
-	if r.Parameters == nil {
+	if s.Parameters == nil {
 		if defaults.Parameters == nil {
-			r.Parameters = &map[string]string{}
+			s.Parameters = &map[string]string{}
 		} else {
-			r.Parameters = defaults.Parameters
+			s.Parameters = defaults.Parameters
 		}
 	}
 
-	return r, nil
+	return s, nil
 }
 
-func (r *Stage) validateStagedStage(idx int, defaults Stage) (*Stage, error) {
-	if r.StartRate == nil {
+func (s *Stage) validateStagedStage(idx int, defaults Stage) (*Stage, error) {
+	if s.StartRate == nil {
 		if defaults.StartRate == nil {
-			return nil, fmt.Errorf("missing start rate at stage %d", idx)
+			return nil, fmt.Errorf("missing start-rate at stage %d", idx)
 		} else {
-			r.StartRate = defaults.StartRate
+			s.StartRate = defaults.StartRate
 		}
 	}
-	if r.EndRate == nil {
+	if s.EndRate == nil {
 		if defaults.EndRate == nil {
-			return nil, fmt.Errorf("missing end rate at stage %d", idx)
+			return nil, fmt.Errorf("missing end-rate at stage %d", idx)
 		} else {
-			r.EndRate = defaults.EndRate
+			s.EndRate = defaults.EndRate
 		}
 	}
-	if r.IterationFrequency == nil {
+	if s.IterationFrequency == nil {
 		if defaults.IterationFrequency == nil {
 			return nil, fmt.Errorf("missing iteration-frequency at stage %d", idx)
 		} else {
-			r.IterationFrequency = defaults.IterationFrequency
+			s.IterationFrequency = defaults.IterationFrequency
 		}
 	}
-	if r.Distribution == nil {
+	if s.Distribution == nil {
 		if defaults.Distribution == nil {
 			return nil, fmt.Errorf("missing distribution at stage %d", idx)
 		} else {
-			r.Distribution = defaults.Distribution
+			s.Distribution = defaults.Distribution
 		}
 	}
-	if r.Jitter == nil {
-		r.Jitter = defaults.Jitter
+	if s.Jitter == nil {
+		s.Jitter = defaults.Jitter
 	}
-	if r.Parameters == nil {
+	if s.Parameters == nil {
 		if defaults.Parameters == nil {
-			r.Parameters = &map[string]string{}
+			s.Parameters = &map[string]string{}
 		} else {
-			r.Parameters = defaults.Parameters
+			s.Parameters = defaults.Parameters
 		}
 	}
 
-	return r, nil
+	return s, nil
 }
 
-func (r *Stage) validateGaussianStage(idx int, defaults Stage) (*Stage, error) {
-	if r.Volume == nil {
+func (s *Stage) validateGaussianStage(idx int, defaults Stage) (*Stage, error) {
+	if s.Volume == nil {
 		if defaults.Volume == nil {
 			return nil, fmt.Errorf("missing volume at stage %d", idx)
 		} else {
-			r.Volume = defaults.Volume
+			s.Volume = defaults.Volume
 		}
 	}
-	if r.Repeat == nil {
+	if s.Repeat == nil {
 		if defaults.Repeat == nil {
 			return nil, fmt.Errorf("missing repeat at stage %d", idx)
 		} else {
-			r.Repeat = defaults.Repeat
+			s.Repeat = defaults.Repeat
 		}
 	}
-	if r.IterationFrequency == nil {
+	if s.IterationFrequency == nil {
 		if defaults.IterationFrequency == nil {
 			return nil, fmt.Errorf("missing iteration-frequency at stage %d", idx)
 		} else {
-			r.IterationFrequency = defaults.IterationFrequency
+			s.IterationFrequency = defaults.IterationFrequency
 		}
 	}
-	if r.Peak == nil {
+	if s.Peak == nil {
 		if defaults.Peak == nil {
 			return nil, fmt.Errorf("missing peak at stage %d", idx)
 		} else {
-			r.Peak = defaults.Peak
+			s.Peak = defaults.Peak
 		}
 	}
-	if r.Weights == nil {
+	if s.Weights == nil {
 		if defaults.Weights == nil {
 			return nil, fmt.Errorf("missing weights at stage %d", idx)
 		} else {
-			r.Weights = defaults.Weights
+			s.Weights = defaults.Weights
 		}
 	}
-	if r.StandardDeviation == nil {
+	if s.StandardDeviation == nil {
 		if defaults.StandardDeviation == nil {
 			return nil, fmt.Errorf("missing standard-deviation at stage %d", idx)
 		} else {
-			r.StandardDeviation = defaults.StandardDeviation
+			s.StandardDeviation = defaults.StandardDeviation
 		}
 	}
-	if r.Distribution == nil {
+	if s.Distribution == nil {
 		if defaults.Distribution == nil {
 			return nil, fmt.Errorf("missing distribution at stage %d", idx)
 		} else {
-			r.Distribution = defaults.Distribution
+			s.Distribution = defaults.Distribution
 		}
 	}
-	if r.Jitter == nil {
-		r.Jitter = defaults.Jitter
+	if s.Jitter == nil {
+		s.Jitter = defaults.Jitter
 	}
-	if r.Parameters == nil {
+	if s.Parameters == nil {
 		if defaults.Parameters == nil {
-			r.Parameters = &map[string]string{}
+			s.Parameters = &map[string]string{}
 		} else {
-			r.Parameters = defaults.Parameters
+			s.Parameters = defaults.Parameters
 		}
 	}
 
-	return r, nil
+	return s, nil
 }
 
-func (r *Stage) validateUsersStage(idx int, defaults Stage) (*Stage, error) {
-	if r.Users == nil {
+func (s *Stage) validateUsersStage(idx int, defaults Stage) (*Stage, error) {
+	if s.Users == nil {
 		if defaults.Users == nil {
 			return nil, fmt.Errorf("missing users at stage %d", idx)
 		} else {
-			r.Users = defaults.Users
+			s.Users = defaults.Users
 		}
 	}
-	if r.Parameters == nil {
+	if s.Parameters == nil {
 		if defaults.Parameters == nil {
-			r.Parameters = &map[string]string{}
+			s.Parameters = &map[string]string{}
 		} else {
-			r.Parameters = defaults.Parameters
+			s.Parameters = defaults.Parameters
 		}
 	}
 
-	return r, nil
+	return s, nil
 }

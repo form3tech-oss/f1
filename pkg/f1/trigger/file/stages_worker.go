@@ -15,67 +15,73 @@ func newStagesWorker(stages []runnableStage) api.WorkTriggerer {
 		for _, stage := range stages {
 			setEnvs(stage.params)
 
-			if stage.users > 0 {
-				for i := 0; i < stage.users; i++ {
-					workTriggered <- true
-				}
-
-				totalDurationTicker := time.NewTicker(stage.stageDuration - 10*time.Millisecond)
-
-				for isListening := true; isListening == true; {
-					select {
-					case <-stop:
-						return
-					case <-workDone:
-						workTriggered <- true
-					case <-totalDurationTicker.C:
-						totalDurationTicker.Stop()
-						isListening = false
-					}
-				}
+			if stage.users == 0 {
+				runStageWork(workTriggered, stop, workDone, stage)
 			} else {
-				startRate := stage.rate(time.Now())
-				for i := 0; i < startRate; i++ {
-					workTriggered <- true
-				}
-
-				// start ticker to trigger subsequent iterations.
-				totalDurationTicker := time.NewTicker(stage.stageDuration - 10*time.Millisecond)
-				iterationTicker := time.NewTicker(stage.iterationDuration)
-
-				// run more iterations on every tick, until duration has elapsed.
-				for isListening := true; isListening == true; {
-					select {
-					case <-workDone:
-						continue
-					case <-stop:
-						trace.ReceivedFromChannel("stop")
-						iterationTicker.Stop()
-						trace.Event("Iteration worker stopped.")
-						return
-					case start := <-iterationTicker.C:
-						select {
-						case <-stop:
-							continue
-						case <-totalDurationTicker.C:
-							continue
-						default:
-						}
-
-						iterationRate := stage.rate(start)
-						for i := 0; i < iterationRate; i++ {
-							trace.SendingToChannel("workTriggered")
-							workTriggered <- true
-						}
-					case <-totalDurationTicker.C:
-						iterationTicker.Stop()
-						totalDurationTicker.Stop()
-						isListening = false
-					}
-				}
+				runUsersStageWork(workTriggered, stop, workDone, stage)
 			}
 
 			unsetEnvs(stage.params)
+		}
+	}
+}
+
+func runStageWork(workTriggered chan<- bool, stop <-chan bool, workDone <-chan bool, stage runnableStage) {
+	startRate := stage.rate(time.Now())
+	for i := 0; i < startRate; i++ {
+		workTriggered <- true
+	}
+
+	totalDurationTicker := time.NewTicker(stage.stageDuration - 10*time.Millisecond)
+	iterationTicker := time.NewTicker(stage.iterationDuration)
+
+	for isListening := true; isListening == true; {
+		select {
+		case <-workDone:
+			continue
+		case <-stop:
+			trace.ReceivedFromChannel("stop")
+			iterationTicker.Stop()
+			trace.Event("Iteration worker stopped.")
+			return
+		case start := <-iterationTicker.C:
+			select {
+			case <-stop:
+				continue
+			case <-totalDurationTicker.C:
+				continue
+			default:
+			}
+
+			iterationRate := stage.rate(start)
+			for i := 0; i < iterationRate; i++ {
+				trace.SendingToChannel("workTriggered")
+				workTriggered <- true
+			}
+		case <-totalDurationTicker.C:
+			iterationTicker.Stop()
+			totalDurationTicker.Stop()
+			isListening = false
+		}
+	}
+}
+
+func runUsersStageWork(workTriggered chan<- bool, stop <-chan bool, workDone <-chan bool, stage runnableStage) {
+	for i := 0; i < stage.users; i++ {
+		workTriggered <- true
+	}
+
+	totalDurationTicker := time.NewTicker(stage.stageDuration - 10*time.Millisecond)
+
+	for isListening := true; isListening == true; {
+		select {
+		case <-stop:
+			return
+		case <-workDone:
+			workTriggered <- true
+		case <-totalDurationTicker.C:
+			totalDurationTicker.Stop()
+			isListening = false
 		}
 	}
 }

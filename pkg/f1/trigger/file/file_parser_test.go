@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestFileRate_SimpleStages(t *testing.T) {
+func TestFileRate_SingleStages(t *testing.T) {
 	for _, test := range []testData{
 		{
 			testName: "Constant mode single stage",
@@ -122,7 +122,7 @@ stages:
 			expectedParameters:    map[string]string{"SOP": "1"},
 		},
 		{
-			testName: "Start with the stage corresponding to a given time",
+			testName: "Skip completed stages when stage-start is provided",
 			fileContent: `
 scenario: template
 limits:
@@ -130,7 +130,7 @@ limits:
   concurrency: 50
   max-iterations: 100
 schedule:
-  stage_start: "2020-12-10T09:00:00+00:00"
+  stage-start: "2020-12-10T09:00:00+00:00"
 stages:
 - duration: 1h
   mode: constant
@@ -218,12 +218,6 @@ stages:
 scenario: template
 default:
   mode: gaussian
-limits:
-  max-duration: 1m
-  concurrency: 50
-  max-iterations: 100
-stages:
-- duration: 10s
   volume: 100
   repeat: 20s
   iteration-frequency: 1s
@@ -234,6 +228,12 @@ stages:
   distribution: none
   parameters:
     SOP: 1
+limits:
+  max-duration: 1m
+  concurrency: 50
+  max-iterations: 100
+stages:
+- duration: 10s
 `,
 			expectedScenario:          "template",
 			expectedMaxDuration:       1 * time.Minute,
@@ -346,8 +346,6 @@ limits:
   max-duration: 1m
   concurrency: 50
   max-iterations: 100
-schedule:
-  stage_start: "2020-12-10T10:00:00+00:00"
 stages:
 - duration: 1h
   mode: constant
@@ -362,8 +360,6 @@ limits:
   max-duration: 1m
   concurrency: 50
   max-iterations: 100
-schedule:
-  stage_start: "2020-12-10T10:00:00+00:00"
 stages:
 - duration: 1h
   mode: constant
@@ -372,37 +368,33 @@ stages:
 			expectedError: "missing distribution at stage 0",
 		},
 		{
-			testName: "missing staged start rate",
+			testName: "missing staged start-rate",
 			fileContent: `
 scenario: template
 limits:
   max-duration: 1m
   concurrency: 50
   max-iterations: 100
-schedule:
-  stage_start: "2020-12-10T10:00:00+00:00"
 stages:
 - duration: 10s
   mode: staged
 `,
-			expectedError: "missing start rate at stage 0",
+			expectedError: "missing start-rate at stage 0",
 		},
 		{
-			testName: "missing staged end rate",
+			testName: "missing staged end-rate",
 			fileContent: `
 scenario: template
 limits:
   max-duration: 1m
   concurrency: 50
   max-iterations: 100
-schedule:
-  stage_start: "2020-12-10T10:00:00+00:00"
 stages:
 - duration: 10s
   mode: staged
   start-rate: 0
 `,
-			expectedError: "missing end rate at stage 0",
+			expectedError: "missing end-rate at stage 0",
 		},
 		{
 			testName: "missing staged iteration-frequency",
@@ -412,8 +404,6 @@ limits:
   max-duration: 1m
   concurrency: 50
   max-iterations: 100
-schedule:
-  stage_start: "2020-12-10T10:00:00+00:00"
 stages:
 - duration: 10s
   mode: staged
@@ -430,8 +420,6 @@ limits:
   max-duration: 1m
   concurrency: 50
   max-iterations: 100
-schedule:
-  stage_start: "2020-12-10T10:00:00+00:00"
 stages:
 - duration: 10s
   mode: staged
@@ -449,8 +437,6 @@ limits:
   max-duration: 1m
   concurrency: 50
   max-iterations: 100
-schedule:
-  stage_start: "2020-12-10T10:00:00+00:00"
 stages:
 - duration: 10s
   mode: users
@@ -465,8 +451,6 @@ limits:
   max-duration: 1m
   concurrency: 50
   max-iterations: 100
-schedule:
-  stage_start: "2020-12-10T10:00:00+00:00"
 stages:
 - duration: 10s
   mode: gaussian
@@ -481,8 +465,6 @@ limits:
   max-duration: 1m
   concurrency: 50
   max-iterations: 100
-schedule:
-  stage_start: "2020-12-10T10:00:00+00:00"
 stages:
 - duration: 10s
   mode: gaussian
@@ -498,8 +480,6 @@ limits:
   max-duration: 1m
   concurrency: 50
   max-iterations: 100
-schedule:
-  stage_start: "2020-12-10T10:00:00+00:00"
 stages:
 - duration: 10s
   mode: gaussian
@@ -516,8 +496,6 @@ limits:
   max-duration: 1m
   concurrency: 50
   max-iterations: 100
-schedule:
-  stage_start: "2020-12-10T10:00:00+00:00"
 stages:
 - duration: 10s
 `,
@@ -547,13 +525,6 @@ stages:
     SOP: 1
 `,
 			expectedError: "missing scenario",
-		},
-		{
-			testName: "invalid file content",
-			fileContent: `
-invalid file content
-`,
-			expectedError: "yaml: unmarshal errors:\n  line 2: cannot unmarshal !!str `invalid...` into file.ConfigFile",
 		},
 	} {
 		t.Run(test.testName, func(t *testing.T) {
