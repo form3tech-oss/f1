@@ -45,36 +45,34 @@ func RampUpRate() api.Builder {
 				return nil, err
 			}
 
-			iterationDuration, rateFn, _ := CalculateRampUpRate(startRateArg, endRateArg, duration)
-			jitterRateFn := api.WithJitter(rateFn, jitterArg)
-			distributedIterationDuration, distributedRateFn, _ := api.NewDistribution(distributionTypeArg, *iterationDuration, jitterRateFn)
+			rates, _ := CalculateRampUpRate(startRateArg, endRateArg, distributionTypeArg, duration, jitterArg)
 
 			return &api.Trigger{
-				Trigger:     api.NewIterationWorker(distributedIterationDuration, distributedRateFn),
+				Trigger:     api.NewIterationWorker(rates.DistributedIterationDuration, rates.DistributedRate),
 				Description: fmt.Sprintf("from %s to %s in %v, using distribution %s", startRateArg, endRateArg, duration, distributionTypeArg),
-				DryRun:      distributedRateFn,
+				DryRun:      rates.Rate,
 			}, nil
 		},
 	}
 }
 
-func CalculateRampUpRate(startRateArg, endRateArg string, duration time.Duration) (*time.Duration, api.RateFunction, error) {
+func CalculateRampUpRate(startRateArg, endRateArg, distributionTypeArg string, duration time.Duration, jitterArg float64) (*api.Rates, error) {
 	var startTime *time.Time
 
 	startRate, startUnit, err := parseRateArg(startRateArg)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	endRate, endUnit, err := parseRateArg(endRateArg)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	if *startUnit != *endUnit {
-		return nil, nil, fmt.Errorf("start-rate and end-rate are not using the same unit")
+		return nil, fmt.Errorf("start-rate and end-rate are not using the same unit")
 	}
 	if duration < *startUnit {
-		return nil, nil, fmt.Errorf("duration is lower than rate unit")
+		return nil, fmt.Errorf("duration is lower than rate unit")
 	}
 
 	rateFn := func(now time.Time) int {
@@ -89,7 +87,16 @@ func CalculateRampUpRate(startRateArg, endRateArg string, duration time.Duration
 		return rate
 	}
 
-	return startUnit, rateFn, nil
+	jitterRateFn := api.WithJitter(rateFn, jitterArg)
+	distributedIterationDuration, distributedRateFn, _ := api.NewDistribution(distributionTypeArg, *startUnit, jitterRateFn)
+
+	return &api.Rates{
+		IterationDuration:            *startUnit,
+		DistributedIterationDuration: distributedIterationDuration,
+		Rate:                         rateFn,
+		DistributedRate:              distributedRateFn,
+		Duration:                     duration,
+	}, nil
 }
 
 func parseRateArg(rateArg string) (*int, *time.Duration, error) {

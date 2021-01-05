@@ -9,9 +9,10 @@ import (
 
 func TestRampUpRate(t *testing.T) {
 	for _, test := range []struct {
-		testName, startRate, endRate        string
-		duration, expectedIterationDuration time.Duration
-		expectedRates                       []int
+		testName, startRate, endRate, distribution string
+		jitter                                     float64
+		duration, expectedIterationDuration        time.Duration
+		expectedRates                              []int
 	}{
 		{
 			testName:                  "constant rate",
@@ -89,14 +90,14 @@ func TestRampUpRate(t *testing.T) {
 		t.Run(test.testName, func(t *testing.T) {
 			now, _ := time.Parse(time.RFC3339, "2020-12-10T10:00:00+00:00")
 
-			iterationDuration, rateFn, err := CalculateRampUpRate(test.startRate, test.endRate, test.duration)
+			rampUpRates, err := CalculateRampUpRate(test.startRate, test.endRate, test.distribution, test.duration, test.jitter)
 
 			require.NoError(t, err)
-			require.Equal(t, test.expectedIterationDuration, *iterationDuration)
+			require.Equal(t, test.expectedIterationDuration, rampUpRates.IterationDuration)
 			var rates []int
 			for range test.expectedRates {
 				now = now.Add(test.expectedIterationDuration)
-				rate := rateFn(now)
+				rate := rampUpRates.Rate(now)
 				rates = append(rates, rate)
 			}
 			require.Equal(t, test.expectedRates, rates)
@@ -106,9 +107,10 @@ func TestRampUpRate(t *testing.T) {
 
 func TestRampUpRate_Errors(t *testing.T) {
 	for _, test := range []struct {
-		startRate, endRate string
-		duration           time.Duration
-		expectedError      string
+		startRate, endRate, distribution string
+		duration                         time.Duration
+		jitter                           float64
+		expectedError                    string
 	}{
 		{
 			startRate:     "error",
@@ -136,8 +138,9 @@ func TestRampUpRate_Errors(t *testing.T) {
 		},
 	} {
 		t.Run(test.expectedError, func(t *testing.T) {
-			_, _, err := CalculateRampUpRate(test.startRate, test.endRate, test.duration)
+			rampUpRates, err := CalculateRampUpRate(test.startRate, test.endRate, test.distribution, test.duration, test.jitter)
 
+			require.Nil(t, rampUpRates)
 			require.EqualError(t, err, test.expectedError)
 		})
 	}
