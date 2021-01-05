@@ -35,7 +35,7 @@ func runStageWork(workTriggered chan<- bool, stop <-chan bool, workDone <-chan b
 	totalDurationTicker := time.NewTicker(stage.stageDuration - 10*time.Millisecond)
 	iterationTicker := time.NewTicker(stage.iterationDuration)
 
-	for isListening := true; isListening == true; {
+	for isListening := true; isListening; {
 		select {
 		case <-workDone:
 			continue
@@ -73,7 +73,7 @@ func runUsersStageWork(workTriggered chan<- bool, stop <-chan bool, workDone <-c
 
 	totalDurationTicker := time.NewTicker(stage.stageDuration - 10*time.Millisecond)
 
-	for isListening := true; isListening == true; {
+	for isListening := true; isListening; {
 		select {
 		case <-stop:
 			return
@@ -96,7 +96,7 @@ func setEnvs(envs map[string]string) {
 }
 
 func unsetEnvs(envs map[string]string) {
-	for key, _ := range envs {
+	for key := range envs {
 		err := os.Unsetenv(key)
 		if err != nil {
 			log.WithError(err).Error("unable unset environment variables for given scenario")

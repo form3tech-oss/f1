@@ -19,12 +19,11 @@ type runnableStages struct {
 }
 
 type runnableStage struct {
-	stageDuration      time.Duration
-	iterationDuration  time.Duration
-	rate               api.RateFunction
-	iterationFrequency time.Duration
-	users              int
-	params             map[string]string
+	stageDuration     time.Duration
+	iterationDuration time.Duration
+	rate              api.RateFunction
+	users             int
+	params            map[string]string
 }
 
 func FileRate() api.Builder {

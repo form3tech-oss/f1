@@ -292,7 +292,7 @@ stages:
 
 			if len(test.expectedRates) > 0 {
 				var rates []int
-				for _, _ = range test.expectedRates {
+				for _ = range test.expectedRates {
 					now = now.Add(test.expectedIterationDuration)
 					rates = append(rates, stagesToRun.stages[0].rate(now))
 				}
