@@ -1,4 +1,4 @@
-package rampup
+package ramp
 
 import (
 	"fmt"
@@ -11,16 +11,16 @@ import (
 	"github.com/spf13/pflag"
 )
 
-func RampUpRate() api.Builder {
-	flags := pflag.NewFlagSet("rampup", pflag.ContinueOnError)
+func RampRate() api.Builder {
+	flags := pflag.NewFlagSet("ramp", pflag.ContinueOnError)
 	flags.String("start-rate", "1/s", "number of iterations to start per interval, in the form <request>/<duration>")
 	flags.String("end-rate", "1/s", "number of iterations to end per interval, in the form <request>/<duration>")
-	flags.Duration("duration", 1*time.Second, "ramp up duration")
+	flags.Duration("duration", 1*time.Second, "ramp duration")
 	flags.Float64P("jitter", "j", 0.0, "vary the rate randomly by up to jitter percent")
 	flags.String("distribution", "regular", "optional parameter to distribute the rate over steps of 100ms, which can be none|regular|random")
 
 	return api.Builder{
-		Name:        "rampup <scenario>",
+		Name:        "ramp <scenario>",
 		Description: "ramp up or down requests on every iteration",
 		Flags:       flags,
 		New: func(flags *pflag.FlagSet) (*api.Trigger, error) {
@@ -45,7 +45,7 @@ func RampUpRate() api.Builder {
 				return nil, err
 			}
 
-			rates, _ := CalculateRampUpRate(startRateArg, endRateArg, distributionTypeArg, duration, jitterArg)
+			rates, _ := CalculateRampRate(startRateArg, endRateArg, distributionTypeArg, duration, jitterArg)
 
 			return &api.Trigger{
 				Trigger:     api.NewIterationWorker(rates.DistributedIterationDuration, rates.DistributedRate),
@@ -56,7 +56,7 @@ func RampUpRate() api.Builder {
 	}
 }
 
-func CalculateRampUpRate(startRateArg, endRateArg, distributionTypeArg string, duration time.Duration, jitterArg float64) (*api.Rates, error) {
+func CalculateRampRate(startRateArg, endRateArg, distributionTypeArg string, duration time.Duration, jitterArg float64) (*api.Rates, error) {
 	var startTime *time.Time
 
 	startRate, startUnit, err := parseRateArg(startRateArg)

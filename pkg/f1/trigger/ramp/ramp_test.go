@@ -1,4 +1,4 @@
-package rampup
+package ramp
 
 import (
 	"testing"
@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestRampUpRate(t *testing.T) {
+func TestRampRate(t *testing.T) {
 	for _, test := range []struct {
 		testName, startRate, endRate, distribution string
 		jitter                                     float64
@@ -90,14 +90,14 @@ func TestRampUpRate(t *testing.T) {
 		t.Run(test.testName, func(t *testing.T) {
 			now, _ := time.Parse(time.RFC3339, "2020-12-10T10:00:00+00:00")
 
-			rampUpRates, err := CalculateRampUpRate(test.startRate, test.endRate, test.distribution, test.duration, test.jitter)
+			rampRates, err := CalculateRampRate(test.startRate, test.endRate, test.distribution, test.duration, test.jitter)
 
 			require.NoError(t, err)
-			require.Equal(t, test.expectedIterationDuration, rampUpRates.IterationDuration)
+			require.Equal(t, test.expectedIterationDuration, rampRates.IterationDuration)
 			var rates []int
 			for range test.expectedRates {
 				now = now.Add(test.expectedIterationDuration)
-				rate := rampUpRates.Rate(now)
+				rate := rampRates.Rate(now)
 				rates = append(rates, rate)
 			}
 			require.Equal(t, test.expectedRates, rates)
@@ -105,7 +105,7 @@ func TestRampUpRate(t *testing.T) {
 	}
 }
 
-func TestRampUpRate_Errors(t *testing.T) {
+func TestRampRate_Errors(t *testing.T) {
 	for _, test := range []struct {
 		startRate, endRate, distribution string
 		duration                         time.Duration
@@ -138,9 +138,9 @@ func TestRampUpRate_Errors(t *testing.T) {
 		},
 	} {
 		t.Run(test.expectedError, func(t *testing.T) {
-			rampUpRates, err := CalculateRampUpRate(test.startRate, test.endRate, test.distribution, test.duration, test.jitter)
+			rampRates, err := CalculateRampRate(test.startRate, test.endRate, test.distribution, test.duration, test.jitter)
 
-			require.Nil(t, rampUpRates)
+			require.Nil(t, rampRates)
 			require.EqualError(t, err, test.expectedError)
 		})
 	}

@@ -12,10 +12,10 @@ func TestSimpleFlow(t *testing.T) {
 
 	test := TestParam{
 		name:                   "simple ramp up test",
-		triggerType:            RampUp,
+		triggerType:            Ramp,
 		startRate:              "0/100ms",
 		endRate:                "100/100ms",
-		rampUpDuration:         "1s",
+		rampDuration:           "1s",
 		testDuration:           1 * time.Second,
 		concurrency:            50,
 		maxIterations:          1000,
@@ -37,7 +37,7 @@ func TestSimpleFlow(t *testing.T) {
 		a_config_file_location_of(test.configFile).and().
 		a_start_rate_of(test.startRate).and().
 		a_end_rate_of(test.endRate).and().
-		a_ramp_up_duration_of(test.rampUpDuration)
+		a_ramp_duration_of(test.rampDuration)
 
 	when.i_start_a_timer().and().
 		i_execute_the_run_command()
@@ -56,7 +56,7 @@ const (
 	Constant TriggerType = iota
 	Staged
 	Users
-	RampUp
+	Ramp
 	File
 )
 
@@ -78,7 +78,7 @@ type TestParam struct {
 	configFile                string
 	startRate                 string
 	endRate                   string
-	rampUpDuration            string
+	rampDuration              string
 }
 
 func TestParameterised(t *testing.T) {
@@ -275,10 +275,10 @@ func TestParameterised(t *testing.T) {
 		},
 		{
 			name:                   "simple ramp up test",
-			triggerType:            RampUp,
+			triggerType:            Ramp,
 			startRate:              "0/100ms",
 			endRate:                "100/100ms",
-			rampUpDuration:         "1s",
+			rampDuration:           "1s",
 			testDuration:           1 * time.Second,
 			concurrency:            50,
 			maxIterations:          1000,
@@ -304,7 +304,7 @@ func TestParameterised(t *testing.T) {
 				a_config_file_location_of(test.configFile).and().
 				a_start_rate_of(test.startRate).and().
 				a_end_rate_of(test.endRate).and().
-				a_ramp_up_duration_of(test.rampUpDuration)
+				a_ramp_duration_of(test.rampDuration)
 
 			when.i_start_a_timer().and().
 				i_execute_the_run_command()

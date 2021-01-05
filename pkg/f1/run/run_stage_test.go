@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/form3tech-oss/f1/pkg/f1/trigger/rampup"
+	"github.com/form3tech-oss/f1/pkg/f1/trigger/ramp"
 
 	"github.com/form3tech-oss/f1/pkg/f1/trigger/file"
 
@@ -53,7 +53,7 @@ type RunTestStage struct {
 	configFile       string
 	startRate        string
 	endRate          string
-	rampUpDuration   string
+	rampDuration     string
 }
 
 func NewRunTestStage(t *testing.T) (*RunTestStage, *RunTestStage, *RunTestStage) {
@@ -103,8 +103,8 @@ func (s *RunTestStage) a_end_rate_of(endRate string) *RunTestStage {
 	return s
 }
 
-func (s *RunTestStage) a_ramp_up_duration_of(rampUpDuration string) *RunTestStage {
-	s.rampUpDuration = rampUpDuration
+func (s *RunTestStage) a_ramp_duration_of(rampDuration string) *RunTestStage {
+	s.rampDuration = rampDuration
 	return s
 }
 
@@ -322,8 +322,8 @@ func (s *RunTestStage) build_trigger() *api.Trigger {
 		flags := users.UsersRate().Flags
 		t, err = users.UsersRate().New(flags)
 		require.Nil(s.t, err)
-	} else if s.triggerType == RampUp {
-		flags := rampup.RampUpRate().Flags
+	} else if s.triggerType == Ramp {
+		flags := ramp.RampRate().Flags
 
 		err = flags.Set("start-rate", s.startRate)
 		require.NoError(s.t, err)
@@ -331,7 +331,7 @@ func (s *RunTestStage) build_trigger() *api.Trigger {
 		err = flags.Set("end-rate", s.endRate)
 		require.NoError(s.t, err)
 
-		err = flags.Set("duration", s.rampUpDuration)
+		err = flags.Set("duration", s.rampDuration)
 		require.NoError(s.t, err)
 
 		if s.distributionType != "" {
@@ -339,7 +339,7 @@ func (s *RunTestStage) build_trigger() *api.Trigger {
 			require.NoError(s.t, err)
 		}
 
-		t, err = rampup.RampUpRate().New(flags)
+		t, err = ramp.RampRate().New(flags)
 		require.Nil(s.t, err)
 	} else if s.triggerType == File {
 		flags := file.FileRate().Flags
