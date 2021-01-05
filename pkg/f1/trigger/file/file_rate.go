@@ -3,9 +3,12 @@ package file
 import (
 	"fmt"
 	"io/ioutil"
+	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/form3tech-oss/f1/pkg/f1/trigger/api"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
 )
 
@@ -36,11 +39,11 @@ func FileRate() api.Builder {
 		Flags:       flags,
 		New: func(flags *pflag.FlagSet) (*api.Trigger, error) {
 			filename := flags.Arg(0)
-			fileContent, err := ioutil.ReadFile(filename)
+			fileContent, err := readFile(filename)
 			if err != nil {
 				return nil, err
 			}
-			runnableStages, err := parseConfigFile(fileContent, time.Now())
+			runnableStages, err := parseConfigFile(*fileContent, time.Now())
 			if err != nil {
 				return nil, err
 			}
@@ -61,6 +64,25 @@ func FileRate() api.Builder {
 		},
 		IgnoreCommonFlags: true,
 	}
+}
+
+func readFile(filename string) (*[]byte, error) {
+	file, err := os.Open(filepath.Clean(filename))
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		if err = file.Close(); err != nil {
+			log.WithError(err).Error("unable to close the config file")
+		}
+	}()
+
+	fileContent, err := ioutil.ReadAll(file)
+	if err != nil {
+		return nil, err
+	}
+
+	return &fileContent, nil
 }
 
 func newDryRun(stagesToRun []runnableStage) api.RateFunction {
