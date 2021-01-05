@@ -76,6 +76,7 @@ Once you have written a load test and compiled a binary test runner, you can use
 * `staged` - applies load at various stages (e.g. one request per second for 10s, then two per second for 10s).
 * `users` - applies load from a pool of virtual users (e.g. requests from two virtual users being sent sequentially - they are as fast or as slow as the requests themselves).
 * `gaussian` - applies load based on a [Gaussian distribution](https://en.wikipedia.org/wiki/Normal_distribution) (e.g. varies load throughout a given duration with a mean and standard deviation).
+* `rampup` - applies load constantly increasing or decreasing an initial load during a given ramp up duration (e.g. from 0/s requests to 100/s requests during 10s).
 * `file` - applies load based on a yaml config file - the file can contain any of the previous load modes.
 
 ## Design decisions

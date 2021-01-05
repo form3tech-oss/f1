@@ -11,15 +11,18 @@ func TestSimpleFlow(t *testing.T) {
 	given, when, then := NewRunTestStage(t)
 
 	test := TestParam{
-		name:                   "config file test",
-		triggerType:            File,
-		configFile:             "testdata/config-file.yaml",
-		testDuration:           5 * time.Second,
+		name:                   "simple ramp up test",
+		triggerType:            RampUp,
+		startRate:              "0/100ms",
+		endRate:                "100/100ms",
+		rampUpDuration:         "1s",
+		testDuration:           1 * time.Second,
 		concurrency:            50,
 		maxIterations:          1000,
-		iterationDuration:      100 * time.Millisecond,
-		expectedRunTime:        2200 * time.Millisecond,
-		expectedCompletedTests: 110,
+		iterationDuration:      1 * time.Millisecond,
+		expectedRunTime:        1 * time.Second,
+		expectedCompletedTests: 450,
+		distributionType:       "none",
 	}
 	given.
 		a_trigger_type_of(test.triggerType).and().
@@ -31,7 +34,10 @@ func TestSimpleFlow(t *testing.T) {
 		a_concurrency_of(test.concurrency).and().
 		an_iteration_limit_of(test.maxIterations).and().
 		a_scenario_where_each_iteration_takes(test.iterationDuration).and().
-		a_config_file_location_of(test.configFile)
+		a_config_file_location_of(test.configFile).and().
+		a_start_rate_of(test.startRate).and().
+		a_end_rate_of(test.endRate).and().
+		a_ramp_up_duration_of(test.rampUpDuration)
 
 	when.i_start_a_timer().and().
 		i_execute_the_run_command()
@@ -50,6 +56,7 @@ const (
 	Constant TriggerType = iota
 	Staged
 	Users
+	RampUp
 	File
 )
 
@@ -69,6 +76,9 @@ type TestParam struct {
 	iterationFrequency        string
 	distributionType          string
 	configFile                string
+	startRate                 string
+	endRate                   string
+	rampUpDuration            string
 }
 
 func TestParameterised(t *testing.T) {
@@ -263,6 +273,20 @@ func TestParameterised(t *testing.T) {
 			expectedRunTime:        2200 * time.Millisecond,
 			expectedCompletedTests: 110,
 		},
+		{
+			name:                   "simple ramp up test",
+			triggerType:            RampUp,
+			startRate:              "0/100ms",
+			endRate:                "100/100ms",
+			rampUpDuration:         "1s",
+			testDuration:           1 * time.Second,
+			concurrency:            50,
+			maxIterations:          1000,
+			iterationDuration:      1 * time.Millisecond,
+			expectedRunTime:        1 * time.Second,
+			expectedCompletedTests: 450,
+			distributionType:       "none",
+		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			given, when, then := NewRunTestStage(t)
@@ -277,7 +301,10 @@ func TestParameterised(t *testing.T) {
 				a_concurrency_of(test.concurrency).and().
 				an_iteration_limit_of(test.maxIterations).and().
 				a_scenario_where_each_iteration_takes(test.iterationDuration).and().
-				a_config_file_location_of(test.configFile)
+				a_config_file_location_of(test.configFile).and().
+				a_start_rate_of(test.startRate).and().
+				a_end_rate_of(test.endRate).and().
+				a_ramp_up_duration_of(test.rampUpDuration)
 
 			when.i_start_a_timer().and().
 				i_execute_the_run_command()
