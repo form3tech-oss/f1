@@ -15,7 +15,7 @@ func RampUpRate() api.Builder {
 	flags := pflag.NewFlagSet("rampup", pflag.ContinueOnError)
 	flags.String("start-rate", "1/s", "number of iterations to start per interval, in the form <request>/<duration>")
 	flags.String("end-rate", "1/s", "number of iterations to end per interval, in the form <request>/<duration>")
-	flags.Duration("rampup-duration", 1*time.Second, "ramp up duration")
+	flags.Duration("duration", 1*time.Second, "ramp up duration")
 	flags.Float64P("jitter", "j", 0.0, "vary the rate randomly by up to jitter percent")
 	flags.String("distribution", "regular", "optional parameter to distribute the rate over steps of 100ms, which can be none|regular|random")
 
@@ -32,7 +32,7 @@ func RampUpRate() api.Builder {
 			if err != nil {
 				return nil, err
 			}
-			duration, err := flags.GetDuration("rampup-duration")
+			duration, err := flags.GetDuration("duration")
 			if err != nil {
 				return nil, err
 			}
@@ -47,7 +47,7 @@ func RampUpRate() api.Builder {
 
 			iterationDuration, rateFn, _ := CalculateRampUpRate(startRateArg, endRateArg, duration)
 			jitterRateFn := api.WithJitter(rateFn, jitterArg)
-			distributedIterationDuration, distributedRateFn, _ := api.NewDistribution(distributionTypeArg, iterationDuration, jitterRateFn)
+			distributedIterationDuration, distributedRateFn, _ := api.NewDistribution(distributionTypeArg, *iterationDuration, jitterRateFn)
 
 			return &api.Trigger{
 				Trigger:     api.NewIterationWorker(distributedIterationDuration, distributedRateFn),
@@ -58,16 +58,24 @@ func RampUpRate() api.Builder {
 	}
 }
 
-func CalculateRampUpRate(startRateArg, endRateArg string, duration time.Duration) (time.Duration, api.RateFunction, error) {
+func CalculateRampUpRate(startRateArg, endRateArg string, duration time.Duration) (*time.Duration, api.RateFunction, error) {
 	var startTime *time.Time
 
-	startRate, _ := strconv.Atoi((startRateArg)[0:strings.Index(startRateArg, "/")])
-	endRate, _ := strconv.Atoi((endRateArg)[0:strings.Index(endRateArg, "/")])
-	startUnit := (startRateArg)[strings.Index(startRateArg, "/")+1:]
-	if !govalidator.IsNumeric(startUnit[0:1]) {
-		startUnit = "1" + startUnit
+	startRate, startUnit, err := parseRateArg(startRateArg)
+	if err != nil {
+		return nil, nil, err
 	}
-	iterationDuration, _ := time.ParseDuration(startUnit)
+	endRate, endUnit, err := parseRateArg(endRateArg)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if *startUnit != *endUnit {
+		return nil, nil, fmt.Errorf("start-rate and end-rate are not using the same unit")
+	}
+	if duration < *startUnit {
+		return nil, nil, fmt.Errorf("duration is lower than rate unit")
+	}
 
 	rateFn := func(now time.Time) int {
 		if startTime == nil {
@@ -76,10 +84,37 @@ func CalculateRampUpRate(startRateArg, endRateArg string, duration time.Duration
 
 		offset := now.Sub(*startTime)
 		position := float64(offset) / float64(duration)
-		rate := startRate + int(position*float64(endRate-startRate))
+		rate := *startRate + int(position*float64(*endRate-*startRate))
 
 		return rate
 	}
 
-	return iterationDuration, rateFn, nil
+	return startUnit, rateFn, nil
+}
+
+func parseRateArg(rateArg string) (*int, *time.Duration, error) {
+	if strings.Contains(rateArg, "/") {
+		rate, err := strconv.Atoi((rateArg)[0:strings.Index(rateArg, "/")])
+		if err != nil {
+			return nil, nil, fmt.Errorf("unable to parse rate arg %s", rateArg)
+		}
+		startUnitArg := (rateArg)[strings.Index(rateArg, "/")+1:]
+		if !govalidator.IsNumeric(startUnitArg[0:1]) {
+			startUnitArg = "1" + startUnitArg
+		}
+		unit, err := time.ParseDuration(startUnitArg)
+		if err != nil {
+			return nil, nil, fmt.Errorf("unable to parse rate arg %s", rateArg)
+		}
+
+		return &rate, &unit, nil
+	} else {
+		rate, err := strconv.Atoi(rateArg)
+		if err != nil {
+			return nil, nil, fmt.Errorf("unable to parse rate arg %s", rateArg)
+		}
+		unit := 1 * time.Second
+
+		return &rate, &unit, nil
+	}
 }

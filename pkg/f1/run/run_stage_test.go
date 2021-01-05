@@ -331,7 +331,7 @@ func (s *RunTestStage) build_trigger() *api.Trigger {
 		err = flags.Set("end-rate", s.endRate)
 		require.NoError(s.t, err)
 
-		err = flags.Set("rampup-duration", s.rampUpDuration)
+		err = flags.Set("duration", s.rampUpDuration)
 		require.NoError(s.t, err)
 
 		if s.distributionType != "" {
