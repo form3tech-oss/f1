@@ -17,6 +17,7 @@ limits:
   max-duration: 1m
   concurrency: 50
   max-iterations: 100
+  ignore-dropped: true
 stages:
 - duration: 5s
   mode: constant
@@ -30,6 +31,7 @@ stages:
 			expectedMaxDuration:       1 * time.Minute,
 			expectedConcurrency:       50,
 			expectedMaxIterations:     100,
+			expectedIgnoreDropped:     true,
 			expectedTotalDuration:     5 * time.Second,
 			expectedIterationDuration: 1 * time.Second,
 			expectedRates:             []int{6, 6, 6, 6, 6, 6},
@@ -43,6 +45,7 @@ limits:
   max-duration: 1m
   concurrency: 50
   max-iterations: 100
+  ignore-dropped: true
 stages:
 - duration: 10s
   mode: staged
@@ -58,6 +61,7 @@ stages:
 			expectedMaxDuration:       1 * time.Minute,
 			expectedConcurrency:       50,
 			expectedMaxIterations:     100,
+			expectedIgnoreDropped:     true,
 			expectedTotalDuration:     10 * time.Second,
 			expectedIterationDuration: 1 * time.Second,
 			expectedRates:             []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
@@ -71,6 +75,7 @@ limits:
   max-duration: 1m
   concurrency: 50
   max-iterations: 100
+  ignore-dropped: true
 stages:
 - duration: 10s
   mode: gaussian
@@ -89,6 +94,7 @@ stages:
 			expectedMaxDuration:       1 * time.Minute,
 			expectedConcurrency:       50,
 			expectedMaxIterations:     100,
+			expectedIgnoreDropped:     true,
 			expectedTotalDuration:     10 * time.Second,
 			expectedIterationDuration: 1 * time.Second,
 			expectedRates: []int{
@@ -106,6 +112,7 @@ limits:
   max-duration: 1m
   concurrency: 50
   max-iterations: 100
+  ignore-dropped: true
 stages:
 - duration: 10s
   mode: users
@@ -117,6 +124,7 @@ stages:
 			expectedMaxDuration:   1 * time.Minute,
 			expectedConcurrency:   50,
 			expectedMaxIterations: 100,
+			expectedIgnoreDropped: true,
 			expectedTotalDuration: 10 * time.Second,
 			expectedUsers:         100,
 			expectedParameters:    map[string]string{"SOP": "1"},
@@ -129,6 +137,7 @@ limits:
   max-duration: 1m
   concurrency: 50
   max-iterations: 100
+  ignore-dropped: true
 schedule:
   stage-start: "2020-12-10T09:00:00+00:00"
 stages:
@@ -151,6 +160,7 @@ stages:
 			expectedMaxDuration:       1 * time.Minute,
 			expectedConcurrency:       50,
 			expectedMaxIterations:     100,
+			expectedIgnoreDropped:     true,
 			expectedTotalDuration:     5 * time.Second,
 			expectedIterationDuration: 1 * time.Second,
 			expectedRates:             []int{2, 2, 2, 2, 2},
@@ -171,6 +181,7 @@ limits:
   max-duration: 1m
   concurrency: 50
   max-iterations: 100
+  ignore-dropped: true
 stages:
 - duration: 5s
 `,
@@ -178,6 +189,7 @@ stages:
 			expectedMaxDuration:       1 * time.Minute,
 			expectedConcurrency:       50,
 			expectedMaxIterations:     100,
+			expectedIgnoreDropped:     true,
 			expectedTotalDuration:     5 * time.Second,
 			expectedIterationDuration: 1 * time.Second,
 			expectedRates:             []int{6, 6, 6, 6, 6, 6},
@@ -200,6 +212,7 @@ limits:
   max-duration: 1m
   concurrency: 50
   max-iterations: 100
+  ignore-dropped: true
 stages:
 - duration: 10s
 `,
@@ -207,6 +220,7 @@ stages:
 			expectedMaxDuration:       1 * time.Minute,
 			expectedConcurrency:       50,
 			expectedMaxIterations:     100,
+			expectedIgnoreDropped:     true,
 			expectedTotalDuration:     10 * time.Second,
 			expectedIterationDuration: 1 * time.Second,
 			expectedRates:             []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
@@ -232,6 +246,7 @@ limits:
   max-duration: 1m
   concurrency: 50
   max-iterations: 100
+  ignore-dropped: true
 stages:
 - duration: 10s
 `,
@@ -239,6 +254,7 @@ stages:
 			expectedMaxDuration:       1 * time.Minute,
 			expectedConcurrency:       50,
 			expectedMaxIterations:     100,
+			expectedIgnoreDropped:     true,
 			expectedTotalDuration:     10 * time.Second,
 			expectedIterationDuration: 1 * time.Second,
 			expectedRates: []int{
@@ -262,6 +278,7 @@ limits:
   max-duration: 1m
   concurrency: 50
   max-iterations: 100
+  ignore-dropped: true
 stages:
 - mode: users
 `,
@@ -269,6 +286,7 @@ stages:
 			expectedMaxDuration:   1 * time.Minute,
 			expectedConcurrency:   50,
 			expectedMaxIterations: 100,
+			expectedIgnoreDropped: true,
 			expectedTotalDuration: 10 * time.Second,
 			expectedUsers:         100,
 			expectedParameters:    map[string]string{"SOP": "1"},
@@ -285,6 +303,7 @@ stages:
 			require.Equal(t, test.expectedMaxDuration, stagesToRun.maxDuration)
 			require.Equal(t, test.expectedConcurrency, stagesToRun.concurrency)
 			require.Equal(t, test.expectedMaxIterations, stagesToRun.maxIterations)
+			require.Equal(t, test.expectedIgnoreDropped, stagesToRun.ignoreDropped)
 			require.Equal(t, test.expectedTotalDuration, stagesToRun.stages[0].stageDuration)
 			require.Equal(t, test.expectedIterationDuration, stagesToRun.stages[0].iterationDuration)
 			require.Equal(t, test.expectedParameters, stagesToRun.stages[0].params)
@@ -315,6 +334,7 @@ scenario: template
 limits:
   concurrency: 50
   max-iterations: 100
+  ignore-dropped: true
 `,
 			expectedError: "missing max-duration",
 		},
@@ -325,6 +345,7 @@ scenario: template
 limits:
   max-duration: 1m
   max-iterations: 100
+  ignore-dropped: true
 `,
 			expectedError: "missing concurrency",
 		},
@@ -335,8 +356,20 @@ scenario: template
 limits:
   max-duration: 1m
   concurrency: 50
+  ignore-dropped: true
 `,
 			expectedError: "missing max-iterations",
+		},
+		{
+			testName: "missing ignore-dropped",
+			fileContent: `
+scenario: template
+limits:
+  max-duration: 1m
+  concurrency: 50
+  max-iterations: 100
+`,
+			expectedError: "missing ignore-dropped",
 		},
 		{
 			testName: "missing constant rate",
@@ -346,6 +379,7 @@ limits:
   max-duration: 1m
   concurrency: 50
   max-iterations: 100
+  ignore-dropped: true
 stages:
 - duration: 1h
   mode: constant
@@ -360,6 +394,7 @@ limits:
   max-duration: 1m
   concurrency: 50
   max-iterations: 100
+  ignore-dropped: true
 stages:
 - duration: 1h
   mode: constant
@@ -375,6 +410,7 @@ limits:
   max-duration: 1m
   concurrency: 50
   max-iterations: 100
+  ignore-dropped: true
 stages:
 - duration: 10s
   mode: staged
@@ -389,6 +425,7 @@ limits:
   max-duration: 1m
   concurrency: 50
   max-iterations: 100
+  ignore-dropped: true
 stages:
 - duration: 10s
   mode: staged
@@ -404,6 +441,7 @@ limits:
   max-duration: 1m
   concurrency: 50
   max-iterations: 100
+  ignore-dropped: true
 stages:
 - duration: 10s
   mode: staged
@@ -420,6 +458,7 @@ limits:
   max-duration: 1m
   concurrency: 50
   max-iterations: 100
+  ignore-dropped: true
 stages:
 - duration: 10s
   mode: staged
@@ -437,6 +476,7 @@ limits:
   max-duration: 1m
   concurrency: 50
   max-iterations: 100
+  ignore-dropped: true
 stages:
 - duration: 10s
   mode: users
@@ -451,6 +491,7 @@ limits:
   max-duration: 1m
   concurrency: 50
   max-iterations: 100
+  ignore-dropped: true
 stages:
 - duration: 10s
   mode: gaussian
@@ -465,6 +506,7 @@ limits:
   max-duration: 1m
   concurrency: 50
   max-iterations: 100
+  ignore-dropped: true
 stages:
 - duration: 10s
   mode: gaussian
@@ -480,6 +522,7 @@ limits:
   max-duration: 1m
   concurrency: 50
   max-iterations: 100
+  ignore-dropped: true
 stages:
 - duration: 10s
   mode: gaussian
@@ -496,6 +539,7 @@ limits:
   max-duration: 1m
   concurrency: 50
   max-iterations: 100
+  ignore-dropped: true
 stages:
 - duration: 10s
 `,
@@ -515,6 +559,7 @@ limits:
   max-duration: 1m
   concurrency: 50
   max-iterations: 100
+  ignore-dropped: true
 stages:
 - duration: 5s
   mode: constant
@@ -544,6 +589,7 @@ type testData struct {
 	expectedScenario          string
 	expectedTotalDuration     time.Duration
 	expectedIterationDuration time.Duration
+	expectedIgnoreDropped     bool
 	expectedRates             []int
 	expectedMaxDuration       time.Duration
 	expectedConcurrency       int

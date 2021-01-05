@@ -26,6 +26,7 @@ type Limits struct {
 	MaxDuration   *time.Duration `yaml:"max-duration"`
 	Concurrency   *int           `yaml:"concurrency"`
 	MaxIterations *int32         `yaml:"max-iterations"`
+	IgnoreDropped *bool          `yaml:"ignore-dropped"`
 }
 
 type Stage struct {
@@ -82,6 +83,7 @@ func parseConfigFile(fileContent []byte, now time.Time) (*runnableStages, error)
 		maxDuration:         *configFile.Limits.MaxDuration,
 		concurrency:         *configFile.Limits.Concurrency,
 		maxIterations:       *configFile.Limits.MaxIterations,
+		ignoreDropped:       *configFile.Limits.IgnoreDropped,
 	}, nil
 }
 
@@ -167,6 +169,9 @@ func (c *ConfigFile) validateCommonFields() error {
 	}
 	if c.Limits.MaxIterations == nil {
 		return fmt.Errorf("missing max-iterations")
+	}
+	if c.Limits.IgnoreDropped == nil {
+		return fmt.Errorf("missing ignore-dropped")
 	}
 
 	return nil

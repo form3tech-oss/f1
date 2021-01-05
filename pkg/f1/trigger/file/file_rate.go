@@ -16,6 +16,7 @@ type runnableStages struct {
 	maxDuration         time.Duration
 	concurrency         int
 	maxIterations       int32
+	ignoreDropped       bool
 }
 
 type runnableStage struct {
@@ -50,10 +51,11 @@ func FileRate() api.Builder {
 				Description: fmt.Sprintf("Running %d stages", len(runnableStages.stages)),
 				Duration:    runnableStages.stagesTotalDuration,
 				Options: api.Options{
+					Scenario:      runnableStages.scenario,
 					MaxDuration:   runnableStages.maxDuration,
 					Concurrency:   runnableStages.concurrency,
 					MaxIterations: runnableStages.maxIterations,
-					Scenario:      runnableStages.scenario,
+					IgnoreDropped: runnableStages.ignoreDropped,
 				},
 			}, nil
 		},
