@@ -290,7 +290,7 @@ func TestNoneDistribution(t *testing.T) {
 	when.i_start_a_timer().and().
 		i_execute_the_run_command()
 
-	then.there_should_be_x_requests_sent_over_y_intervals_of_x_ms(10, 1, 1000)
+	then.there_should_be_x_requests_sent_over_y_intervals_of_z_ms(10, 1, 1000)
 }
 
 func TestRegularDistribution(t *testing.T) {
@@ -308,7 +308,7 @@ func TestRegularDistribution(t *testing.T) {
 	when.i_start_a_timer().and().
 		i_execute_the_run_command()
 
-	then.there_should_be_x_requests_sent_over_y_intervals_of_x_ms(1, 5, 100)
+	then.there_should_be_x_requests_sent_over_y_intervals_of_z_ms(1, 5, 100)
 }
 
 func TestRandomDistribution(t *testing.T) {
