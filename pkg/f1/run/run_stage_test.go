@@ -239,7 +239,7 @@ func (s *RunTestStage) distribution_duration_map_of_requests() map[time.Duration
 	distributionMap := make(map[time.Duration]int32)
 	s.durations.Range(func(key, value interface{}) bool {
 		requestDuration := value.(time.Duration)
-		truncatedDuration := requestDuration.Truncate(20 * time.Millisecond)
+		truncatedDuration := requestDuration.Truncate(100 * time.Millisecond)
 		existingDuration := distributionMap[truncatedDuration] + 1
 		distributionMap[truncatedDuration] = existingDuration
 		return true
