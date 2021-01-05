@@ -187,7 +187,7 @@ func (s *RunTestStage) a_scenario_where_each_iteration_takes(duration time.Durat
 		s.runCount = 0
 		return func(t *f1_testing.T) {
 				atomic.AddInt32(&s.runCount, 1)
-				s.durations.Store(time.Now(), time.Now().Sub(s.startTime))
+				s.durations.Store(time.Now(), time.Since(s.startTime))
 				time.Sleep(duration)
 			}, func(t *f1_testing.T) {
 				atomic.AddInt32(s.tearDownCount, 1)
