@@ -4,6 +4,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/form3tech-oss/f1/pkg/f1/trigger/users"
+
 	"github.com/form3tech-oss/f1/pkg/f1/options"
 	"github.com/form3tech-oss/f1/pkg/f1/trace"
 	"github.com/form3tech-oss/f1/pkg/f1/trigger/api"
@@ -16,9 +18,11 @@ func newStagesWorker(stages []runnableStage) api.WorkTriggerer {
 			setEnvs(stage.params)
 
 			if stage.usersConcurrency == 0 {
-				runStageWork(workTriggered, stop, workDone, stage)
+				api.DoWork(workTriggered, stop, workDone, stage.iterationDuration, stage.stageDuration, stage.rate)
+				//runStageWork(workTriggered, stop, workDone, stage)
 			} else {
-				runUsersStageWork(workTriggered, stop, workDone, stage)
+				users.DoWork(workTriggered, stop, workDone, stage.usersConcurrency, stage.stageDuration)
+				//runUsersStageWork(workTriggered, stop, workDone, stage)
 			}
 
 			unsetEnvs(stage.params)
@@ -42,6 +46,7 @@ func runStageWork(workTriggered chan<- bool, stop <-chan bool, workDone <-chan b
 		case <-stop:
 			trace.ReceivedFromChannel("stop")
 			iterationTicker.Stop()
+			totalDurationTicker.Stop()
 			trace.Event("Iteration worker stopped.")
 			return
 		case start := <-iterationTicker.C:
@@ -76,6 +81,7 @@ func runUsersStageWork(workTriggered chan<- bool, stop <-chan bool, workDone <-c
 	for isListening := true; isListening; {
 		select {
 		case <-stop:
+			totalDurationTicker.Stop()
 			return
 		case <-workDone:
 			workTriggered <- true

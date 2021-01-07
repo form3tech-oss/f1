@@ -332,7 +332,7 @@ func TestParameterised(t *testing.T) {
 		{
 			name:                   "config file test using limited max-duration",
 			triggerType:            File,
-			configFile:             "../testing/testdata/config-file.yaml",
+			configFile:             "../testdata/config-file.yaml",
 			testDuration:           1 * time.Second,
 			concurrency:            50,
 			maxIterations:          1000,
