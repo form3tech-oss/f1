@@ -77,7 +77,7 @@ Once you have written a load test and compiled a binary test runner, you can use
 * `users` - applies load from a pool of virtual users (e.g. requests from two virtual users being sent sequentially - they are as fast or as slow as the requests themselves).
 * `gaussian` - applies load based on a [Gaussian distribution](https://en.wikipedia.org/wiki/Normal_distribution) (e.g. varies load throughout a given duration with a mean and standard deviation).
 * `ramp` - applies load constantly increasing or decreasing an initial load during a given ramp duration (e.g. from 0/s requests to 100/s requests during 10s).
-* `file` - applies load based on a yaml config file - the file can contain any of the previous load modes.
+* `file` - applies load based on a yaml config file - the file can contain any of the previous load modes (e.g. ["config-file-example.yaml"](config-file-example.yaml)).
 
 ## Design decisions
 ### Why did we decide to write our own load testing tool?
