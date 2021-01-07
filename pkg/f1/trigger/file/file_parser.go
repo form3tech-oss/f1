@@ -40,7 +40,7 @@ type Stage struct {
 	Distribution       *string            `yaml:"distribution"`
 	Weights            *string            `yaml:"weights"`
 	Stages             *string            `yaml:"stages"`
-	Users              *int               `yaml:"users"`
+	Concurrency        *int               `yaml:"concurrency"`
 	Jitter             *float64           `yaml:"jitter"`
 	Volume             *float64           `yaml:"volume"`
 	Duration           *time.Duration     `yaml:"duration"`
@@ -57,22 +57,22 @@ func parseConfigFile(fileContent []byte, now time.Time) (*runnableStages, error)
 	if err != nil {
 		return nil, err
 	}
-	err = configFile.validateCommonFields()
+	validatedConfigFile, err := configFile.validateCommonFields()
 	if err != nil {
 		return nil, err
 	}
 
 	var stages []runnableStage
 	stagesTotalDuration := 0 * time.Second
-	for idx, stageConfig := range configFile.Stages {
-		validatedStage, err := stageConfig.validateCommonFieldsOfStage(idx, configFile.Default)
+	for idx, stageConfig := range validatedConfigFile.Stages {
+		validatedStage, err := stageConfig.validateCommonFieldsOfStage(idx, validatedConfigFile.Default)
 		if err != nil {
 			return nil, err
 		}
 		stagesTotalDuration += *validatedStage.Duration
 
-		if configFile.Schedule.StageStart == nil || configFile.Schedule.StageStart.Add(stagesTotalDuration).After(now) {
-			parsedStage, err := validatedStage.parseStage(idx, configFile.Default)
+		if validatedConfigFile.Schedule.StageStart == nil || validatedConfigFile.Schedule.StageStart.Add(stagesTotalDuration).After(now) {
+			parsedStage, err := validatedStage.parseStage(idx, validatedConfigFile.Default)
 			if err != nil {
 				return nil, err
 			}
@@ -81,13 +81,13 @@ func parseConfigFile(fileContent []byte, now time.Time) (*runnableStages, error)
 	}
 
 	return &runnableStages{
-		scenario:            *configFile.Scenario,
+		scenario:            *validatedConfigFile.Scenario,
 		stages:              stages,
 		stagesTotalDuration: stagesTotalDuration,
-		maxDuration:         *configFile.Limits.MaxDuration,
-		concurrency:         *configFile.Limits.Concurrency,
-		maxIterations:       *configFile.Limits.MaxIterations,
-		ignoreDropped:       *configFile.Limits.IgnoreDropped,
+		maxDuration:         *validatedConfigFile.Limits.MaxDuration,
+		concurrency:         *validatedConfigFile.Limits.Concurrency,
+		maxIterations:       *validatedConfigFile.Limits.MaxIterations,
+		ignoreDropped:       *validatedConfigFile.Limits.IgnoreDropped,
 	}, nil
 }
 
@@ -167,33 +167,37 @@ func (s *Stage) parseStage(stageIdx int, defaults Stage) (*runnableStage, error)
 			return nil, err
 		}
 		return &runnableStage{
-			stageDuration: *validatedUsersStage.Duration,
-			params:        *validatedUsersStage.Parameters,
-			users:         *validatedUsersStage.Users,
+			stageDuration:    *validatedUsersStage.Duration,
+			params:           *validatedUsersStage.Parameters,
+			usersConcurrency: *validatedUsersStage.Concurrency,
 		}, nil
 	default:
 		return nil, fmt.Errorf("invalid stage mode at stage %d", stageIdx)
 	}
 }
 
-func (c *ConfigFile) validateCommonFields() error {
+func (c *ConfigFile) validateCommonFields() (*ConfigFile, error) {
 	if c.Scenario == nil {
-		return fmt.Errorf("missing scenario")
+		return nil, fmt.Errorf("missing scenario")
 	}
 	if c.Limits.MaxDuration == nil {
-		return fmt.Errorf("missing max-duration")
+		return nil, fmt.Errorf("missing max-duration")
 	}
 	if c.Limits.Concurrency == nil {
-		return fmt.Errorf("missing concurrency")
+		return nil, fmt.Errorf("missing concurrency")
 	}
 	if c.Limits.MaxIterations == nil {
-		return fmt.Errorf("missing max-iterations")
+		return nil, fmt.Errorf("missing max-iterations")
 	}
 	if c.Limits.IgnoreDropped == nil {
-		return fmt.Errorf("missing ignore-dropped")
+		return nil, fmt.Errorf("missing ignore-dropped")
 	}
 
-	return nil
+	if c.Default.Concurrency == nil {
+		c.Default.Concurrency = c.Limits.Concurrency
+	}
+
+	return c, nil
 }
 
 func (s *Stage) validateCommonFieldsOfStage(idx int, defaults Stage) (*Stage, error) {
@@ -381,11 +385,11 @@ func (s *Stage) validateGaussianStage(idx int, defaults Stage) (*Stage, error) {
 }
 
 func (s *Stage) validateUsersStage(idx int, defaults Stage) (*Stage, error) {
-	if s.Users == nil {
-		if defaults.Users == nil {
+	if s.Concurrency == nil {
+		if defaults.Concurrency == nil {
 			return nil, fmt.Errorf("missing users at stage %d", idx)
 		} else {
-			s.Users = defaults.Users
+			s.Concurrency = defaults.Concurrency
 		}
 	}
 	if s.Parameters == nil {

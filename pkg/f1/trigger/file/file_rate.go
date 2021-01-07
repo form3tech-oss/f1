@@ -26,7 +26,7 @@ type runnableStage struct {
 	stageDuration     time.Duration
 	iterationDuration time.Duration
 	rate              api.RateFunction
-	users             int
+	usersConcurrency  int
 	params            map[string]string
 }
 
@@ -107,7 +107,7 @@ func newDryRun(stagesToRun []runnableStage) api.RateFunction {
 			stageIdx++
 		}
 
-		if currentStage.users > 0 {
+		if currentStage.usersConcurrency > 0 {
 			return 1
 		}
 

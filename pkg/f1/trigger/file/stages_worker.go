@@ -15,7 +15,7 @@ func newStagesWorker(stages []runnableStage) api.WorkTriggerer {
 		for _, stage := range stages {
 			setEnvs(stage.params)
 
-			if stage.users == 0 {
+			if stage.usersConcurrency == 0 {
 				runStageWork(workTriggered, stop, workDone, stage)
 			} else {
 				runUsersStageWork(workTriggered, stop, workDone, stage)
@@ -67,7 +67,7 @@ func runStageWork(workTriggered chan<- bool, stop <-chan bool, workDone <-chan b
 }
 
 func runUsersStageWork(workTriggered chan<- bool, stop <-chan bool, workDone <-chan bool, stage runnableStage) {
-	for i := 0; i < stage.users; i++ {
+	for i := 0; i < stage.usersConcurrency; i++ {
 		workTriggered <- true
 	}
 

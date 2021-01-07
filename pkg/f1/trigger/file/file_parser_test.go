@@ -144,18 +144,18 @@ limits:
 stages:
 - duration: 10s
   mode: users
-  users: 100
+  concurrency: 100
   parameters:
     SOP: 1
 `,
-			expectedScenario:      "template",
-			expectedMaxDuration:   1 * time.Minute,
-			expectedConcurrency:   50,
-			expectedMaxIterations: 100,
-			expectedIgnoreDropped: true,
-			expectedTotalDuration: 10 * time.Second,
-			expectedUsers:         100,
-			expectedParameters:    map[string]string{"SOP": "1"},
+			expectedScenario:         "template",
+			expectedMaxDuration:      1 * time.Minute,
+			expectedConcurrency:      50,
+			expectedMaxIterations:    100,
+			expectedIgnoreDropped:    true,
+			expectedTotalDuration:    10 * time.Second,
+			expectedUsersConcurrency: 100,
+			expectedParameters:       map[string]string{"SOP": "1"},
 		},
 		{
 			testName: "Skip completed stages when stage-start is provided",
@@ -328,7 +328,6 @@ scenario: template
 default:
   duration: 10s
   mode: users
-  users: 100
   parameters:
     SOP: 1
 limits:
@@ -339,14 +338,14 @@ limits:
 stages:
 - mode: users
 `,
-			expectedScenario:      "template",
-			expectedMaxDuration:   1 * time.Minute,
-			expectedConcurrency:   50,
-			expectedMaxIterations: 100,
-			expectedIgnoreDropped: true,
-			expectedTotalDuration: 10 * time.Second,
-			expectedUsers:         100,
-			expectedParameters:    map[string]string{"SOP": "1"},
+			expectedScenario:         "template",
+			expectedMaxDuration:      1 * time.Minute,
+			expectedConcurrency:      50,
+			expectedMaxIterations:    100,
+			expectedIgnoreDropped:    true,
+			expectedTotalDuration:    10 * time.Second,
+			expectedUsersConcurrency: 50,
+			expectedParameters:       map[string]string{"SOP": "1"},
 		},
 	} {
 		t.Run(test.testName, func(t *testing.T) {
@@ -364,7 +363,7 @@ stages:
 			require.Equal(t, test.expectedTotalDuration, stagesToRun.stages[0].stageDuration)
 			require.Equal(t, test.expectedIterationDuration, stagesToRun.stages[0].iterationDuration)
 			require.Equal(t, test.expectedParameters, stagesToRun.stages[0].params)
-			require.Equal(t, test.expectedUsers, stagesToRun.stages[0].users)
+			require.Equal(t, test.expectedUsersConcurrency, stagesToRun.stages[0].usersConcurrency)
 
 			if len(test.expectedRates) > 0 {
 				var rates []int
@@ -536,20 +535,6 @@ limits:
   ignore-dropped: true
 stages:
 - duration: 10s
-  mode: users
-`,
-			expectedError: "missing users at stage 0",
-		},
-		{
-			fileContent: `
-scenario: template
-limits:
-  max-duration: 1m
-  concurrency: 50
-  max-iterations: 100
-  ignore-dropped: true
-stages:
-- duration: 10s
   mode: gaussian
 `,
 			expectedError: "missing volume at stage 0",
@@ -646,5 +631,5 @@ type testData struct {
 	expectedConcurrency       int
 	expectedMaxIterations     int32
 	expectedParameters        map[string]string
-	expectedUsers             int
+	expectedUsersConcurrency  int
 }
