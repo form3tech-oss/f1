@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/form3tech-oss/f1/pkg/f1/trigger/ramp"
+
 	"github.com/form3tech-oss/f1/pkg/f1/trigger/constant"
 	"github.com/form3tech-oss/f1/pkg/f1/trigger/gaussian"
-	"github.com/form3tech-oss/f1/pkg/f1/trigger/staged"
 	"gopkg.in/yaml.v2"
 )
 
@@ -105,13 +106,12 @@ func (s *Stage) parseStage(stageIdx int, defaults Stage) (*runnableStage, error)
 			rate:              rates.Rate,
 			params:            *validatedConstantStage.Parameters,
 		}, nil
-	case "staged":
-		validatedStagedStage, err := s.validateStagedStage(stageIdx, defaults)
+	case "ramp":
+		validatedStagedStage, err := s.validateRampStage(stageIdx, defaults)
 		if err != nil {
 			return nil, err
 		}
-		stg := fmt.Sprintf("0s:%s, %s:%s", *validatedStagedStage.StartRate, *validatedStagedStage.Duration, *validatedStagedStage.EndRate)
-		rates, err := staged.CalculateStagedRate(*validatedStagedStage.Jitter, *validatedStagedStage.IterationFrequency, stg, *validatedStagedStage.Distribution)
+		rates, err := ramp.CalculateRampRate(*validatedStagedStage.StartRate, *validatedStagedStage.EndRate, *validatedStagedStage.Distribution, *validatedStagedStage.Duration, *validatedStagedStage.Jitter)
 		if err != nil {
 			return nil, err
 		}
@@ -225,7 +225,7 @@ func (s *Stage) validateConstantStage(idx int, defaults Stage) (*Stage, error) {
 	return s, nil
 }
 
-func (s *Stage) validateStagedStage(idx int, defaults Stage) (*Stage, error) {
+func (s *Stage) validateRampStage(idx int, defaults Stage) (*Stage, error) {
 	if s.StartRate == nil {
 		if defaults.StartRate == nil {
 			return nil, fmt.Errorf("missing start-rate at stage %d", idx)
@@ -238,13 +238,6 @@ func (s *Stage) validateStagedStage(idx int, defaults Stage) (*Stage, error) {
 			return nil, fmt.Errorf("missing end-rate at stage %d", idx)
 		} else {
 			s.EndRate = defaults.EndRate
-		}
-	}
-	if s.IterationFrequency == nil {
-		if defaults.IterationFrequency == nil {
-			return nil, fmt.Errorf("missing iteration-frequency at stage %d", idx)
-		} else {
-			s.IterationFrequency = defaults.IterationFrequency
 		}
 	}
 	if s.Distribution == nil {

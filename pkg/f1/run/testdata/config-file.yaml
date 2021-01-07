@@ -21,10 +21,9 @@ stages:
     mode: constant
     rate: 5/100ms
   - duration: 300ms
-    mode: staged
-    start-rate: 0
-    end-rate: 30
-    iteration-frequency: 100ms
+    mode: ramp
+    start-rate: 0/100ms
+    end-rate: 30/100ms
   - duration: 1s
     mode: gaussian
     volume: 100

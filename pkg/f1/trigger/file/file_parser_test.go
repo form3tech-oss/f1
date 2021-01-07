@@ -38,7 +38,7 @@ stages:
 			expectedParameters:        map[string]string{"SOP": "1"},
 		},
 		{
-			testName: "Staged mode single stage",
+			testName: "Ramp mode single stage",
 			fileContent: `
 scenario: template
 limits:
@@ -48,10 +48,9 @@ limits:
   ignore-dropped: true
 stages:
 - duration: 10s
-  mode: staged
+  mode: ramp
   start-rate: 0
   end-rate: 10
-  iteration-frequency: 1s
   jitter: 0
   distribution: none
   parameters:
@@ -196,14 +195,13 @@ stages:
 			expectedParameters:        map[string]string{"SOP": "1"},
 		},
 		{
-			testName: "Staged mode single stage using default values",
+			testName: "Ramp mode single stage using default values",
 			fileContent: `
 scenario: template
 default:
-  mode: staged
+  mode: ramp
   start-rate: 0
   end-rate: 10
-  iteration-frequency: 1s
   jitter: 0
   distribution: none
   parameters:
@@ -323,12 +321,9 @@ stages:
 
 func TestFileRate_FileErrors(t *testing.T) {
 	for _, test := range []struct {
-		testName      string
-		fileContent   string
-		expectedError string
+		fileContent, expectedError string
 	}{
 		{
-			testName: "missing max-duration",
 			fileContent: `
 scenario: template
 limits:
@@ -339,7 +334,6 @@ limits:
 			expectedError: "missing max-duration",
 		},
 		{
-			testName: "missing concurrency",
 			fileContent: `
 scenario: template
 limits:
@@ -350,7 +344,6 @@ limits:
 			expectedError: "missing concurrency",
 		},
 		{
-			testName: "missing max-iterations",
 			fileContent: `
 scenario: template
 limits:
@@ -361,7 +354,6 @@ limits:
 			expectedError: "missing max-iterations",
 		},
 		{
-			testName: "missing ignore-dropped",
 			fileContent: `
 scenario: template
 limits:
@@ -372,7 +364,6 @@ limits:
 			expectedError: "missing ignore-dropped",
 		},
 		{
-			testName: "missing constant rate",
 			fileContent: `
 scenario: template
 limits:
@@ -387,7 +378,6 @@ stages:
 			expectedError: "missing rate at stage 0",
 		},
 		{
-			testName: "missing constant distribution",
 			fileContent: `
 scenario: template
 limits:
@@ -403,7 +393,6 @@ stages:
 			expectedError: "missing distribution at stage 0",
 		},
 		{
-			testName: "missing staged start-rate",
 			fileContent: `
 scenario: template
 limits:
@@ -413,12 +402,11 @@ limits:
   ignore-dropped: true
 stages:
 - duration: 10s
-  mode: staged
+  mode: ramp
 `,
 			expectedError: "missing start-rate at stage 0",
 		},
 		{
-			testName: "missing staged end-rate",
 			fileContent: `
 scenario: template
 limits:
@@ -428,13 +416,12 @@ limits:
   ignore-dropped: true
 stages:
 - duration: 10s
-  mode: staged
+  mode: ramp
   start-rate: 0
 `,
 			expectedError: "missing end-rate at stage 0",
 		},
 		{
-			testName: "missing staged iteration-frequency",
 			fileContent: `
 scenario: template
 limits:
@@ -444,24 +431,7 @@ limits:
   ignore-dropped: true
 stages:
 - duration: 10s
-  mode: staged
-  start-rate: 0
-  end-rate: 10
-`,
-			expectedError: "missing iteration-frequency at stage 0",
-		},
-		{
-			testName: "missing staged distribution",
-			fileContent: `
-scenario: template
-limits:
-  max-duration: 1m
-  concurrency: 50
-  max-iterations: 100
-  ignore-dropped: true
-stages:
-- duration: 10s
-  mode: staged
+  mode: ramp
   start-rate: 0
   end-rate: 10
   iteration-frequency: 1s
@@ -469,7 +439,6 @@ stages:
 			expectedError: "missing distribution at stage 0",
 		},
 		{
-			testName: "missing users stage users value",
 			fileContent: `
 scenario: template
 limits:
@@ -484,7 +453,6 @@ stages:
 			expectedError: "missing users at stage 0",
 		},
 		{
-			testName: "missing gaussian volume",
 			fileContent: `
 scenario: template
 limits:
@@ -499,7 +467,6 @@ stages:
 			expectedError: "missing volume at stage 0",
 		},
 		{
-			testName: "missing gaussian repeat",
 			fileContent: `
 scenario: template
 limits:
@@ -515,7 +482,6 @@ stages:
 			expectedError: "missing repeat at stage 0",
 		},
 		{
-			testName: "missing gaussian iteration-frequency",
 			fileContent: `
 scenario: template
 limits:
@@ -532,7 +498,6 @@ stages:
 			expectedError: "missing iteration-frequency at stage 0",
 		},
 		{
-			testName: "missing stage mode",
 			fileContent: `
 scenario: template
 limits:
@@ -546,14 +511,12 @@ stages:
 			expectedError: "missing stage mode at stage 0",
 		},
 		{
-			testName: "invalid file content",
 			fileContent: `
 invalid file content
 `,
 			expectedError: "yaml: unmarshal errors:\n  line 2: cannot unmarshal !!str `invalid...` into file.ConfigFile",
 		},
 		{
-			testName: "missing scenario",
 			fileContent: `
 limits:
   max-duration: 1m
@@ -572,7 +535,7 @@ stages:
 			expectedError: "missing scenario",
 		},
 	} {
-		t.Run(test.testName, func(t *testing.T) {
+		t.Run(test.expectedError, func(t *testing.T) {
 			now, _ := time.Parse(time.RFC3339, "2020-12-10T10:00:00+00:00")
 
 			runnableStages, err := parseConfigFile([]byte(test.fileContent), now)
