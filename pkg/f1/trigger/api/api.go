@@ -47,6 +47,7 @@ type Options struct {
 }
 
 type Rates struct {
-	IterationDuration, DistributedIterationDuration, Duration time.Duration
-	Rate, DistributedRate                                     RateFunction
+	IterationDuration time.Duration
+	Rate              RateFunction
+	Duration          time.Duration
 }

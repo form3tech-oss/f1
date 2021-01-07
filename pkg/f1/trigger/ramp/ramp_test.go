@@ -105,6 +105,21 @@ func TestRampRate(t *testing.T) {
 			expectedIterationDuration: 1 * time.Second,
 			expectedRates:             []int{0, 12, 16, 26, 38, 54, 76, 64, 86, 73},
 		},
+		{
+			testName:                  "ramp up rate using distribution regular",
+			startRate:                 "0/s",
+			endRate:                   "100/s",
+			duration:                  5 * time.Second,
+			distribution:              "regular",
+			expectedIterationDuration: 100 * time.Millisecond,
+			expectedRates: []int{
+				0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+				2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
+				4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+				6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
+				8, 8, 8, 8, 8, 8, 8, 8, 8, 8,
+			},
+		},
 	} {
 		t.Run(test.testName, func(t *testing.T) {
 			now, _ := time.Parse(time.RFC3339, "2020-12-10T10:00:00+00:00")
@@ -119,6 +134,7 @@ func TestRampRate(t *testing.T) {
 				rate := rampRates.Rate(now)
 				rates = append(rates, rate)
 			}
+			require.Equal(t, test.expectedRates, rates)
 		})
 	}
 }

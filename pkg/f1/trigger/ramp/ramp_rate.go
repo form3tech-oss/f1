@@ -51,7 +51,7 @@ func RampRate() api.Builder {
 			}
 
 			return &api.Trigger{
-				Trigger:     api.NewIterationWorker(rates.DistributedIterationDuration, rates.DistributedRate),
+				Trigger:     api.NewIterationWorker(rates.IterationDuration, rates.Rate),
 				Description: fmt.Sprintf("starting iterations from %s to %s in %v, using distribution %s", startRateArg, endRateArg, duration, distributionTypeArg),
 				DryRun:      rates.Rate,
 			}, nil
@@ -97,11 +97,9 @@ func CalculateRampRate(startRateArg, endRateArg, distributionTypeArg string, dur
 	}
 
 	return &api.Rates{
-		IterationDuration:            *startUnit,
-		DistributedIterationDuration: distributedIterationDuration,
-		Rate:                         jitterRateFn,
-		DistributedRate:              distributedRateFn,
-		Duration:                     duration,
+		IterationDuration: distributedIterationDuration,
+		Rate:              distributedRateFn,
+		Duration:          duration,
 	}, nil
 }
 
