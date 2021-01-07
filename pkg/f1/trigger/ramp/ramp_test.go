@@ -15,15 +15,6 @@ func TestRampRate_SuccessScenarios(t *testing.T) {
 		expectedRates                              []int
 	}{
 		{
-			testName:                  "ramp rate as constant",
-			startRate:                 "10/s",
-			endRate:                   "10/s",
-			duration:                  10 * time.Second,
-			distribution:              "none",
-			expectedIterationDuration: 1 * time.Second,
-			expectedRates:             []int{10, 10, 10, 10, 10, 10, 10, 10, 10, 10},
-		},
-		{
 			testName:                  "ramp up rate",
 			startRate:                 "0/s",
 			endRate:                   "100/s",
@@ -147,6 +138,12 @@ func TestRampRate_Errors(t *testing.T) {
 		jitter                           float64
 		expectedError                    string
 	}{
+		{
+			startRate:     "10/s",
+			endRate:       "10/s",
+			duration:      10 * time.Second,
+			expectedError: "start-rate and end-rate should be different, for constant rate try using the constant mode",
+		},
 		{
 			startRate:     "error",
 			endRate:       "10/s",

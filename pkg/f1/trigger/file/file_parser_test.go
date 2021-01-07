@@ -25,7 +25,7 @@ stages:
   jitter: 0
   distribution: none
   parameters:
-    SOP: 1
+    FOO: bar
 `,
 			expectedScenario:          "template",
 			expectedMaxDuration:       1 * time.Minute,
@@ -35,7 +35,7 @@ stages:
 			expectedTotalDuration:     5 * time.Second,
 			expectedIterationDuration: 1 * time.Second,
 			expectedRates:             []int{6, 6, 6, 6, 6, 6},
-			expectedParameters:        map[string]string{"SOP": "1"},
+			expectedParameters:        map[string]string{"FOO": "bar"},
 		},
 		{
 			testName: "Ramp mode",
@@ -54,7 +54,7 @@ stages:
   jitter: 0
   distribution: none
   parameters:
-    SOP: 1
+    FOO: bar
 `,
 			expectedScenario:          "template",
 			expectedMaxDuration:       1 * time.Minute,
@@ -64,7 +64,7 @@ stages:
 			expectedTotalDuration:     10 * time.Second,
 			expectedIterationDuration: 1 * time.Second,
 			expectedRates:             []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
-			expectedParameters:        map[string]string{"SOP": "1"},
+			expectedParameters:        map[string]string{"FOO": "bar"},
 		},
 		{
 			testName: "Staged mode",
@@ -83,7 +83,7 @@ stages:
   jitter: 0
   distribution: none
   parameters:
-    SOP: 1
+    FOO: bar
 `,
 			expectedScenario:          "template",
 			expectedMaxDuration:       1 * time.Minute,
@@ -93,7 +93,7 @@ stages:
 			expectedTotalDuration:     10 * time.Second,
 			expectedIterationDuration: 1 * time.Second,
 			expectedRates:             []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
-			expectedParameters:        map[string]string{"SOP": "1"},
+			expectedParameters:        map[string]string{"FOO": "bar"},
 		},
 		{
 			testName: "Gaussian mode",
@@ -116,7 +116,7 @@ stages:
   jitter: 0
   distribution: none
   parameters:
-    SOP: 1
+    FOO: bar
 `,
 			expectedScenario:          "template",
 			expectedMaxDuration:       1 * time.Minute,
@@ -130,7 +130,7 @@ stages:
 				0, 0, 1, 2, 3, 6, 8, 10, 13, 13, 13, 11, 8, 5, 3, 2, 1, 0, 1, 0,
 				0, 0, 1, 2, 3, 6, 8, 10, 13, 13, 13, 11, 8, 5, 3, 2, 1, 1, 0, 0,
 			},
-			expectedParameters: map[string]string{"SOP": "1"},
+			expectedParameters: map[string]string{"FOO": "bar"},
 		},
 		{
 			testName: "Users mode",
@@ -146,7 +146,7 @@ stages:
   mode: users
   concurrency: 100
   parameters:
-    SOP: 1
+    FOO: bar
 `,
 			expectedScenario:         "template",
 			expectedMaxDuration:      1 * time.Minute,
@@ -155,7 +155,7 @@ stages:
 			expectedIgnoreDropped:    true,
 			expectedTotalDuration:    10 * time.Second,
 			expectedUsersConcurrency: 100,
-			expectedParameters:       map[string]string{"SOP": "1"},
+			expectedParameters:       map[string]string{"FOO": "bar"},
 		},
 		{
 			testName: "Constant mode using default values",
@@ -167,7 +167,7 @@ default:
   jitter: 0
   distribution: none
   parameters:
-    SOP: 1
+    FOO: bar
 limits:
   max-duration: 1m
   concurrency: 50
@@ -184,7 +184,7 @@ stages:
 			expectedTotalDuration:     5 * time.Second,
 			expectedIterationDuration: 1 * time.Second,
 			expectedRates:             []int{6, 6, 6, 6, 6, 6},
-			expectedParameters:        map[string]string{"SOP": "1"},
+			expectedParameters:        map[string]string{"FOO": "bar"},
 		},
 		{
 			testName: "Ramp mode using default values",
@@ -197,7 +197,7 @@ default:
   jitter: 0
   distribution: none
   parameters:
-    SOP: 1
+    FOO: bar
 limits:
   max-duration: 1m
   concurrency: 50
@@ -214,7 +214,7 @@ stages:
 			expectedTotalDuration:     10 * time.Second,
 			expectedIterationDuration: 1 * time.Second,
 			expectedRates:             []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
-			expectedParameters:        map[string]string{"SOP": "1"},
+			expectedParameters:        map[string]string{"FOO": "bar"},
 		},
 		{
 			testName: "Staged mode using default values",
@@ -227,7 +227,7 @@ default:
   jitter: 0
   distribution: none
   parameters:
-    SOP: 1
+    FOO: bar
 limits:
   max-duration: 1m
   concurrency: 50
@@ -244,7 +244,7 @@ stages:
 			expectedTotalDuration:     10 * time.Second,
 			expectedIterationDuration: 1 * time.Second,
 			expectedRates:             []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
-			expectedParameters:        map[string]string{"SOP": "1"},
+			expectedParameters:        map[string]string{"FOO": "bar"},
 		},
 		{
 			testName: "Gaussian mode using default values",
@@ -261,7 +261,7 @@ default:
   jitter: 0
   distribution: none
   parameters:
-    SOP: 1
+    FOO: bar
 limits:
   max-duration: 1m
   concurrency: 50
@@ -282,7 +282,7 @@ stages:
 				0, 0, 1, 2, 3, 6, 8, 10, 13, 13, 13, 11, 8, 5, 3, 2, 1, 0, 1, 0,
 				0, 0, 1, 2, 3, 6, 8, 10, 13, 13, 13, 11, 8, 5, 3, 2, 1, 1, 0, 0,
 			},
-			expectedParameters: map[string]string{"SOP": "1"},
+			expectedParameters: map[string]string{"FOO": "bar"},
 		},
 		{
 			testName: "Users mode using default values",
@@ -292,7 +292,7 @@ default:
   duration: 10s
   mode: users
   parameters:
-    SOP: 1
+    FOO: bar
 limits:
   max-duration: 1m
   concurrency: 50
@@ -308,7 +308,7 @@ stages:
 			expectedIgnoreDropped:    true,
 			expectedTotalDuration:    10 * time.Second,
 			expectedUsersConcurrency: 50,
-			expectedParameters:       map[string]string{"SOP": "1"},
+			expectedParameters:       map[string]string{"FOO": "bar"},
 		},
 		{
 			testName: "Skip completed stages when stage-start is provided",
@@ -328,14 +328,14 @@ stages:
   jitter: 0
   distribution: none
   parameters:
-    SOP: 1
+    FOO: bar
 - duration: 5s
   mode: constant
   rate: 2/s
   jitter: 0
   distribution: none
   parameters:
-    SOP: 1
+    FOO: bar
 `,
 			expectedScenario:          "template",
 			expectedMaxDuration:       1 * time.Minute,
@@ -345,7 +345,7 @@ stages:
 			expectedTotalDuration:     5 * time.Second,
 			expectedIterationDuration: 1 * time.Second,
 			expectedRates:             []int{2, 2, 2, 2, 2},
-			expectedParameters:        map[string]string{"SOP": "1"},
+			expectedParameters:        map[string]string{"FOO": "bar"},
 		},
 	} {
 		t.Run(test.testName, func(t *testing.T) {

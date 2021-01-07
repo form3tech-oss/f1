@@ -16,8 +16,8 @@ default:                  # Default values for stages fields. If no value is pro
   jitter: 0
   distribution: none
   parameters:
-    foo: 1
-    bar: 2
+    FOO: 1
+    BAR: 2
 limits:                   # Global limits to apply to the program execution
   max-duration: 5s        # Equivalent to --max-duration flag, will stop the execution once this duration is completed if the program is still running
   concurrency: 50         # Equivalent to --concurrency flag, will limit the concurrency of the running iterations
@@ -32,15 +32,15 @@ stages:                   # List of stages to run sequentially
     jitter: 0
     distribution: regular
     parameters:           # A map of values to be injected as environment variables when the stage will run
-      foo: 1
-      bar: 2
+      FOO: 1
+      BAR: 2
   - duration: 300ms       # Equivalent to --ramp-duration field because mode is ramp
     mode: ramp
     start-rate: 0/100ms
     end-rate: 30/100ms
     parameters:
-      foo: 1
-      bar: 2
+      FOO: 1
+      BAR: 2
   - duration: 300ms       # Total stages duration
     mode: staged
     stages: 0s:0,300ms:30
@@ -48,8 +48,8 @@ stages:                   # List of stages to run sequentially
     jitter: 20
     distribution: random
     parameters:
-      foo: 1
-      bar: 2
+      FOO: 1
+      BAR: 2
   - duration: 1s
     mode: gaussian
     volume: 100
@@ -61,11 +61,11 @@ stages:                   # List of stages to run sequentially
     jitter: 0
     distribution: regular
     parameters:
-      foo: 1
-      bar: 2
+      FOO: 1
+      BAR: 2
   - duration: 200ms
     mode: users
     concurrency: 10     # How many concurrent requests should be trigger at once. When not provided, the default is taken from the defaults section or the limits.concurrency value
     parameters:
-      foo: 1
-      bar: 2
+      FOO: 1
+      BAR: 2

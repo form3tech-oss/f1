@@ -18,18 +18,6 @@ func UsersRate() api.Builder {
 		New: func(params *pflag.FlagSet) (*api.Trigger, error) {
 			trigger := func(workTriggered chan<- bool, stop <-chan bool, workDone <-chan bool, options options.RunOptions) {
 				DoWork(workTriggered, stop, workDone, options.Concurrency, options.MaxDuration)
-
-				//for i := 0; i < options.Concurrency; i++ {
-				//	workTriggered <- true
-				//}
-				//for {
-				//	select {
-				//	case <-stop:
-				//		return
-				//	case <-workDone:
-				//		workTriggered <- true
-				//	}
-				//}
 			}
 
 			return &api.Trigger{

@@ -32,7 +32,6 @@ func RampRate() api.Builder {
 			if err != nil {
 				return nil, err
 			}
-			// TODO check max-duration or chart-duration
 			duration, err := flags.GetDuration("ramp-duration")
 			if err != nil {
 				return nil, err
@@ -77,8 +76,10 @@ func CalculateRampRate(startRateArg, endRateArg, distributionTypeArg string, dur
 	if err != nil {
 		return nil, err
 	}
-	// TODO add check for equal start and end rates
 
+	if *startRate == *endRate {
+		return nil, fmt.Errorf("start-rate and end-rate should be different, for constant rate try using the constant mode")
+	}
 	if *startUnit != *endUnit {
 		return nil, fmt.Errorf("start-rate and end-rate are not using the same unit")
 	}

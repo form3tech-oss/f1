@@ -14,9 +14,8 @@ stages:
     jitter: 0
     distribution: regular
     parameters:
-      SOP: 1
-      SIP: 20
-      FDP: 1
+      FOO: 1
+      BAR: 2
   - duration: 200ms
     mode: constant
     rate: 5/100ms

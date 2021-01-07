@@ -96,7 +96,7 @@ func TestChartFileConfig(t *testing.T) {
 	given, when, then := NewChartTestStage(t)
 
 	given.
-		the_load_style_is_defined_in_the_config_file("../testing/testdata/config-file.yaml")
+		the_load_style_is_defined_in_the_config_file("../testdata/config-file.yaml")
 
 	when.
 		i_execute_the_chart_command()
