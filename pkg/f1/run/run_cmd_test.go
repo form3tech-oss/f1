@@ -31,7 +31,8 @@ func TestSimpleFlow(t *testing.T) {
 		a_scenario_where_each_iteration_takes(test.iterationDuration).and().
 		a_config_file_location_of(test.configFile).and().
 		a_start_rate_of(test.startRate).and().
-		a_end_rate_of(test.endRate)
+		a_end_rate_of(test.endRate).and().
+		a_ramp_duration_of(test.rampDuration)
 
 	when.i_start_a_timer().and().
 		i_execute_the_run_command()
@@ -72,6 +73,7 @@ type TestParam struct {
 	configFile                string
 	startRate                 string
 	endRate                   string
+	rampDuration              string
 }
 
 func TestParameterised(t *testing.T) {
@@ -82,6 +84,7 @@ func TestParameterised(t *testing.T) {
 			testDuration:           100 * time.Millisecond,
 			concurrency:            100,
 			iterationDuration:      100 * time.Millisecond,
+			distributionType:       "none",
 			expectedRunTime:        100 * time.Millisecond,
 			expectedCompletedTests: 10,
 		},
@@ -91,6 +94,7 @@ func TestParameterised(t *testing.T) {
 			testDuration:           2 * time.Second,
 			concurrency:            100,
 			iterationDuration:      200 * time.Millisecond,
+			distributionType:       "none",
 			expectedRunTime:        2 * time.Second,
 			expectedCompletedTests: 10,
 		},
@@ -100,9 +104,9 @@ func TestParameterised(t *testing.T) {
 			testDuration:           1 * time.Second,
 			concurrency:            100,
 			iterationDuration:      2 * time.Second,
+			distributionType:       "none",
 			expectedRunTime:        2 * time.Second,
 			expectedCompletedTests: 1,
-			distributionType:       "none",
 		},
 		{
 			name:                   "next iteration can start if previous still running",
@@ -110,9 +114,9 @@ func TestParameterised(t *testing.T) {
 			testDuration:           2 * time.Second,
 			concurrency:            200,
 			iterationDuration:      2 * time.Second,
+			distributionType:       "none",
 			expectedRunTime:        3 * time.Second,
 			expectedCompletedTests: 20,
-			distributionType:       "none",
 		},
 		{
 			name:                      "next iteration won't start if previous still running and limited by concurrency",
@@ -122,9 +126,9 @@ func TestParameterised(t *testing.T) {
 			expectedCompletedTests:    10,
 			concurrency:               10,
 			iterationDuration:         2 * time.Second,
+			distributionType:          "none",
 			expectedDroppedIterations: 10,
 			expectedFailure:           true,
-			distributionType:          "none",
 		},
 		{
 			name:                   "limited iterations",
@@ -133,6 +137,7 @@ func TestParameterised(t *testing.T) {
 			concurrency:            100,
 			iterationDuration:      100 * time.Millisecond,
 			maxIterations:          7,
+			distributionType:       "none",
 			expectedRunTime:        100 * time.Millisecond,
 			expectedCompletedTests: 7,
 		},
@@ -143,6 +148,7 @@ func TestParameterised(t *testing.T) {
 			concurrency:            100,
 			iterationDuration:      10 * time.Millisecond,
 			maxIterations:          17,
+			distributionType:       "none",
 			expectedCompletedTests: 17,
 		},
 		{
@@ -151,9 +157,9 @@ func TestParameterised(t *testing.T) {
 			testDuration:           2 * time.Second,
 			concurrency:            100,
 			iterationDuration:      1 * time.Millisecond,
+			distributionType:       "regular",
 			expectedRunTime:        2 * time.Second,
 			expectedCompletedTests: 20,
-			distributionType:       "regular",
 		},
 		{
 			name:                   "random distribution of a constant rate",
@@ -161,9 +167,9 @@ func TestParameterised(t *testing.T) {
 			testDuration:           2 * time.Second,
 			concurrency:            100,
 			iterationDuration:      1 * time.Millisecond,
+			distributionType:       "random",
 			expectedRunTime:        2 * time.Second,
 			expectedCompletedTests: 20,
-			distributionType:       "random",
 		},
 		{
 			name:                   "run only half of requests on half of the time using regular distribution",
@@ -171,9 +177,9 @@ func TestParameterised(t *testing.T) {
 			testDuration:           1 * time.Second,
 			concurrency:            100,
 			iterationDuration:      1 * time.Millisecond,
+			distributionType:       "regular",
 			expectedRunTime:        1 * time.Second,
 			expectedCompletedTests: 5,
-			distributionType:       "regular",
 		},
 		{
 			name:                   "simple staged test",
@@ -183,6 +189,7 @@ func TestParameterised(t *testing.T) {
 			testDuration:           200 * time.Millisecond,
 			concurrency:            100,
 			iterationDuration:      1 * time.Millisecond,
+			distributionType:       "none",
 			expectedCompletedTests: 100,
 		},
 		{
@@ -193,6 +200,7 @@ func TestParameterised(t *testing.T) {
 			testDuration:           200 * time.Millisecond,
 			concurrency:            100,
 			iterationDuration:      1 * time.Millisecond,
+			distributionType:       "none",
 			expectedCompletedTests: 23,
 		},
 		{
@@ -203,8 +211,8 @@ func TestParameterised(t *testing.T) {
 			testDuration:           200 * time.Millisecond,
 			concurrency:            100,
 			iterationDuration:      1 * time.Millisecond,
-			expectedCompletedTests: 100,
 			distributionType:       "regular",
+			expectedCompletedTests: 100,
 		},
 		{
 			name:                   "random distribution of a staged trigger",
@@ -214,8 +222,8 @@ func TestParameterised(t *testing.T) {
 			testDuration:           200 * time.Millisecond,
 			concurrency:            100,
 			iterationDuration:      1 * time.Millisecond,
-			expectedCompletedTests: 100,
 			distributionType:       "random",
+			expectedCompletedTests: 100,
 		},
 		{
 			name:                   "run half of requests on half of the time on staged test using regular distribution",
@@ -225,8 +233,8 @@ func TestParameterised(t *testing.T) {
 			testDuration:           3500 * time.Millisecond,
 			concurrency:            100,
 			iterationDuration:      1 * time.Millisecond,
-			expectedCompletedTests: 112,
 			distributionType:       "regular",
+			expectedCompletedTests: 112,
 		},
 		{
 			name:                   "users test slow iterations",
@@ -256,7 +264,62 @@ func TestParameterised(t *testing.T) {
 			iterationDuration:      500 * time.Millisecond,
 		},
 		{
-			name:                   "config file test",
+			name:                   "simple ramp test",
+			triggerType:            Ramp,
+			startRate:              "0/100ms",
+			endRate:                "10/100ms",
+			rampDuration:           "1s",
+			testDuration:           1 * time.Second,
+			concurrency:            50,
+			maxIterations:          1000,
+			iterationDuration:      1 * time.Millisecond,
+			distributionType:       "none",
+			expectedRunTime:        1 * time.Second,
+			expectedCompletedTests: 45,
+		},
+		{
+			name:                   "simple ramp test using max-duration instead of ramp-duration",
+			triggerType:            Ramp,
+			startRate:              "0/100ms",
+			endRate:                "10/100ms",
+			testDuration:           1 * time.Second,
+			concurrency:            50,
+			maxIterations:          1000,
+			iterationDuration:      1 * time.Millisecond,
+			distributionType:       "none",
+			expectedRunTime:        1 * time.Second,
+			expectedCompletedTests: 45,
+		},
+		{
+			name:                   "regular distribution of a ramp test",
+			triggerType:            Ramp,
+			startRate:              "0/100ms",
+			endRate:                "10/100ms",
+			rampDuration:           "1s",
+			testDuration:           1 * time.Second,
+			concurrency:            50,
+			maxIterations:          1000,
+			iterationDuration:      1 * time.Millisecond,
+			distributionType:       "regular",
+			expectedRunTime:        1 * time.Second,
+			expectedCompletedTests: 45,
+		},
+		{
+			name:                   "random distribution of a ramp test",
+			triggerType:            Ramp,
+			startRate:              "0/100ms",
+			endRate:                "10/100ms",
+			rampDuration:           "1s",
+			testDuration:           1 * time.Second,
+			concurrency:            50,
+			maxIterations:          1000,
+			iterationDuration:      1 * time.Millisecond,
+			distributionType:       "random",
+			expectedRunTime:        1 * time.Second,
+			expectedCompletedTests: 45,
+		},
+		{
+			name:                   "simple config file test",
 			triggerType:            File,
 			configFile:             "../testing/testdata/config-file.yaml",
 			testDuration:           5 * time.Second,
@@ -267,17 +330,15 @@ func TestParameterised(t *testing.T) {
 			expectedCompletedTests: 140,
 		},
 		{
-			name:                   "simple ramp up test",
-			triggerType:            Ramp,
-			startRate:              "0/100ms",
-			endRate:                "10/100ms",
+			name:                   "config file test using limited max-duration",
+			triggerType:            File,
+			configFile:             "../testing/testdata/config-file.yaml",
 			testDuration:           1 * time.Second,
 			concurrency:            50,
 			maxIterations:          1000,
-			iterationDuration:      1 * time.Millisecond,
+			iterationDuration:      100 * time.Millisecond,
 			expectedRunTime:        1 * time.Second,
-			expectedCompletedTests: 45,
-			distributionType:       "none",
+			expectedCompletedTests: 90,
 		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
@@ -295,7 +356,8 @@ func TestParameterised(t *testing.T) {
 				a_scenario_where_each_iteration_takes(test.iterationDuration).and().
 				a_config_file_location_of(test.configFile).and().
 				a_start_rate_of(test.startRate).and().
-				a_end_rate_of(test.endRate)
+				a_end_rate_of(test.endRate).and().
+				a_ramp_duration_of(test.rampDuration)
 
 			when.i_start_a_timer().and().
 				i_execute_the_run_command()

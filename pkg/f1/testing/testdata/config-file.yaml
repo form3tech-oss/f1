@@ -12,7 +12,7 @@ stages:
     mode: constant
     rate: 10/100ms
     jitter: 0
-    distribution: none
+    distribution: regular
     parameters:
       SOP: 1
       SIP: 20

@@ -55,6 +55,11 @@ func (s *ChartTestStage) the_load_style_is_staged(stages string) *ChartTestStage
 	return s
 }
 
+func (s *ChartTestStage) the_load_style_is_ramp() *ChartTestStage {
+	s.args = append(s.args, "ramp", "--start-rate", "0/s", "--end-rate", "10/s", "--ramp-duration", "1s")
+	return s
+}
+
 func (s *ChartTestStage) the_load_style_is_gaussian_with_a_volume_of(volume int) *ChartTestStage {
 	s.args = append(s.args, "gaussian", "--peak", "5m", "--repeat", "10m", "--volume", fmt.Sprint(volume), "--standard-deviation", "1m")
 	return s

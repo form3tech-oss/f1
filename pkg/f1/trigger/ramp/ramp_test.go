@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestRampRate(t *testing.T) {
+func TestRampRate_SuccessScenarios(t *testing.T) {
 	for _, test := range []struct {
 		testName, startRate, endRate, distribution string
 		jitter                                     float64
@@ -87,7 +87,7 @@ func TestRampRate(t *testing.T) {
 			expectedRates:             []int{0, 10, 20, 30, 40, 50, 60, 70, 80, 90},
 		},
 		{
-			testName:                  "duration is the same as start/end rate unit",
+			testName:                  "duration must be the same as start/end rate unit",
 			startRate:                 "0/s",
 			endRate:                   "10/s",
 			duration:                  1 * time.Second,
@@ -96,7 +96,7 @@ func TestRampRate(t *testing.T) {
 			expectedRates:             []int{0},
 		},
 		{
-			testName:                  "ramp up rate using jitter",
+			testName:                  "ramp up rate using jitter 20%",
 			startRate:                 "0/s",
 			endRate:                   "100/s",
 			duration:                  10 * time.Second,
@@ -106,7 +106,7 @@ func TestRampRate(t *testing.T) {
 			expectedRates:             []int{0, 12, 16, 26, 38, 54, 76, 64, 86, 73},
 		},
 		{
-			testName:                  "ramp up rate using distribution regular",
+			testName:                  "ramp up rate using regular distribution",
 			startRate:                 "0/s",
 			endRate:                   "100/s",
 			duration:                  5 * time.Second,

@@ -10,7 +10,7 @@ import (
 func TestFileRate_SingleStages(t *testing.T) {
 	for _, test := range []testData{
 		{
-			testName: "Constant mode single stage",
+			testName: "Constant mode",
 			fileContent: `
 scenario: template
 limits:
@@ -38,7 +38,7 @@ stages:
 			expectedParameters:        map[string]string{"SOP": "1"},
 		},
 		{
-			testName: "Ramp mode single stage",
+			testName: "Ramp mode",
 			fileContent: `
 scenario: template
 limits:
@@ -67,7 +67,7 @@ stages:
 			expectedParameters:        map[string]string{"SOP": "1"},
 		},
 		{
-			testName: "Staged mode single stage",
+			testName: "Staged mode",
 			fileContent: `
 scenario: template
 limits:
@@ -96,7 +96,7 @@ stages:
 			expectedParameters:        map[string]string{"SOP": "1"},
 		},
 		{
-			testName: "Gaussian mode single stage",
+			testName: "Gaussian mode",
 			fileContent: `
 scenario: template
 limits:
@@ -133,7 +133,7 @@ stages:
 			expectedParameters: map[string]string{"SOP": "1"},
 		},
 		{
-			testName: "Users mode single stage",
+			testName: "Users mode",
 			fileContent: `
 scenario: template
 limits:
@@ -155,6 +155,159 @@ stages:
 			expectedIgnoreDropped:    true,
 			expectedTotalDuration:    10 * time.Second,
 			expectedUsersConcurrency: 100,
+			expectedParameters:       map[string]string{"SOP": "1"},
+		},
+		{
+			testName: "Constant mode using default values",
+			fileContent: `
+scenario: template
+default:
+  mode: constant
+  rate: 6/s
+  jitter: 0
+  distribution: none
+  parameters:
+    SOP: 1
+limits:
+  max-duration: 1m
+  concurrency: 50
+  max-iterations: 100
+  ignore-dropped: true
+stages:
+- duration: 5s
+`,
+			expectedScenario:          "template",
+			expectedMaxDuration:       1 * time.Minute,
+			expectedConcurrency:       50,
+			expectedMaxIterations:     100,
+			expectedIgnoreDropped:     true,
+			expectedTotalDuration:     5 * time.Second,
+			expectedIterationDuration: 1 * time.Second,
+			expectedRates:             []int{6, 6, 6, 6, 6, 6},
+			expectedParameters:        map[string]string{"SOP": "1"},
+		},
+		{
+			testName: "Ramp mode using default values",
+			fileContent: `
+scenario: template
+default:
+  mode: ramp
+  start-rate: 0
+  end-rate: 10
+  jitter: 0
+  distribution: none
+  parameters:
+    SOP: 1
+limits:
+  max-duration: 1m
+  concurrency: 50
+  max-iterations: 100
+  ignore-dropped: true
+stages:
+- duration: 10s
+`,
+			expectedScenario:          "template",
+			expectedMaxDuration:       1 * time.Minute,
+			expectedConcurrency:       50,
+			expectedMaxIterations:     100,
+			expectedIgnoreDropped:     true,
+			expectedTotalDuration:     10 * time.Second,
+			expectedIterationDuration: 1 * time.Second,
+			expectedRates:             []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
+			expectedParameters:        map[string]string{"SOP": "1"},
+		},
+		{
+			testName: "Staged mode using default values",
+			fileContent: `
+scenario: template
+default:
+  mode: staged
+  stages: 0s:0,10s:10
+  iteration-frequency: 1s
+  jitter: 0
+  distribution: none
+  parameters:
+    SOP: 1
+limits:
+  max-duration: 1m
+  concurrency: 50
+  max-iterations: 100
+  ignore-dropped: true
+stages:
+- duration: 10s
+`,
+			expectedScenario:          "template",
+			expectedMaxDuration:       1 * time.Minute,
+			expectedConcurrency:       50,
+			expectedMaxIterations:     100,
+			expectedIgnoreDropped:     true,
+			expectedTotalDuration:     10 * time.Second,
+			expectedIterationDuration: 1 * time.Second,
+			expectedRates:             []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
+			expectedParameters:        map[string]string{"SOP": "1"},
+		},
+		{
+			testName: "Gaussian mode using default values",
+			fileContent: `
+scenario: template
+default:
+  mode: gaussian
+  volume: 100
+  repeat: 20s
+  iteration-frequency: 1s
+  peak: 10s
+  weights: "1.0,1.0"
+  standard-deviation: 3s
+  jitter: 0
+  distribution: none
+  parameters:
+    SOP: 1
+limits:
+  max-duration: 1m
+  concurrency: 50
+  max-iterations: 100
+  ignore-dropped: true
+stages:
+- duration: 10s
+`,
+			expectedScenario:          "template",
+			expectedMaxDuration:       1 * time.Minute,
+			expectedConcurrency:       50,
+			expectedMaxIterations:     100,
+			expectedIgnoreDropped:     true,
+			expectedTotalDuration:     10 * time.Second,
+			expectedIterationDuration: 1 * time.Second,
+			expectedRates: []int{
+				0, 0, 1, 2, 3, 6, 8, 10, 13, 13, 13, 10, 9, 5, 3, 2, 1, 0, 1, 0,
+				0, 0, 1, 2, 3, 6, 8, 10, 13, 13, 13, 11, 8, 5, 3, 2, 1, 0, 1, 0,
+				0, 0, 1, 2, 3, 6, 8, 10, 13, 13, 13, 11, 8, 5, 3, 2, 1, 1, 0, 0,
+			},
+			expectedParameters: map[string]string{"SOP": "1"},
+		},
+		{
+			testName: "Users mode using default values",
+			fileContent: `
+scenario: template
+default:
+  duration: 10s
+  mode: users
+  parameters:
+    SOP: 1
+limits:
+  max-duration: 1m
+  concurrency: 50
+  max-iterations: 100
+  ignore-dropped: true
+stages:
+- mode: users
+`,
+			expectedScenario:         "template",
+			expectedMaxDuration:      1 * time.Minute,
+			expectedConcurrency:      50,
+			expectedMaxIterations:    100,
+			expectedIgnoreDropped:    true,
+			expectedTotalDuration:    10 * time.Second,
+			expectedUsersConcurrency: 50,
 			expectedParameters:       map[string]string{"SOP": "1"},
 		},
 		{
@@ -194,159 +347,6 @@ stages:
 			expectedRates:             []int{2, 2, 2, 2, 2},
 			expectedParameters:        map[string]string{"SOP": "1"},
 		},
-		{
-			testName: "Constant mode single stage using default values",
-			fileContent: `
-scenario: template
-default:
-  mode: constant
-  rate: 6/s
-  jitter: 0
-  distribution: none
-  parameters:
-    SOP: 1
-limits:
-  max-duration: 1m
-  concurrency: 50
-  max-iterations: 100
-  ignore-dropped: true
-stages:
-- duration: 5s
-`,
-			expectedScenario:          "template",
-			expectedMaxDuration:       1 * time.Minute,
-			expectedConcurrency:       50,
-			expectedMaxIterations:     100,
-			expectedIgnoreDropped:     true,
-			expectedTotalDuration:     5 * time.Second,
-			expectedIterationDuration: 1 * time.Second,
-			expectedRates:             []int{6, 6, 6, 6, 6, 6},
-			expectedParameters:        map[string]string{"SOP": "1"},
-		},
-		{
-			testName: "Ramp mode single stage using default values",
-			fileContent: `
-scenario: template
-default:
-  mode: ramp
-  start-rate: 0
-  end-rate: 10
-  jitter: 0
-  distribution: none
-  parameters:
-    SOP: 1
-limits:
-  max-duration: 1m
-  concurrency: 50
-  max-iterations: 100
-  ignore-dropped: true
-stages:
-- duration: 10s
-`,
-			expectedScenario:          "template",
-			expectedMaxDuration:       1 * time.Minute,
-			expectedConcurrency:       50,
-			expectedMaxIterations:     100,
-			expectedIgnoreDropped:     true,
-			expectedTotalDuration:     10 * time.Second,
-			expectedIterationDuration: 1 * time.Second,
-			expectedRates:             []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
-			expectedParameters:        map[string]string{"SOP": "1"},
-		},
-		{
-			testName: "Staged mode single stage using default values",
-			fileContent: `
-scenario: template
-default:
-  mode: staged
-  stages: 0s:0,10s:10
-  iteration-frequency: 1s
-  jitter: 0
-  distribution: none
-  parameters:
-    SOP: 1
-limits:
-  max-duration: 1m
-  concurrency: 50
-  max-iterations: 100
-  ignore-dropped: true
-stages:
-- duration: 10s
-`,
-			expectedScenario:          "template",
-			expectedMaxDuration:       1 * time.Minute,
-			expectedConcurrency:       50,
-			expectedMaxIterations:     100,
-			expectedIgnoreDropped:     true,
-			expectedTotalDuration:     10 * time.Second,
-			expectedIterationDuration: 1 * time.Second,
-			expectedRates:             []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
-			expectedParameters:        map[string]string{"SOP": "1"},
-		},
-		{
-			testName: "Gaussian mode single stage using default values",
-			fileContent: `
-scenario: template
-default:
-  mode: gaussian
-  volume: 100
-  repeat: 20s
-  iteration-frequency: 1s
-  peak: 10s
-  weights: "1.0,1.0"
-  standard-deviation: 3s
-  jitter: 0
-  distribution: none
-  parameters:
-    SOP: 1
-limits:
-  max-duration: 1m
-  concurrency: 50
-  max-iterations: 100
-  ignore-dropped: true
-stages:
-- duration: 10s
-`,
-			expectedScenario:          "template",
-			expectedMaxDuration:       1 * time.Minute,
-			expectedConcurrency:       50,
-			expectedMaxIterations:     100,
-			expectedIgnoreDropped:     true,
-			expectedTotalDuration:     10 * time.Second,
-			expectedIterationDuration: 1 * time.Second,
-			expectedRates: []int{
-				0, 0, 1, 2, 3, 6, 8, 10, 13, 13, 13, 10, 9, 5, 3, 2, 1, 0, 1, 0,
-				0, 0, 1, 2, 3, 6, 8, 10, 13, 13, 13, 11, 8, 5, 3, 2, 1, 0, 1, 0,
-				0, 0, 1, 2, 3, 6, 8, 10, 13, 13, 13, 11, 8, 5, 3, 2, 1, 1, 0, 0,
-			},
-			expectedParameters: map[string]string{"SOP": "1"},
-		},
-		{
-			testName: "Users mode single stage using default values",
-			fileContent: `
-scenario: template
-default:
-  duration: 10s
-  mode: users
-  parameters:
-    SOP: 1
-limits:
-  max-duration: 1m
-  concurrency: 50
-  max-iterations: 100
-  ignore-dropped: true
-stages:
-- mode: users
-`,
-			expectedScenario:         "template",
-			expectedMaxDuration:      1 * time.Minute,
-			expectedConcurrency:      50,
-			expectedMaxIterations:    100,
-			expectedIgnoreDropped:    true,
-			expectedTotalDuration:    10 * time.Second,
-			expectedUsersConcurrency: 50,
-			expectedParameters:       map[string]string{"SOP": "1"},
-		},
 	} {
 		t.Run(test.testName, func(t *testing.T) {
 			now, _ := time.Parse(time.RFC3339, "2020-12-10T10:00:00+00:00")
@@ -381,6 +381,16 @@ func TestFileRate_FileErrors(t *testing.T) {
 	for _, test := range []struct {
 		fileContent, expectedError string
 	}{
+		{
+			fileContent: `
+limits:
+  max-duration: 1m
+  concurrency: 50
+  max-iterations: 100
+  ignore-dropped: true
+`,
+			expectedError: "missing scenario",
+		},
 		{
 			fileContent: `
 scenario: template
@@ -420,6 +430,17 @@ limits:
   max-iterations: 100
 `,
 			expectedError: "missing ignore-dropped",
+		},
+		{
+			fileContent: `
+scenario: template
+limits:
+  max-duration: 1m
+  concurrency: 50
+  max-iterations: 100
+  ignore-dropped: true
+`,
+			expectedError: "missing stages",
 		},
 		{
 			fileContent: `
@@ -589,24 +610,6 @@ invalid file content
 `,
 			expectedError: "yaml: unmarshal errors:\n  line 2: cannot unmarshal !!str `invalid...` into file.ConfigFile",
 		},
-		{
-			fileContent: `
-limits:
-  max-duration: 1m
-  concurrency: 50
-  max-iterations: 100
-  ignore-dropped: true
-stages:
-- duration: 5s
-  mode: constant
-  rate: 6/s
-  jitter: 0
-  distribution: none
-  parameters:
-    SOP: 1
-`,
-			expectedError: "missing scenario",
-		},
 	} {
 		t.Run(test.expectedError, func(t *testing.T) {
 			now, _ := time.Parse(time.RFC3339, "2020-12-10T10:00:00+00:00")
@@ -625,11 +628,11 @@ type testData struct {
 	expectedScenario          string
 	expectedTotalDuration     time.Duration
 	expectedIterationDuration time.Duration
-	expectedIgnoreDropped     bool
-	expectedRates             []int
 	expectedMaxDuration       time.Duration
-	expectedConcurrency       int
+	expectedIgnoreDropped     bool
 	expectedMaxIterations     int32
-	expectedParameters        map[string]string
+	expectedConcurrency       int
 	expectedUsersConcurrency  int
+	expectedRates             []int
+	expectedParameters        map[string]string
 }

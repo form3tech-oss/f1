@@ -192,6 +192,9 @@ func (c *ConfigFile) validateCommonFields() (*ConfigFile, error) {
 	if c.Limits.IgnoreDropped == nil {
 		return nil, fmt.Errorf("missing ignore-dropped")
 	}
+	if len(c.Stages) == 0 {
+		return nil, fmt.Errorf("missing stages")
+	}
 
 	if c.Default.Concurrency == nil {
 		c.Default.Concurrency = c.Limits.Concurrency

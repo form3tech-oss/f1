@@ -54,6 +54,7 @@ type RunTestStage struct {
 	configFile       string
 	startRate        string
 	endRate          string
+	rampDuration     string
 	durations        sync.Map
 }
 
@@ -101,6 +102,11 @@ func (s *RunTestStage) a_start_rate_of(startRate string) *RunTestStage {
 
 func (s *RunTestStage) a_end_rate_of(endRate string) *RunTestStage {
 	s.endRate = endRate
+	return s
+}
+
+func (s *RunTestStage) a_ramp_duration_of(rampDuration string) *RunTestStage {
+	s.rampDuration = rampDuration
 	return s
 }
 
@@ -363,9 +369,14 @@ func (s *RunTestStage) build_trigger() *api.Trigger {
 		err = flags.Set("end-rate", s.endRate)
 		require.NoError(s.t, err)
 
-		flags.DurationP("max-duration", "d", time.Second, "--max-duration 1s (stop after 1 second)")
-		err = flags.Set("max-duration", s.duration.String())
-		require.NoError(s.t, err)
+		if s.rampDuration != "" {
+			err = flags.Set("ramp-duration", s.rampDuration)
+			require.NoError(s.t, err)
+		} else {
+			flags.DurationP("max-duration", "d", time.Second, "--max-duration 1s (stop after 1 second)")
+			err = flags.Set("max-duration", s.duration.String())
+			require.NoError(s.t, err)
+		}
 
 		if s.distributionType != "" {
 			err = flags.Set("distribution", s.distributionType)
