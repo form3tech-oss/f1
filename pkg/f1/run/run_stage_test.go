@@ -3,6 +3,7 @@ package run
 import (
 	"fmt"
 	"math"
+	"sync"
 	"sync/atomic"
 	"syscall"
 	"testing"
@@ -54,6 +55,7 @@ type RunTestStage struct {
 	startRate        string
 	endRate          string
 	rampDuration     string
+	durations        sync.Map
 }
 
 func NewRunTestStage(t *testing.T) (*RunTestStage, *RunTestStage, *RunTestStage) {
@@ -213,6 +215,7 @@ func (s *RunTestStage) a_scenario_where_each_iteration_takes(duration time.Durat
 		s.runCount = 0
 		return func(t *f1_testing.T) {
 				atomic.AddInt32(&s.runCount, 1)
+				s.durations.Store(time.Now(), time.Since(s.startTime))
 				time.Sleep(duration)
 			}, func(t *f1_testing.T) {
 				atomic.AddInt32(s.tearDownCount, 1)
@@ -257,6 +260,41 @@ func (s *RunTestStage) the_results_should_show_n_successful_iterations(expected 
 
 func (s *RunTestStage) the_number_of_dropped_iterations_should_be(expected uint64) *RunTestStage {
 	s.assert.Equal(expected, s.runResult.DroppedIterationCount)
+	return s
+}
+
+func (s *RunTestStage) distribution_duration_map_of_requests() map[time.Duration]int32 {
+	distributionMap := make(map[time.Duration]int32)
+	s.durations.Range(func(key, value interface{}) bool {
+		requestDuration := value.(time.Duration)
+		truncatedDuration := requestDuration.Truncate(100 * time.Millisecond)
+		existingDuration := distributionMap[truncatedDuration] + 1
+		distributionMap[truncatedDuration] = existingDuration
+		return true
+	})
+
+	return distributionMap
+}
+
+func (s *RunTestStage) there_should_be_x_requests_sent_over_y_intervals_of_z_ms(requests, intervals, ms int) *RunTestStage {
+	expectedDistribution := map[time.Duration]int32{}
+	for i := 0; i < intervals; i++ {
+		key := time.Duration(i) * time.Duration(ms) * time.Millisecond
+		expectedDistribution[key] = int32(requests)
+	}
+
+	distributionMap := s.distribution_duration_map_of_requests()
+
+	s.assert.Equal(expectedDistribution, distributionMap)
+
+	return s
+}
+
+func (s *RunTestStage) the_requests_are_not_sent_all_at_once() *RunTestStage {
+	distributionMap := s.distribution_duration_map_of_requests()
+
+	s.assert.Greater(len(distributionMap), 1)
+
 	return s
 }
 
