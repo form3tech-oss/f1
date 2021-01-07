@@ -21,7 +21,7 @@ func RampRate() api.Builder {
 
 	return api.Builder{
 		Name:        "ramp <scenario>",
-		Description: "ramp up or down requests on every iteration",
+		Description: "ramp up or down requests for a certain duration",
 		Flags:       flags,
 		New: func(flags *pflag.FlagSet) (*api.Trigger, error) {
 			startRateArg, err := flags.GetString("start-rate")
@@ -45,11 +45,14 @@ func RampRate() api.Builder {
 				return nil, err
 			}
 
-			rates, _ := CalculateRampRate(startRateArg, endRateArg, distributionTypeArg, duration, jitterArg)
+			rates, err := CalculateRampRate(startRateArg, endRateArg, distributionTypeArg, duration, jitterArg)
+			if err != nil {
+				return nil, err
+			}
 
 			return &api.Trigger{
 				Trigger:     api.NewIterationWorker(rates.DistributedIterationDuration, rates.DistributedRate),
-				Description: fmt.Sprintf("from %s to %s in %v, using distribution %s", startRateArg, endRateArg, duration, distributionTypeArg),
+				Description: fmt.Sprintf("starting iterations from %s to %s in %v, using distribution %s", startRateArg, endRateArg, duration, distributionTypeArg),
 				DryRun:      rates.Rate,
 			}, nil
 		},
@@ -88,12 +91,15 @@ func CalculateRampRate(startRateArg, endRateArg, distributionTypeArg string, dur
 	}
 
 	jitterRateFn := api.WithJitter(rateFn, jitterArg)
-	distributedIterationDuration, distributedRateFn, _ := api.NewDistribution(distributionTypeArg, *startUnit, jitterRateFn)
+	distributedIterationDuration, distributedRateFn, err := api.NewDistribution(distributionTypeArg, *startUnit, jitterRateFn)
+	if err != nil {
+		return nil, err
+	}
 
 	return &api.Rates{
 		IterationDuration:            *startUnit,
 		DistributedIterationDuration: distributedIterationDuration,
-		Rate:                         rateFn,
+		Rate:                         jitterRateFn,
 		DistributedRate:              distributedRateFn,
 		Duration:                     duration,
 	}, nil
@@ -105,11 +111,11 @@ func parseRateArg(rateArg string) (*int, *time.Duration, error) {
 		if err != nil {
 			return nil, nil, fmt.Errorf("unable to parse rate arg %s", rateArg)
 		}
-		startUnitArg := (rateArg)[strings.Index(rateArg, "/")+1:]
-		if !govalidator.IsNumeric(startUnitArg[0:1]) {
-			startUnitArg = "1" + startUnitArg
+		unitArg := (rateArg)[strings.Index(rateArg, "/")+1:]
+		if !govalidator.IsNumeric(unitArg[0:1]) {
+			unitArg = "1" + unitArg
 		}
-		unit, err := time.ParseDuration(startUnitArg)
+		unit, err := time.ParseDuration(unitArg)
 		if err != nil {
 			return nil, nil, fmt.Errorf("unable to parse rate arg %s", rateArg)
 		}

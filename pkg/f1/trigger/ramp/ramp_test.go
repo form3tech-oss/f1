@@ -19,6 +19,7 @@ func TestRampRate(t *testing.T) {
 			startRate:                 "10/s",
 			endRate:                   "10/s",
 			duration:                  10 * time.Second,
+			distribution:              "none",
 			expectedIterationDuration: 1 * time.Second,
 			expectedRates:             []int{10, 10, 10, 10, 10, 10, 10, 10, 10, 10},
 		},
@@ -27,6 +28,7 @@ func TestRampRate(t *testing.T) {
 			startRate:                 "0/s",
 			endRate:                   "100/s",
 			duration:                  10 * time.Second,
+			distribution:              "none",
 			expectedIterationDuration: 1 * time.Second,
 			expectedRates:             []int{0, 10, 20, 30, 40, 50, 60, 70, 80, 90},
 		},
@@ -35,6 +37,7 @@ func TestRampRate(t *testing.T) {
 			startRate:                 "100/s",
 			endRate:                   "0/s",
 			duration:                  10 * time.Second,
+			distribution:              "none",
 			expectedIterationDuration: 1 * time.Second,
 			expectedRates:             []int{100, 90, 80, 70, 60, 50, 40, 30, 20, 10},
 		},
@@ -43,6 +46,7 @@ func TestRampRate(t *testing.T) {
 			startRate:                 "0/100ms",
 			endRate:                   "100/100ms",
 			duration:                  1 * time.Second,
+			distribution:              "none",
 			expectedIterationDuration: 100 * time.Millisecond,
 			expectedRates:             []int{0, 10, 20, 30, 40, 50, 60, 70, 80, 90},
 		},
@@ -51,6 +55,7 @@ func TestRampRate(t *testing.T) {
 			startRate:                 "0/m",
 			endRate:                   "60/m",
 			duration:                  10 * time.Minute,
+			distribution:              "none",
 			expectedIterationDuration: 1 * time.Minute,
 			expectedRates:             []int{0, 6, 12, 18, 24, 30, 36, 42, 48, 54},
 		},
@@ -59,6 +64,7 @@ func TestRampRate(t *testing.T) {
 			startRate:                 "0/h",
 			endRate:                   "100/h",
 			duration:                  10 * time.Hour,
+			distribution:              "none",
 			expectedIterationDuration: 1 * time.Hour,
 			expectedRates:             []int{0, 10, 20, 30, 40, 50, 60, 70, 80, 90},
 		},
@@ -67,6 +73,7 @@ func TestRampRate(t *testing.T) {
 			startRate:                 "0/90s",
 			endRate:                   "100/90s",
 			duration:                  15 * time.Minute,
+			distribution:              "none",
 			expectedIterationDuration: 90 * time.Second,
 			expectedRates:             []int{0, 10, 20, 30, 40, 50, 60, 70, 80, 90},
 		},
@@ -75,6 +82,7 @@ func TestRampRate(t *testing.T) {
 			startRate:                 "0",
 			endRate:                   "100",
 			duration:                  10 * time.Second,
+			distribution:              "none",
 			expectedIterationDuration: 1 * time.Second,
 			expectedRates:             []int{0, 10, 20, 30, 40, 50, 60, 70, 80, 90},
 		},
@@ -83,8 +91,19 @@ func TestRampRate(t *testing.T) {
 			startRate:                 "0/s",
 			endRate:                   "10/s",
 			duration:                  1 * time.Second,
+			distribution:              "none",
 			expectedIterationDuration: 1 * time.Second,
 			expectedRates:             []int{0},
+		},
+		{
+			testName:                  "ramp up rate using jitter",
+			startRate:                 "0/s",
+			endRate:                   "100/s",
+			duration:                  10 * time.Second,
+			jitter:                    20,
+			distribution:              "none",
+			expectedIterationDuration: 1 * time.Second,
+			expectedRates:             []int{0, 12, 16, 26, 38, 54, 76, 64, 86, 73},
 		},
 	} {
 		t.Run(test.testName, func(t *testing.T) {
@@ -100,7 +119,6 @@ func TestRampRate(t *testing.T) {
 				rate := rampRates.Rate(now)
 				rates = append(rates, rate)
 			}
-			require.Equal(t, test.expectedRates, rates)
 		})
 	}
 }
