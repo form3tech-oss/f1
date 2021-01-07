@@ -49,8 +49,37 @@ limits:
 stages:
 - duration: 10s
   mode: ramp
-  start-rate: 0
-  end-rate: 10
+  start-rate: 0/s
+  end-rate: 10/s
+  jitter: 0
+  distribution: none
+  parameters:
+    SOP: 1
+`,
+			expectedScenario:          "template",
+			expectedMaxDuration:       1 * time.Minute,
+			expectedConcurrency:       50,
+			expectedMaxIterations:     100,
+			expectedIgnoreDropped:     true,
+			expectedTotalDuration:     10 * time.Second,
+			expectedIterationDuration: 1 * time.Second,
+			expectedRates:             []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
+			expectedParameters:        map[string]string{"SOP": "1"},
+		},
+		{
+			testName: "Staged mode single stage",
+			fileContent: `
+scenario: template
+limits:
+  max-duration: 1m
+  concurrency: 50
+  max-iterations: 100
+  ignore-dropped: true
+stages:
+- duration: 10s
+  mode: staged
+  stages: 0s:0,10s:10
+  iteration-frequency: 1s
   jitter: 0
   distribution: none
   parameters:
@@ -202,6 +231,36 @@ default:
   mode: ramp
   start-rate: 0
   end-rate: 10
+  jitter: 0
+  distribution: none
+  parameters:
+    SOP: 1
+limits:
+  max-duration: 1m
+  concurrency: 50
+  max-iterations: 100
+  ignore-dropped: true
+stages:
+- duration: 10s
+`,
+			expectedScenario:          "template",
+			expectedMaxDuration:       1 * time.Minute,
+			expectedConcurrency:       50,
+			expectedMaxIterations:     100,
+			expectedIgnoreDropped:     true,
+			expectedTotalDuration:     10 * time.Second,
+			expectedIterationDuration: 1 * time.Second,
+			expectedRates:             []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9},
+			expectedParameters:        map[string]string{"SOP": "1"},
+		},
+		{
+			testName: "Staged mode single stage using default values",
+			fileContent: `
+scenario: template
+default:
+  mode: staged
+  stages: 0s:0,10s:10
+  iteration-frequency: 1s
   jitter: 0
   distribution: none
   parameters:
@@ -434,9 +493,38 @@ stages:
   mode: ramp
   start-rate: 0
   end-rate: 10
-  iteration-frequency: 1s
 `,
 			expectedError: "missing distribution at stage 0",
+		},
+		{
+			fileContent: `
+scenario: template
+limits:
+  max-duration: 1m
+  concurrency: 50
+  max-iterations: 100
+  ignore-dropped: true
+stages:
+- duration: 10s
+  mode: staged
+  iteration-frequency: 1s
+`,
+			expectedError: "missing stages at stage 0",
+		},
+		{
+			fileContent: `
+scenario: template
+limits:
+  max-duration: 1m
+  concurrency: 50
+  max-iterations: 100
+  ignore-dropped: true
+stages:
+- duration: 10s
+  mode: staged
+  stages: 0s:0,10s:10
+`,
+			expectedError: "missing iteration-frequency at stage 0",
 		},
 		{
 			fileContent: `

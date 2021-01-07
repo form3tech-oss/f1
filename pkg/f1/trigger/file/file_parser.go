@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/form3tech-oss/f1/pkg/f1/trigger/staged"
+
 	"github.com/form3tech-oss/f1/pkg/f1/trigger/ramp"
 
 	"github.com/form3tech-oss/f1/pkg/f1/trigger/constant"
@@ -37,6 +39,7 @@ type Stage struct {
 	Rate               *string            `yaml:"rate"`
 	Distribution       *string            `yaml:"distribution"`
 	Weights            *string            `yaml:"weights"`
+	Stages             *string            `yaml:"stages"`
 	Users              *int               `yaml:"users"`
 	Jitter             *float64           `yaml:"jitter"`
 	Volume             *float64           `yaml:"volume"`
@@ -107,11 +110,27 @@ func (s *Stage) parseStage(stageIdx int, defaults Stage) (*runnableStage, error)
 			params:            *validatedConstantStage.Parameters,
 		}, nil
 	case "ramp":
-		validatedStagedStage, err := s.validateRampStage(stageIdx, defaults)
+		validatedRampStage, err := s.validateRampStage(stageIdx, defaults)
 		if err != nil {
 			return nil, err
 		}
-		rates, err := ramp.CalculateRampRate(*validatedStagedStage.StartRate, *validatedStagedStage.EndRate, *validatedStagedStage.Distribution, *validatedStagedStage.Duration, *validatedStagedStage.Jitter)
+		rates, err := ramp.CalculateRampRate(*validatedRampStage.StartRate, *validatedRampStage.EndRate, *validatedRampStage.Distribution, *validatedRampStage.Duration, *validatedRampStage.Jitter)
+		if err != nil {
+			return nil, err
+		}
+
+		return &runnableStage{
+			stageDuration:     *validatedRampStage.Duration,
+			iterationDuration: rates.IterationDuration,
+			rate:              rates.Rate,
+			params:            *validatedRampStage.Parameters,
+		}, nil
+	case "staged":
+		validatedStagedStage, err := s.validateStagedStage(stageIdx, defaults)
+		if err != nil {
+			return nil, err
+		}
+		rates, err := staged.CalculateStagedRate(*validatedStagedStage.Jitter, *validatedStagedStage.IterationFrequency, *validatedStagedStage.Stages, *validatedStagedStage.Distribution)
 		if err != nil {
 			return nil, err
 		}
@@ -238,6 +257,42 @@ func (s *Stage) validateRampStage(idx int, defaults Stage) (*Stage, error) {
 			return nil, fmt.Errorf("missing end-rate at stage %d", idx)
 		} else {
 			s.EndRate = defaults.EndRate
+		}
+	}
+	if s.Distribution == nil {
+		if defaults.Distribution == nil {
+			return nil, fmt.Errorf("missing distribution at stage %d", idx)
+		} else {
+			s.Distribution = defaults.Distribution
+		}
+	}
+	if s.Jitter == nil {
+		s.Jitter = defaults.Jitter
+	}
+	if s.Parameters == nil {
+		if defaults.Parameters == nil {
+			s.Parameters = &map[string]string{}
+		} else {
+			s.Parameters = defaults.Parameters
+		}
+	}
+
+	return s, nil
+}
+
+func (s *Stage) validateStagedStage(idx int, defaults Stage) (*Stage, error) {
+	if s.Stages == nil {
+		if defaults.Stages == nil {
+			return nil, fmt.Errorf("missing stages at stage %d", idx)
+		} else {
+			s.Stages = defaults.Stages
+		}
+	}
+	if s.IterationFrequency == nil {
+		if defaults.IterationFrequency == nil {
+			return nil, fmt.Errorf("missing iteration-frequency at stage %d", idx)
+		} else {
+			s.IterationFrequency = defaults.IterationFrequency
 		}
 	}
 	if s.Distribution == nil {

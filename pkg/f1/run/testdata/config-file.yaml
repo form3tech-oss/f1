@@ -24,6 +24,10 @@ stages:
     mode: ramp
     start-rate: 0/100ms
     end-rate: 30/100ms
+  - duration: 300ms
+    mode: staged
+    stages: 0s:0,300ms:30
+    iteration-frequency: 100ms
   - duration: 1s
     mode: gaussian
     volume: 100

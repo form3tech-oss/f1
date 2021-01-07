@@ -264,7 +264,7 @@ func TestParameterised(t *testing.T) {
 			maxIterations:          1000,
 			iterationDuration:      100 * time.Millisecond,
 			expectedRunTime:        2200 * time.Millisecond,
-			expectedCompletedTests: 110,
+			expectedCompletedTests: 140,
 		},
 		{
 			name:                   "simple ramp up test",
