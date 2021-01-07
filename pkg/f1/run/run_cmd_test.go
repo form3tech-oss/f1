@@ -31,8 +31,7 @@ func TestSimpleFlow(t *testing.T) {
 		a_scenario_where_each_iteration_takes(test.iterationDuration).and().
 		a_config_file_location_of(test.configFile).and().
 		a_start_rate_of(test.startRate).and().
-		a_end_rate_of(test.endRate).and().
-		a_ramp_duration_of(test.rampDuration)
+		a_end_rate_of(test.endRate)
 
 	when.i_start_a_timer().and().
 		i_execute_the_run_command()
@@ -73,7 +72,6 @@ type TestParam struct {
 	configFile                string
 	startRate                 string
 	endRate                   string
-	rampDuration              string
 }
 
 func TestParameterised(t *testing.T) {
@@ -273,7 +271,6 @@ func TestParameterised(t *testing.T) {
 			triggerType:            Ramp,
 			startRate:              "0/100ms",
 			endRate:                "10/100ms",
-			rampDuration:           "1s",
 			testDuration:           1 * time.Second,
 			concurrency:            50,
 			maxIterations:          1000,
@@ -298,8 +295,7 @@ func TestParameterised(t *testing.T) {
 				a_scenario_where_each_iteration_takes(test.iterationDuration).and().
 				a_config_file_location_of(test.configFile).and().
 				a_start_rate_of(test.startRate).and().
-				a_end_rate_of(test.endRate).and().
-				a_ramp_duration_of(test.rampDuration)
+				a_end_rate_of(test.endRate)
 
 			when.i_start_a_timer().and().
 				i_execute_the_run_command()

@@ -15,7 +15,7 @@ func TestRampRate(t *testing.T) {
 		expectedRates                              []int
 	}{
 		{
-			testName:                  "constant rate",
+			testName:                  "ramp rate as constant",
 			startRate:                 "10/s",
 			endRate:                   "10/s",
 			duration:                  10 * time.Second,
@@ -127,6 +127,7 @@ func TestRampRate(t *testing.T) {
 			rampRates, err := CalculateRampRate(test.startRate, test.endRate, test.distribution, test.duration, test.jitter)
 
 			require.NoError(t, err)
+			require.Equal(t, test.duration, rampRates.Duration)
 			require.Equal(t, test.expectedIterationDuration, rampRates.IterationDuration)
 			var rates []int
 			for range test.expectedRates {
@@ -165,10 +166,45 @@ func TestRampRate_Errors(t *testing.T) {
 			expectedError: "start-rate and end-rate are not using the same unit",
 		},
 		{
+			startRate:     "-10/s",
+			endRate:       "10/s",
+			distribution:  "none",
+			duration:      10 * time.Second,
+			expectedError: "unable to parse rate arg -10/s",
+		},
+		{
+			startRate:     "10/error",
+			endRate:       "10/s",
+			distribution:  "none",
+			duration:      10 * time.Second,
+			expectedError: "unable to parse rate arg 10/error",
+		},
+		{
+			startRate:     "10/-100ms",
+			endRate:       "10/100ms",
+			distribution:  "none",
+			duration:      10 * time.Second,
+			expectedError: "unable to parse rate arg 10/-100ms",
+		},
+		{
+			startRate:     "-100",
+			endRate:       "10/100ms",
+			distribution:  "none",
+			duration:      10 * time.Second,
+			expectedError: "unable to parse rate arg -100",
+		},
+		{
 			startRate:     "10/s",
 			endRate:       "100/s",
 			duration:      100 * time.Millisecond,
 			expectedError: "duration is lower than rate unit",
+		},
+		{
+			startRate:     "10/s",
+			endRate:       "100/s",
+			duration:      10 * time.Second,
+			distribution:  "invalid",
+			expectedError: "unable to parse distribution invalid",
 		},
 	} {
 		t.Run(test.expectedError, func(t *testing.T) {

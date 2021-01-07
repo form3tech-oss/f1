@@ -13,9 +13,8 @@ import (
 
 func RampRate() api.Builder {
 	flags := pflag.NewFlagSet("ramp", pflag.ContinueOnError)
-	flags.String("start-rate", "1/s", "number of iterations to start per interval, in the form <request>/<duration>")
-	flags.String("end-rate", "1/s", "number of iterations to end per interval, in the form <request>/<duration>")
-	flags.Duration("duration", 1*time.Second, "ramp duration")
+	flags.StringP("start-rate", "s", "1/s", "number of iterations to start per interval, in the form <request>/<duration>")
+	flags.StringP("end-rate", "e", "1/s", "number of iterations to end per interval, in the form <request>/<duration>")
 	flags.Float64P("jitter", "j", 0.0, "vary the rate randomly by up to jitter percent")
 	flags.String("distribution", "regular", "optional parameter to distribute the rate over steps of 100ms, which can be none|regular|random")
 
@@ -32,7 +31,7 @@ func RampRate() api.Builder {
 			if err != nil {
 				return nil, err
 			}
-			duration, err := flags.GetDuration("duration")
+			duration, err := flags.GetDuration("max-duration")
 			if err != nil {
 				return nil, err
 			}
@@ -109,6 +108,9 @@ func parseRateArg(rateArg string) (*int, *time.Duration, error) {
 		if err != nil {
 			return nil, nil, fmt.Errorf("unable to parse rate arg %s", rateArg)
 		}
+		if rate < 0 {
+			return nil, nil, fmt.Errorf("unable to parse rate arg %s", rateArg)
+		}
 		unitArg := (rateArg)[strings.Index(rateArg, "/")+1:]
 		if !govalidator.IsNumeric(unitArg[0:1]) {
 			unitArg = "1" + unitArg
@@ -121,6 +123,9 @@ func parseRateArg(rateArg string) (*int, *time.Duration, error) {
 		return &rate, &unit, nil
 	} else {
 		rate, err := strconv.Atoi(rateArg)
+		if rate < 0 {
+			return nil, nil, fmt.Errorf("unable to parse rate arg %s", rateArg)
+		}
 		if err != nil {
 			return nil, nil, fmt.Errorf("unable to parse rate arg %s", rateArg)
 		}
