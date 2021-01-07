@@ -22,6 +22,7 @@ func GaussianRate() api.Builder {
 	flags.Duration("peak", 14*time.Hour, "The offset within the repetition window when the load should reach its maximum. Default 14 hours (with 24 hour default repeat)")
 	flags.Duration("standard-deviation", 150*time.Minute, "The standard deviation to use for the distribution of load")
 	flags.Float64P("jitter", "j", 0.0, "vary the rate randomly by up to jitter percent")
+	flags.String("distribution", "regular", "optional parameter to distribute the rate over steps of 100ms, which can be none|regular|random")
 
 	return api.Builder{
 		Name:        "gaussian",
@@ -56,6 +57,10 @@ func GaussianRate() api.Builder {
 			if err != nil {
 				return nil, err
 			}
+			distributionTypeArg, err := flags.GetString("distribution")
+			if err != nil {
+				return nil, err
+			}
 			var weightsSlice []float64
 			for _, s := range strings.Split(weights, ",") {
 				if s == "" {
@@ -74,11 +79,25 @@ func GaussianRate() api.Builder {
 			if jitter != 0 {
 				jitterDesc = fmt.Sprintf(" with jitter of %.2f%%", jitter)
 			}
+			rateFn := api.WithJitter(calculator.For, jitter)
+			distributedIterationDuration, distributedRateFn, err := api.NewDistribution(distributionTypeArg, frequency, rateFn)
+			if err != nil {
+				return nil, err
+			}
+
 			return &api.Trigger{
-					Trigger:     api.NewIterationWorker(frequency, api.WithJitter(calculator.For, jitter)),
-					DryRun:      api.WithJitter(calculator.For, jitter),
-					Description: fmt.Sprintf("Gaussian distribution triggering %d iterations per %s, peaking at %s with standard deviation of %s%s", int(volume), repeat, peak, stddev, jitterDesc),
-					Duration:    time.Hour * 24 * 356,
+					Trigger: api.NewIterationWorker(distributedIterationDuration, distributedRateFn),
+					DryRun:  rateFn,
+					Description: fmt.Sprintf(
+						"Gaussian distribution triggering %d iterations per %s, peaking at %s with standard deviation of %s%s, using distribution %s",
+						int(volume),
+						repeat,
+						peak,
+						stddev,
+						jitterDesc,
+						distributionTypeArg,
+					),
+					Duration: time.Hour * 24 * 356,
 				},
 				nil
 		},

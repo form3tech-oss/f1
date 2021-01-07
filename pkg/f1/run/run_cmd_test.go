@@ -11,20 +11,20 @@ func TestSimpleFlow(t *testing.T) {
 	given, when, then := NewRunTestStage(t)
 
 	test := TestParam{
-		name:                   "simple staged test",
-		triggerType:            Staged,
-		stages:                 "0ms:0, 50ms: 100, 100ms: 100, 50ms:0",
-		iterationFrequency:     "100ms",
-		testDuration:           200 * time.Millisecond,
+		name:                   "basic test",
+		constantRate:           "10/100ms",
+		testDuration:           100 * time.Millisecond,
 		concurrency:            100,
-		iterationDuration:      1 * time.Millisecond,
-		expectedCompletedTests: 100,
+		iterationDuration:      100 * time.Millisecond,
+		expectedRunTime:        100 * time.Millisecond,
+		expectedCompletedTests: 10,
 	}
 	given.
 		a_trigger_type_of(test.triggerType).and().
 		a_rate_of(test.constantRate).and().
 		a_stage_of(test.stages).and().
 		an_iteration_frequency_of(test.iterationFrequency).and().
+		a_distribution_type(test.distributionType).and().
 		a_duration_of(test.testDuration).and().
 		a_concurrency_of(test.concurrency).and().
 		an_iteration_limit_of(test.maxIterations).and().
@@ -63,6 +63,7 @@ type TestParam struct {
 	maxIterations             int32
 	stages                    string
 	iterationFrequency        string
+	distributionType          string
 }
 
 func TestParameterised(t *testing.T) {
@@ -93,6 +94,7 @@ func TestParameterised(t *testing.T) {
 			iterationDuration:      2 * time.Second,
 			expectedRunTime:        2 * time.Second,
 			expectedCompletedTests: 1,
+			distributionType:       "none",
 		},
 		{
 			name:                   "next iteration can start if previous still running",
@@ -102,6 +104,7 @@ func TestParameterised(t *testing.T) {
 			iterationDuration:      2 * time.Second,
 			expectedRunTime:        3 * time.Second,
 			expectedCompletedTests: 20,
+			distributionType:       "none",
 		},
 		{
 			name:                      "next iteration won't start if previous still running and limited by concurrency",
@@ -113,6 +116,7 @@ func TestParameterised(t *testing.T) {
 			iterationDuration:         2 * time.Second,
 			expectedDroppedIterations: 10,
 			expectedFailure:           true,
+			distributionType:          "none",
 		},
 		{
 			name:                   "limited iterations",
@@ -134,6 +138,36 @@ func TestParameterised(t *testing.T) {
 			expectedCompletedTests: 17,
 		},
 		{
+			name:                   "regular distribution of a constant rate",
+			constantRate:           "10/s",
+			testDuration:           2 * time.Second,
+			concurrency:            100,
+			iterationDuration:      1 * time.Millisecond,
+			expectedRunTime:        2 * time.Second,
+			expectedCompletedTests: 20,
+			distributionType:       "regular",
+		},
+		{
+			name:                   "random distribution of a constant rate",
+			constantRate:           "10/s",
+			testDuration:           2 * time.Second,
+			concurrency:            100,
+			iterationDuration:      1 * time.Millisecond,
+			expectedRunTime:        2 * time.Second,
+			expectedCompletedTests: 20,
+			distributionType:       "random",
+		},
+		{
+			name:                   "run only half of requests on half of the time using regular distribution",
+			constantRate:           "10/2s",
+			testDuration:           1 * time.Second,
+			concurrency:            100,
+			iterationDuration:      1 * time.Millisecond,
+			expectedRunTime:        1 * time.Second,
+			expectedCompletedTests: 5,
+			distributionType:       "regular",
+		},
+		{
 			name:                   "simple staged test",
 			triggerType:            Staged,
 			stages:                 "0ms:0, 50ms: 100, 100ms: 100, 50ms:0",
@@ -152,6 +186,39 @@ func TestParameterised(t *testing.T) {
 			concurrency:            100,
 			iterationDuration:      1 * time.Millisecond,
 			expectedCompletedTests: 23,
+		},
+		{
+			name:                   "regular distribution of a staged trigger",
+			triggerType:            Staged,
+			stages:                 "0ms:0, 50ms: 100, 100ms: 100, 50ms:0",
+			iterationFrequency:     "100ms",
+			testDuration:           200 * time.Millisecond,
+			concurrency:            100,
+			iterationDuration:      1 * time.Millisecond,
+			expectedCompletedTests: 100,
+			distributionType:       "regular",
+		},
+		{
+			name:                   "random distribution of a staged trigger",
+			triggerType:            Staged,
+			stages:                 "0ms:0, 50ms: 100, 100ms: 100, 50ms:0",
+			iterationFrequency:     "100ms",
+			testDuration:           200 * time.Millisecond,
+			concurrency:            100,
+			iterationDuration:      1 * time.Millisecond,
+			expectedCompletedTests: 100,
+			distributionType:       "random",
+		},
+		{
+			name:                   "run half of requests on half of the time on staged test using regular distribution",
+			triggerType:            Staged,
+			stages:                 "0ms:0, 4s: 100",
+			iterationFrequency:     "1s",
+			testDuration:           3500 * time.Millisecond,
+			concurrency:            100,
+			iterationDuration:      1 * time.Millisecond,
+			expectedCompletedTests: 112,
+			distributionType:       "regular",
 		},
 		{
 			name:                   "users test slow iterations",
@@ -189,6 +256,7 @@ func TestParameterised(t *testing.T) {
 				a_rate_of(test.constantRate).and().
 				a_stage_of(test.stages).and().
 				an_iteration_frequency_of(test.iterationFrequency).and().
+				a_distribution_type(test.distributionType).and().
 				a_duration_of(test.testDuration).and().
 				a_concurrency_of(test.concurrency).and().
 				an_iteration_limit_of(test.maxIterations).and().
@@ -205,6 +273,60 @@ func TestParameterised(t *testing.T) {
 				teardown_is_called_once()
 		})
 	}
+}
+
+func TestNoneDistribution(t *testing.T) {
+	given, when, then := NewRunTestStage(t)
+
+	given.
+		a_trigger_type_of(Constant).and().
+		a_rate_of("10/s").and().
+		a_distribution_type("none").and().
+		a_duration_of(500 * time.Millisecond).and().
+		a_concurrency_of(50).and().
+		an_iteration_limit_of(1000).and().
+		a_scenario_where_each_iteration_takes(1 * time.Millisecond)
+
+	when.i_start_a_timer().and().
+		i_execute_the_run_command()
+
+	then.there_should_be_x_requests_sent_over_y_intervals_of_z_ms(10, 1, 1000)
+}
+
+func TestRegularDistribution(t *testing.T) {
+	given, when, then := NewRunTestStage(t)
+
+	given.
+		a_trigger_type_of(Constant).and().
+		a_rate_of("10/s").and().
+		a_distribution_type("regular").and().
+		a_duration_of(500 * time.Millisecond).and().
+		a_concurrency_of(50).and().
+		an_iteration_limit_of(1000).and().
+		a_scenario_where_each_iteration_takes(1 * time.Millisecond)
+
+	when.i_start_a_timer().and().
+		i_execute_the_run_command()
+
+	then.there_should_be_x_requests_sent_over_y_intervals_of_z_ms(1, 5, 100)
+}
+
+func TestRandomDistribution(t *testing.T) {
+	given, when, then := NewRunTestStage(t)
+
+	given.
+		a_trigger_type_of(Constant).and().
+		a_rate_of("10/s").and().
+		a_distribution_type("random").and().
+		a_duration_of(500 * time.Millisecond).and().
+		a_concurrency_of(50).and().
+		an_iteration_limit_of(1000).and().
+		a_scenario_where_each_iteration_takes(1 * time.Millisecond)
+
+	when.i_start_a_timer().and().
+		i_execute_the_run_command()
+
+	then.the_requests_are_not_sent_all_at_once()
 }
 
 func TestRunScenarioThatFailsSetup(t *testing.T) {
@@ -273,7 +395,8 @@ func TestRunScenarioThatFailsOccasionally(t *testing.T) {
 		a_rate_of("100/1s").and().
 		// Run less than 1 second, since if we run exactly for 1 second the test might run into another iteration.
 		// This would then lead to 200 requests being made, making the test fail
-		a_duration_of(500 * time.Millisecond)
+		a_duration_of(500 * time.Millisecond).and().
+		a_distribution_type("none")
 
 	when.i_execute_the_run_command()
 
@@ -288,7 +411,8 @@ func TestInterruptedRun(t *testing.T) {
 	given.
 		a_rate_of("5/10ms").and().
 		a_duration_of(5 * time.Second).and().
-		a_scenario_where_each_iteration_takes(0 * time.Second)
+		a_scenario_where_each_iteration_takes(0 * time.Second).and().
+		a_distribution_type("none")
 
 	when.the_test_run_is_started().and().
 		the_test_run_is_interrupted()
@@ -336,7 +460,8 @@ func TestFailureCounts(t *testing.T) {
 	given.
 		a_rate_of("10/s").and().
 		a_duration_of(500 * time.Millisecond).and().
-		a_test_scenario_that_fails_intermittently()
+		a_test_scenario_that_fails_intermittently().and().
+		a_distribution_type("none")
 
 	when.i_execute_the_run_command()
 

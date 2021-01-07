@@ -16,6 +16,8 @@ func ConstantRate() api.Builder {
 	flags := pflag.NewFlagSet("constant", pflag.ContinueOnError)
 	flags.StringP("rate", "r", "1/s", "number of iterations to start per interval, in the form <request>/<duration>")
 	flags.Float64P("jitter", "j", 0.0, "vary the rate randomly by up to jitter percent")
+	flags.String("distribution", "regular", "optional parameter to distribute the rate over steps of 100ms, which can be none|regular|random")
+
 	return api.Builder{
 		Name:        "constant",
 		Description: "triggers test iterations at a constant rate",
@@ -26,6 +28,10 @@ func ConstantRate() api.Builder {
 				return nil, err
 			}
 			jitterArg, err := params.GetFloat64("jitter")
+			if err != nil {
+				return nil, err
+			}
+			distributionTypeArg, err := params.GetString("distribution")
 			if err != nil {
 				return nil, err
 			}
@@ -52,9 +58,14 @@ func ConstantRate() api.Builder {
 			}
 
 			rateFn := api.WithJitter(func(time.Time) int { return rate }, jitterArg)
+			distributedIterationDuration, distributedRateFn, err := api.NewDistribution(distributionTypeArg, iterationDuration, rateFn)
+			if err != nil {
+				return nil, err
+			}
+
 			return &api.Trigger{
-					Trigger:     api.NewIterationWorker(iterationDuration, rateFn),
-					Description: fmt.Sprintf("%d iterations every %s", rate, iterationDuration),
+					Trigger:     api.NewIterationWorker(distributedIterationDuration, distributedRateFn),
+					Description: fmt.Sprintf("%d iterations every %s, using distribution %s", rate, iterationDuration, distributionTypeArg),
 					DryRun:      rateFn,
 				},
 				nil
