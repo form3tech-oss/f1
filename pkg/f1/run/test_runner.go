@@ -183,7 +183,7 @@ func (r *Run) run() {
 	}
 
 	// Cancel work slightly before end of duration to avoid starting a new iteration
-	durationElapsed := testing.NewCancellableTimer(duration - 5*time.Millisecond)
+	durationElapsed := testing.NewCancellableTimer(duration - 10*time.Millisecond)
 	r.result.RecordStarted()
 	defer r.result.RecordTestFinished()
 
