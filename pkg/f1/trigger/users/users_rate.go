@@ -17,7 +17,8 @@ func UsersRate() api.Builder {
 		Flags:       flags,
 		New: func(params *pflag.FlagSet) (*api.Trigger, error) {
 			trigger := func(workTriggered chan<- bool, stop <-chan bool, workDone <-chan bool, options options.RunOptions) {
-				DoWork(workTriggered, stop, workDone, options.Concurrency, options.MaxDuration)
+				doWork := NewWorker(options.Concurrency)
+				doWork(workTriggered, stop, workDone, options)
 			}
 
 			return &api.Trigger{
@@ -34,27 +35,21 @@ func UsersRate() api.Builder {
 	}
 }
 
-func DoWork(workTriggered chan<- bool, stop <-chan bool, workDone <-chan bool, concurrency int, duration time.Duration) {
-	if concurrency == 0 || duration == 0 {
-		return
-	}
-
-	for i := 0; i < concurrency; i++ {
-		workTriggered <- true
-	}
-
-	totalDurationTicker := time.NewTicker(duration)
-
-	for {
-		select {
-		case <-stop:
-			totalDurationTicker.Stop()
-			return
-		case <-workDone:
+func NewWorker(concurrency int) api.WorkTriggerer {
+	return func(workTriggered chan<- bool, stop <-chan bool, workDone <-chan bool, options options.RunOptions) {
+		for i := 0; i < concurrency; i++ {
 			workTriggered <- true
-		case <-totalDurationTicker.C:
-			totalDurationTicker.Stop()
-			return
 		}
+
+		go func() {
+			for {
+				select {
+				case <-stop:
+					return
+				case <-workDone:
+					workTriggered <- true
+				}
+			}
+		}()
 	}
 }

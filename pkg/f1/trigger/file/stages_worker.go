@@ -13,17 +13,35 @@ import (
 
 func newStagesWorker(stages []runnableStage) api.WorkTriggerer {
 	return func(workTriggered chan<- bool, stop <-chan bool, workDone <-chan bool, options options.RunOptions) {
+		stopStage := make(chan bool)
+
 		for _, stage := range stages {
 			setEnvs(stage.params)
 
-			stageDuration := stage.stageDuration - 10*time.Millisecond
+			totalDurationTicker := time.NewTicker(stage.stageDuration - 10*time.Millisecond)
+
 			if stage.usersConcurrency == 0 {
-				api.DoWork(workTriggered, stop, workDone, stage.iterationDuration, stageDuration, stage.rate)
+				doWork := api.NewIterationWorker(stage.iterationDuration, stage.rate)
+				doWork(workTriggered, stopStage, workDone, options)
 			} else {
-				users.DoWork(workTriggered, stop, workDone, stage.usersConcurrency, stageDuration)
+				doWork := users.NewWorker(stage.usersConcurrency)
+				doWork(workTriggered, stopStage, workDone, options)
 			}
 
-			unsetEnvs(stage.params)
+			for isListening := true; isListening; {
+				select {
+				case <-stop:
+					stopStage <- true
+					totalDurationTicker.Stop()
+					return
+				case <-totalDurationTicker.C:
+					stopStage <- true
+					unsetEnvs(stage.params)
+					totalDurationTicker.Stop()
+					isListening = false
+				default:
+				}
+			}
 		}
 	}
 }
