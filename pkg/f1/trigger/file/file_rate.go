@@ -111,7 +111,7 @@ func newDryRun(stagesToRun []runnableStage) api.RateFunction {
 			return 1
 		}
 
-		rate := currentStage.rate(startTime)
+		rate := currentStage.rate(time)
 		return rate
 	}
 }
