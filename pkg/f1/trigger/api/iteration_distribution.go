@@ -26,7 +26,7 @@ func NewDistribution(distributionTypeArg string, iterationDuration time.Duration
 func withRegularDistribution(iterationDuration time.Duration, rateFn RateFunction) (time.Duration, RateFunction) {
 	distributedIterationDuration := 100 * time.Millisecond
 
-	if iterationDuration < distributedIterationDuration {
+	if iterationDuration <= distributedIterationDuration {
 		return iterationDuration, rateFn
 	}
 
@@ -62,7 +62,7 @@ func withRegularDistribution(iterationDuration time.Duration, rateFn RateFunctio
 func withRandomDistribution(iterationDuration time.Duration, rateFn RateFunction, randFn func(int) int) (time.Duration, RateFunction) {
 	distributedIterationDuration := 100 * time.Millisecond
 
-	if iterationDuration < distributedIterationDuration {
+	if iterationDuration <= distributedIterationDuration {
 		return iterationDuration, rateFn
 	}
 
