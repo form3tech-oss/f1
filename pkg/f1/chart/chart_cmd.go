@@ -73,11 +73,11 @@ func chartCmdExecute(t api.Builder) func(cmd *cobra.Command, args []string) erro
 		current := start
 		end := current.Add(duration)
 		width := 160
-		sampleInterval := duration / time.Duration(10*(width-1))
+		sampleInterval := duration / time.Duration(width-1)
 
 		rates := []float64{0.0}
 		times := []time.Time{current}
-		for ; current.Before(end); current = current.Add(sampleInterval) {
+		for ; current.Add(sampleInterval).Before(end); current = current.Add(sampleInterval) {
 			rate := trig.DryRun(current)
 			rates = append(rates, float64(rate))
 			times = append(times, current)

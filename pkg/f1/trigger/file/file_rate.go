@@ -86,7 +86,7 @@ func readFile(filename string) (*[]byte, error) {
 }
 
 func newDryRun(stagesToRun []runnableStage) api.RateFunction {
-	var now time.Time
+	var startTime time.Time
 	started := false
 	stageIdx := 0
 
@@ -96,14 +96,14 @@ func newDryRun(stagesToRun []runnableStage) api.RateFunction {
 		}
 
 		if !started {
-			now = time
+			startTime = time
 			started = true
 		}
 
 		currentStage := stagesToRun[stageIdx]
 
-		if now.Add(currentStage.stageDuration).Before(time) {
-			now = now.Add(currentStage.stageDuration)
+		if startTime.Add(currentStage.stageDuration).Before(time) {
+			startTime = startTime.Add(currentStage.stageDuration)
 			stageIdx++
 		}
 
@@ -111,7 +111,7 @@ func newDryRun(stagesToRun []runnableStage) api.RateFunction {
 			return 1
 		}
 
-		rate := currentStage.rate(now)
+		rate := currentStage.rate(startTime)
 		return rate
 	}
 }
