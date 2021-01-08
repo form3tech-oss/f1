@@ -39,4 +39,4 @@ stages:
     distribution: none
   - duration: 200ms
     mode: users
-    concurrency: 10
+    concurrency: 20
