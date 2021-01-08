@@ -183,8 +183,6 @@ func (r *RunResult) Progress() string {
 }
 
 func (r *RunResult) Duration() time.Duration {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
 	return time.Since(r.StartTime())
 }
 
@@ -225,9 +223,6 @@ func (r *RunResult) IterationsStarted() uint64 {
 }
 
 func (r *RunResult) StartTime() time.Time {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
-
 	return r.startTime
 }
 
