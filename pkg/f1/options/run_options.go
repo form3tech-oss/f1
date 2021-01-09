@@ -7,7 +7,8 @@ import (
 )
 
 type RunOptions struct {
-	Scenario            string
+	RunName             string
+	ScenarioName        string
 	MaxDuration         time.Duration
 	Concurrency         int
 	Env                 map[string]string

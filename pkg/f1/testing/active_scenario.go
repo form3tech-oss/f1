@@ -15,7 +15,8 @@ type ActiveScenario struct {
 	Stages              []Stage
 	TeardownFn          TeardownFn
 	env                 map[string]string
-	Name                string
+	ScenarioName        string
+	RunName             string
 	id                  string
 	autoTeardownTimer   *CancellableTimer
 	autoTeardownTimerMu sync.RWMutex
@@ -23,10 +24,11 @@ type ActiveScenario struct {
 	m                   *metrics.Metrics
 }
 
-func NewActiveScenarios(name string, env map[string]string, fn MultiStageSetupFn, autoTeardownIdleDuration time.Duration) (*ActiveScenario, error) {
+func NewActiveScenarios(scenarioName string, runName string, env map[string]string, fn MultiStageSetupFn, autoTeardownIdleDuration time.Duration) (*ActiveScenario, error) {
 
 	s := &ActiveScenario{
-		Name:              name,
+		ScenarioName:      scenarioName,
+		RunName:           runName,
 		id:                uuid.New().String(),
 		env:               env,
 		AutoTeardownAfter: autoTeardownIdleDuration,
@@ -68,7 +70,7 @@ func (s *ActiveScenario) SetAutoTeardown(timer *CancellableTimer) {
 }
 
 func (s *ActiveScenario) Run(metric metrics.MetricType, stage, vu, iter string, f func(t *T)) error {
-	t := NewT(s.env, vu, iter, s.Name)
+	t := NewT(s.env, vu, iter, s.ScenarioName)
 	start := time.Now()
 	done := make(chan struct{})
 	go func() {
@@ -80,7 +82,7 @@ func (s *ActiveScenario) Run(metric metrics.MetricType, stage, vu, iter string, 
 	}
 	// wait for completion
 	<-done
-	s.m.Record(metric, s.Name, stage, metrics.Result(t.HasFailed()), time.Since(start).Nanoseconds())
+	s.m.Record(metric, s.RunName, stage, metrics.Result(t.HasFailed()), time.Since(start).Nanoseconds())
 	if t.HasFailed() {
 		return errors.New("failed")
 	}
@@ -114,5 +116,5 @@ func (s *ActiveScenario) autoTeardown() {
 }
 
 func (s *ActiveScenario) RecordDroppedIteration() {
-	s.m.Record(metrics.IterationResult, s.Name, "single", "dropped", 0)
+	s.m.Record(metrics.IterationResult, s.RunName, "single", "dropped", 0)
 }

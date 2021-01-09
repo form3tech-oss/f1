@@ -39,6 +39,7 @@ func Cmd(builders []api.Builder, hookFunc logging.RegisterLogHookFunc) *cobra.Co
 		triggerCmd.Flags().IntP("concurrency", "c", 100, "--concurrency 2 (allow at most 2 groups of iterations to run concurrently)")
 		triggerCmd.Flags().Int32P("max-iterations", "i", 0, "--max-iterations 100 (stop after 100 iterations, regardless of remaining duration)")
 		triggerCmd.Flags().Bool("ignore-dropped", false, "dropped requests will not fail the run")
+		triggerCmd.Flags().String("run-name", "", "Sets the name of the run that appears in metrics")
 		triggerCmd.Flags().AddFlagSet(t.Flags)
 		runCmd.AddCommand(triggerCmd)
 	}
@@ -55,6 +56,16 @@ func runCmdExecute(t api.Builder, hookFunc logging.RegisterLogHookFunc) func(cmd
 		if err != nil {
 			return errors.New(fmt.Sprintf("Invalid duration value: %s", err))
 		}
+
+		runName, err := cmd.Flags().GetString("run-name")
+		if err != nil {
+			return errors.New(fmt.Sprintf("Invalid run name value: %s", err))
+		}
+
+		if runName == "" {
+			runName = scenarioName
+		}
+
 		concurrency, err := cmd.Flags().GetInt("concurrency")
 		if err != nil || concurrency < 1 {
 			return errors.New(fmt.Sprintf("Invalid concurrency value: %s", err))
@@ -84,7 +95,8 @@ func runCmdExecute(t api.Builder, hookFunc logging.RegisterLogHookFunc) func(cmd
 		}
 
 		run, err := NewRun(options.RunOptions{
-			Scenario:            scenarioName,
+			RunName:             runName,
+			ScenarioName:        scenarioName,
 			MaxDuration:         duration,
 			Concurrency:         concurrency,
 			Env:                 loadEnvironment(),
