@@ -56,7 +56,7 @@ func (s *ChartTestStage) the_load_style_is_staged(stages string) *ChartTestStage
 }
 
 func (s *ChartTestStage) the_load_style_is_ramp() *ChartTestStage {
-	s.args = append(s.args, "ramp", "--start-rate", "0/s", "--end-rate", "10/s", "--ramp-duration", "1s", "--distribution", "none")
+	s.args = append(s.args, "ramp", "--start-rate", "0/s", "--end-rate", "10/s", "--ramp-duration", "10s", "--chart-duration", "10s", "--distribution", "none")
 	return s
 }
 
