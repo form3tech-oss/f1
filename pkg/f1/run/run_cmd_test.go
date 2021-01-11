@@ -354,8 +354,8 @@ func TestParameterised(t *testing.T) {
 			concurrency:            50,
 			maxIterations:          1000,
 			iterationDuration:      140 * time.Millisecond,
-			expectedRunTime:        1600 * time.Millisecond,
-			expectedCompletedTests: 110,
+			expectedRunTime:        1700 * time.Millisecond,
+			expectedCompletedTests: 120,
 		},
 		{
 			name:                   "config file test using limited max-duration",
