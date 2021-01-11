@@ -14,45 +14,51 @@ import (
 
 func newStagesWorker(stages []runnableStage) api.WorkTriggerer {
 	return func(workTriggered chan<- bool, stop <-chan bool, workDone <-chan bool, options options.RunOptions) {
-		stopStage := make(chan bool)
+		safeThresholdBeforeNextIteration := 20 * time.Millisecond
+		stopStageCh := make(chan bool)
 		wg := sync.WaitGroup{}
 
 		for _, stage := range stages {
 			wg.Add(1)
 			setEnvs(stage.params)
 
-			totalDurationTicker := time.NewTicker(stage.stageDuration - 10*time.Millisecond)
+			stopStageTicker := time.NewTicker(stage.stageDuration - safeThresholdBeforeNextIteration)
 
 			go func() {
+				defer wg.Done()
+
 				if stage.usersConcurrency == 0 {
 					doWork := api.NewIterationWorker(stage.iterationDuration, stage.rate)
-					doWork(workTriggered, stopStage, workDone, options)
+					doWork(workTriggered, stopStageCh, workDone, options)
 				} else {
 					doWork := users.NewWorker(stage.usersConcurrency)
-					doWork(workTriggered, stopStage, workDone, options)
+					doWork(workTriggered, stopStageCh, workDone, options)
 				}
-				wg.Done()
 			}()
 
+			// Wait until the current stage is completed or the program is stopped.
+			// In any of the cases, it must wait for the worker to complete and avoid memory leak.
+			// A stage needs to be stopped a bit earlier than the stage duration to avoid extra iterations.
 			for isListening := true; isListening; {
 				select {
 				case <-stop:
-					stopStage <- true
+					stopStageCh <- true
 					wg.Wait()
 					unsetEnvs(stage.params)
-					totalDurationTicker.Stop()
+					stopStageTicker.Stop()
 					return
-				case <-totalDurationTicker.C:
+				case <-stopStageTicker.C:
 					select {
 					case <-stop:
 						continue
 					default:
 					}
 
-					stopStage <- true
+					stopStageCh <- true
 					wg.Wait()
+					stopStageTicker.Stop()
 					unsetEnvs(stage.params)
-					totalDurationTicker.Stop()
+					time.Sleep(safeThresholdBeforeNextIteration)
 					isListening = false
 				default:
 				}

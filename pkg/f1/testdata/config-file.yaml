@@ -12,7 +12,6 @@ stages:
     mode: constant
     rate: 10/100ms
     jitter: 0
-    distribution: regular
     parameters:
       FOO: 1
       BAR: 2
@@ -37,6 +36,6 @@ stages:
     standard-deviation: 1m
     jitter: 0
     distribution: none
-  - duration: 200ms
+  - duration: 100ms
     mode: users
     concurrency: 20

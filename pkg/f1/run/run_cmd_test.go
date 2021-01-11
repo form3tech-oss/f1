@@ -353,7 +353,7 @@ func TestParameterised(t *testing.T) {
 			testDuration:           5 * time.Second,
 			concurrency:            50,
 			maxIterations:          1000,
-			iterationDuration:      200 * time.Millisecond,
+			iterationDuration:      150 * time.Millisecond,
 			expectedRunTime:        1800 * time.Millisecond,
 			expectedCompletedTests: 105,
 		},
