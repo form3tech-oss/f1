@@ -19,11 +19,11 @@ stages:
   - duration: 200ms
     mode: constant
     rate: 5/100ms
-  - duration: 200ms
+  - duration: 500ms
     mode: ramp
-    start-rate: 0/100ms
-    end-rate: 10/100ms
-  - duration: 300ms
+    start-rate: 5/100ms
+    end-rate: 0/100ms
+  - duration: 400ms
     mode: staged
     stages: "0s:0,200ms:10,100ms:0"
     iteration-frequency: 100ms
