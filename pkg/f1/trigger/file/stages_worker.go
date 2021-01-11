@@ -2,6 +2,7 @@ package file
 
 import (
 	"os"
+	"sync"
 	"time"
 
 	"github.com/form3tech-oss/f1/pkg/f1/trigger/users"
@@ -14,24 +15,30 @@ import (
 func newStagesWorker(stages []runnableStage) api.WorkTriggerer {
 	return func(workTriggered chan<- bool, stop <-chan bool, workDone <-chan bool, options options.RunOptions) {
 		stopStage := make(chan bool)
+		wg := sync.WaitGroup{}
 
 		for _, stage := range stages {
+			wg.Add(1)
 			setEnvs(stage.params)
 
 			totalDurationTicker := time.NewTicker(stage.stageDuration - 10*time.Millisecond)
 
-			if stage.usersConcurrency == 0 {
-				doWork := api.NewIterationWorker(stage.iterationDuration, stage.rate)
-				doWork(workTriggered, stopStage, workDone, options)
-			} else {
-				doWork := users.NewWorker(stage.usersConcurrency)
-				doWork(workTriggered, stopStage, workDone, options)
-			}
+			go func() {
+				if stage.usersConcurrency == 0 {
+					doWork := api.NewIterationWorker(stage.iterationDuration, stage.rate)
+					doWork(workTriggered, stopStage, workDone, options)
+				} else {
+					doWork := users.NewWorker(stage.usersConcurrency)
+					doWork(workTriggered, stopStage, workDone, options)
+				}
+				wg.Done()
+			}()
 
 			for isListening := true; isListening; {
 				select {
 				case <-stop:
 					stopStage <- true
+					wg.Wait()
 					unsetEnvs(stage.params)
 					totalDurationTicker.Stop()
 					return
@@ -43,6 +50,7 @@ func newStagesWorker(stages []runnableStage) api.WorkTriggerer {
 					}
 
 					stopStage <- true
+					wg.Wait()
 					unsetEnvs(stage.params)
 					totalDurationTicker.Stop()
 					isListening = false

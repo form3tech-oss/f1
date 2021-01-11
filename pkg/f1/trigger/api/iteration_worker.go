@@ -20,34 +20,32 @@ func NewIterationWorker(iterationDuration time.Duration, rate RateFunction) Work
 		iterationTicker := time.NewTicker(iterationDuration)
 
 		// run more iterations on every tick, until duration has elapsed.
-		go func() {
-			for {
+		for {
+			select {
+			case <-workDone:
+				continue
+			case <-stop:
+				trace.ReceivedFromChannel("stop")
+				iterationTicker.Stop()
+				trace.Event("Iteration worker stopped.")
+				return
+			case start := <-iterationTicker.C:
+				// if both stop and the ticker are available at the same time
+				// a `case` will be chosen at random.
+				// double check the stop ch, continue to select again,
+				// and expect its own handler to be called
 				select {
-				case <-workDone:
-					continue
 				case <-stop:
-					trace.ReceivedFromChannel("stop")
-					iterationTicker.Stop()
-					trace.Event("Iteration worker stopped.")
-					return
-				case start := <-iterationTicker.C:
-					// if both stop and the ticker are available at the same time
-					// a `case` will be chosen at random.
-					// double check the stop ch, continue to select again,
-					// and expect its own handler to be called
-					select {
-					case <-stop:
-						continue
-					default:
-					}
+					continue
+				default:
+				}
 
-					iterationRate := rate(start)
-					for i := 0; i < iterationRate; i++ {
-						trace.SendingToChannel("workTriggered")
-						workTriggered <- true
-					}
+				iterationRate := rate(start)
+				for i := 0; i < iterationRate; i++ {
+					trace.SendingToChannel("workTriggered")
+					workTriggered <- true
 				}
 			}
-		}()
+		}
 	}
 }

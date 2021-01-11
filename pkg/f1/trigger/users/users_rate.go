@@ -41,15 +41,13 @@ func NewWorker(concurrency int) api.WorkTriggerer {
 			workTriggered <- true
 		}
 
-		go func() {
-			for {
-				select {
-				case <-stop:
-					return
-				case <-workDone:
-					workTriggered <- true
-				}
+		for {
+			select {
+			case <-stop:
+				return
+			case <-workDone:
+				workTriggered <- true
 			}
-		}()
+		}
 	}
 }
