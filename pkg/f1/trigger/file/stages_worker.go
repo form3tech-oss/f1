@@ -32,9 +32,16 @@ func newStagesWorker(stages []runnableStage) api.WorkTriggerer {
 				select {
 				case <-stop:
 					stopStage <- true
+					unsetEnvs(stage.params)
 					totalDurationTicker.Stop()
 					return
 				case <-totalDurationTicker.C:
+					select {
+					case <-stop:
+						continue
+					default:
+					}
+
 					stopStage <- true
 					unsetEnvs(stage.params)
 					totalDurationTicker.Stop()

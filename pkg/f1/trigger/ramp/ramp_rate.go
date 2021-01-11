@@ -58,7 +58,7 @@ func RampRate() api.Builder {
 
 			return &api.Trigger{
 				Trigger:     api.NewIterationWorker(rates.IterationDuration, rates.Rate),
-				Description: fmt.Sprintf("starting iterations from %s to %s in %v, using distribution %s", startRateArg, endRateArg, duration, distributionTypeArg),
+				Description: fmt.Sprintf("starting iterations from %s to %s during %v, using distribution %s", startRateArg, endRateArg, duration, distributionTypeArg),
 				DryRun:      rates.Rate,
 			}, nil
 		},
@@ -90,6 +90,10 @@ func CalculateRampRate(startRateArg, endRateArg, distributionTypeArg string, dur
 	rateFn := func(now time.Time) int {
 		if startTime == nil {
 			startTime = &now
+		}
+
+		if startTime.Add(duration).Before(now) {
+			return 0
 		}
 
 		offset := now.Sub(*startTime)

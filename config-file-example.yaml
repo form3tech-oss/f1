@@ -64,7 +64,7 @@ stages:                   # List of stages to run sequentially
       FOO: 1
       BAR: 2
   - duration: 200ms
-    mode: users
+    mode: users         # Make sure to trigger this mode once all the previous pending requests have been processed, otherwise this mode will re-trigger those as well
     concurrency: 10     # How many concurrent requests should be trigger at once. When not provided, the default is taken from the defaults section or the limits.concurrency value
     parameters:
       FOO: 1

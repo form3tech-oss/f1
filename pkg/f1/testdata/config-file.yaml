@@ -19,21 +19,21 @@ stages:
   - duration: 200ms
     mode: constant
     rate: 5/100ms
-  - duration: 300ms
+  - duration: 200ms
     mode: ramp
     start-rate: 0/100ms
-    end-rate: 30/100ms
-  - duration: 300ms
+    end-rate: 10/100ms
+  - duration: 200ms
     mode: staged
-    stages: 0s:0,300ms:30
+    stages: "0s:0,200ms:10"
     iteration-frequency: 100ms
-  - duration: 1s
+  - duration: 300ms
     mode: gaussian
     volume: 100
     repeat: 1h
     iteration-frequency: 1s
     peak: 500ms
-    weights: "1.0,1.0"
+    weights: 1.0
     standard-deviation: 1m
     jitter: 0
     distribution: none

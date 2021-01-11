@@ -51,7 +51,7 @@ func FileRate() api.Builder {
 			return &api.Trigger{
 				Trigger:     newStagesWorker(runnableStages.stages),
 				DryRun:      newDryRun(runnableStages.stages),
-				Description: fmt.Sprintf("Running %d stages", len(runnableStages.stages)),
+				Description: fmt.Sprintf("%d different stages", len(runnableStages.stages)),
 				Duration:    runnableStages.stagesTotalDuration,
 				Options: api.Options{
 					Scenario:      runnableStages.scenario,
