@@ -17,7 +17,7 @@ func StagedRate() api.Builder {
 	flags.String("distribution", "regular", "optional parameter to distribute the rate over steps of 100ms, which can be none|regular|random")
 
 	return api.Builder{
-		Name:        "staged",
+		Name:        "staged <scenario>",
 		Description: "triggers iterations at varying rates",
 		Flags:       flags,
 		New: func(params *pflag.FlagSet) (*api.Trigger, error) {
@@ -39,25 +39,38 @@ func StagedRate() api.Builder {
 				return nil, err
 			}
 
-			stages, err := parseStages(stg)
-			if err != nil {
-				return nil, err
-			}
-
-			calculator := newRateCalculator(stages)
-			rateFn := api.WithJitter(calculator.Rate, jitterArg)
-			distributedIterationDuration, distributedRateFn, err := api.NewDistribution(distributionTypeArg, frequency, rateFn)
+			rates, err := CalculateStagedRate(jitterArg, frequency, stg, distributionTypeArg)
 			if err != nil {
 				return nil, err
 			}
 
 			return &api.Trigger{
-					Trigger:     api.NewIterationWorker(distributedIterationDuration, distributedRateFn),
-					DryRun:      rateFn,
+					Trigger:     api.NewIterationWorker(rates.IterationDuration, rates.Rate),
+					DryRun:      rates.Rate,
 					Description: fmt.Sprintf("Starting iterations every %s in numbers varying by time: %s, using distribution %s", frequency, stg, distributionTypeArg),
-					Duration:    calculator.MaxDuration(),
+					Duration:    rates.Duration,
 				},
 				nil
 		},
 	}
+}
+
+func CalculateStagedRate(jitterArg float64, frequency time.Duration, stg, distributionTypeArg string) (*api.Rates, error) {
+	stages, err := parseStages(stg)
+	if err != nil {
+		return nil, err
+	}
+
+	calculator := newRateCalculator(stages)
+	rateFn := api.WithJitter(calculator.Rate, jitterArg)
+	distributedIterationDuration, distributedRateFn, err := api.NewDistribution(distributionTypeArg, frequency, rateFn)
+	if err != nil {
+		return nil, err
+	}
+
+	return &api.Rates{
+		IterationDuration: distributedIterationDuration,
+		Rate:              distributedRateFn,
+		Duration:          calculator.MaxDuration(),
+	}, nil
 }

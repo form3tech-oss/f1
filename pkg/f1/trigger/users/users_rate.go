@@ -12,22 +12,13 @@ func UsersRate() api.Builder {
 	flags := pflag.NewFlagSet("users", pflag.ContinueOnError)
 
 	return api.Builder{
-		Name:        "users",
+		Name:        "users <scenario>",
 		Description: "triggers test iterations from a static set of virtual users controlled by the --concurrency flag",
 		Flags:       flags,
 		New: func(params *pflag.FlagSet) (*api.Trigger, error) {
 			trigger := func(workTriggered chan<- bool, stop <-chan bool, workDone <-chan bool, options options.RunOptions) {
-				for i := 0; i < options.Concurrency; i++ {
-					workTriggered <- true
-				}
-				for {
-					select {
-					case <-stop:
-						return
-					case <-workDone:
-						workTriggered <- true
-					}
-				}
+				doWork := NewWorker(options.Concurrency)
+				doWork(workTriggered, stop, workDone, options)
 			}
 
 			return &api.Trigger{
@@ -41,5 +32,22 @@ func UsersRate() api.Builder {
 				},
 				nil
 		},
+	}
+}
+
+func NewWorker(concurrency int) api.WorkTriggerer {
+	return func(workTriggered chan<- bool, stop <-chan bool, workDone <-chan bool, options options.RunOptions) {
+		for i := 0; i < concurrency; i++ {
+			workTriggered <- true
+		}
+
+		for {
+			select {
+			case <-stop:
+				return
+			case <-workDone:
+				workTriggered <- true
+			}
+		}
 	}
 }

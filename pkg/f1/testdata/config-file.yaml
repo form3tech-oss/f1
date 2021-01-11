@@ -1,0 +1,41 @@
+scenario: test
+default:
+  jitter: 0
+  distribution: none
+limits:
+  max-duration: 5s
+  concurrency: 50
+  max-iterations: 1000
+  ignore-dropped: true
+stages:
+  - duration: 500ms
+    mode: constant
+    rate: 10/100ms
+    jitter: 0
+    parameters:
+      FOO: 1
+      BAR: 2
+  - duration: 200ms
+    mode: constant
+    rate: 5/100ms
+  - duration: 200ms
+    mode: ramp
+    start-rate: 5/100ms
+    end-rate: 4/100ms
+  - duration: 400ms
+    mode: staged
+    stages: "0s:0,200ms:10,100ms:0"
+    iteration-frequency: 100ms
+  - duration: 300ms
+    mode: gaussian
+    volume: 100
+    repeat: 1h
+    iteration-frequency: 1s
+    peak: 500ms
+    weights: 1.0
+    standard-deviation: 1m
+    jitter: 0
+    distribution: none
+  - duration: 100ms
+    mode: users
+    concurrency: 20

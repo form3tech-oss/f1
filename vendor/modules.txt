@@ -176,6 +176,9 @@ gopkg.in/workanator/go-ataman.v1/decorate/basic
 gopkg.in/workanator/go-ataman.v1/decorate/curly
 gopkg.in/workanator/go-ataman.v1/generic
 gopkg.in/workanator/go-ataman.v1/prepared
+# gopkg.in/yaml.v2 v2.3.0
+## explicit
+gopkg.in/yaml.v2
 # gopkg.in/yaml.v3 v3.0.0-20200313102051-9f266ea9e77c
 gopkg.in/yaml.v3
 # github.com/Sirupsen/logrus => github.com/sirupsen/logrus v1.6.0

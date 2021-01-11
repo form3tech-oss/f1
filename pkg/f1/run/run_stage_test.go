@@ -9,6 +9,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/form3tech-oss/f1/pkg/f1/trigger/ramp"
+
+	"github.com/form3tech-oss/f1/pkg/f1/trigger/file"
+
 	io_prometheus_client "github.com/prometheus/client_model/go"
 
 	"github.com/form3tech-oss/f1/pkg/f1/options"
@@ -47,6 +51,10 @@ type RunTestStage struct {
 	frequency        string
 	require          *require.Assertions
 	distributionType string
+	configFile       string
+	startRate        string
+	endRate          string
+	rampDuration     string
 	durations        sync.Map
 }
 
@@ -79,6 +87,26 @@ func (s *RunTestStage) a_duration_of(i time.Duration) *RunTestStage {
 
 func (s *RunTestStage) a_concurrency_of(concurrency int) *RunTestStage {
 	s.concurrency = concurrency
+	return s
+}
+
+func (s *RunTestStage) a_config_file_location_of(commandsFile string) *RunTestStage {
+	s.configFile = commandsFile
+	return s
+}
+
+func (s *RunTestStage) a_start_rate_of(startRate string) *RunTestStage {
+	s.startRate = startRate
+	return s
+}
+
+func (s *RunTestStage) a_end_rate_of(endRate string) *RunTestStage {
+	s.endRate = endRate
+	return s
+}
+
+func (s *RunTestStage) a_ramp_duration_of(rampDuration string) *RunTestStage {
+	s.rampDuration = rampDuration
 	return s
 }
 
@@ -331,6 +359,39 @@ func (s *RunTestStage) build_trigger() *api.Trigger {
 	} else if s.triggerType == Users {
 		flags := users.UsersRate().Flags
 		t, err = users.UsersRate().New(flags)
+		require.Nil(s.t, err)
+	} else if s.triggerType == Ramp {
+		flags := ramp.RampRate().Flags
+
+		err = flags.Set("start-rate", s.startRate)
+		require.NoError(s.t, err)
+
+		err = flags.Set("end-rate", s.endRate)
+		require.NoError(s.t, err)
+
+		if s.rampDuration != "" {
+			err = flags.Set("ramp-duration", s.rampDuration)
+			require.NoError(s.t, err)
+		} else {
+			flags.DurationP("max-duration", "d", time.Second, "--max-duration 1s (stop after 1 second)")
+			err = flags.Set("max-duration", s.duration.String())
+			require.NoError(s.t, err)
+		}
+
+		if s.distributionType != "" {
+			err = flags.Set("distribution", s.distributionType)
+			require.NoError(s.t, err)
+		}
+
+		t, err = ramp.RampRate().New(flags)
+		require.Nil(s.t, err)
+	} else if s.triggerType == File {
+		flags := file.FileRate().Flags
+
+		err := flags.Parse([]string{s.configFile})
+		require.NoError(s.t, err)
+
+		t, err = file.FileRate().New(flags)
 		require.Nil(s.t, err)
 	}
 	return t

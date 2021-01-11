@@ -1,0 +1,71 @@
+scenario: test            # Scenario name to be executed. On trigger modes this value is provided in the first CLI argument
+default:                  # Default values for stages fields. If no value is provided here or in the stage level, the program will error
+  duration: 1s
+  mode: constant
+  rate: 10/s
+  start-rate: 0/100ms
+  end-rate: 30/100ms
+  stages: 0s:0,300ms:30
+  iteration-frequency: 100ms
+  volume: 100
+  repeat: 1h
+  peak: 500ms
+  weights: "1.0,1.0"
+  standard-deviation: 1m
+  concurrency: 10
+  jitter: 0
+  distribution: none
+  parameters:
+    FOO: 1
+    BAR: 2
+limits:                   # Global limits to apply to the program execution
+  max-duration: 5s        # Equivalent to --max-duration flag, will stop the execution once this duration is completed if the program is still running
+  concurrency: 50         # Equivalent to --concurrency flag, will limit the concurrency of the running iterations
+  max-iterations: 1000    # Equivalent to --max-iterations flag, will run no more then the number of iterations specified here
+  ignore-dropped: true    # Equivalent to --ignore-dropped flag, drop requests will not fail the run
+schedule:
+  stage-start: "2020-12-10T09:00:00+00:00"  # Restarting an execution will skip the stages which were completed, based on the stage duration and this field
+stages:                   # List of stages to run sequentially
+  - duration: 500ms       # For how long a stage should run
+    mode: constant        # Stage mode which can be any existing trigger mode: constant, staged, ramp, gaussian, users
+    rate: 10/100ms        # Stage mode specific fields, the same as the flags used when triggering the mode. Find more by running "f1 run <trigger-mode> -h"
+    jitter: 0
+    distribution: regular
+    parameters:           # A map of values to be injected as environment variables when the stage will run
+      FOO: 1
+      BAR: 2
+  - duration: 300ms       # Equivalent to --ramp-duration field because mode is ramp
+    mode: ramp
+    start-rate: 0/100ms
+    end-rate: 30/100ms
+    parameters:
+      FOO: 1
+      BAR: 2
+  - duration: 300ms       # Total stages duration
+    mode: staged
+    stages: 0s:0,300ms:30
+    iteration-frequency: 100ms
+    jitter: 20
+    distribution: random
+    parameters:
+      FOO: 1
+      BAR: 2
+  - duration: 1s
+    mode: gaussian
+    volume: 100
+    repeat: 1h
+    iteration-frequency: 1s
+    peak: 500ms
+    weights: "1.0,1.0"
+    standard-deviation: 1m
+    jitter: 0
+    distribution: regular
+    parameters:
+      FOO: 1
+      BAR: 2
+  - duration: 200ms
+    mode: users         # Make sure to trigger this mode once all the previous pending requests have been processed, otherwise this mode will re-trigger those as well
+    concurrency: 10     # How many concurrent requests should be trigger at once. When not provided, the default is taken from the defaults section or the limits.concurrency value
+    parameters:
+      FOO: 1
+      BAR: 2
