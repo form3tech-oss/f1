@@ -38,17 +38,24 @@ func NewT(env map[string]string, vu, iter string, scenarioName string) *T {
 }
 
 func (t *T) Errorf(format string, args ...interface{}) {
-	t.Fail()
+	atomic.StoreInt64(&t.failed, int64(1))
 	t.Log.Errorf(format, args...)
 }
 
 func (t *T) FailNow() {
-	t.Fail()
+	atomic.StoreInt64(&t.failed, int64(1))
+	t.Log.Errorf("test failed and stopped")
 	runtime.Goexit()
 }
 
 func (t *T) Fail() {
 	atomic.StoreInt64(&t.failed, int64(1))
+	t.Log.Errorf("test failed")
+}
+
+func (t *T) FailWithError(err error) {
+	atomic.StoreInt64(&t.failed, int64(1))
+	t.Log.WithError(err).Errorf("test failed due to %s", err.Error())
 }
 
 func (t *T) HasFailed() bool {

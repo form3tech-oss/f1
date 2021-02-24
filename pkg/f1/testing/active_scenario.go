@@ -1,7 +1,6 @@
 package testing
 
 import (
-	"errors"
 	"runtime/debug"
 	"sync"
 	"time"
@@ -23,7 +22,7 @@ type ActiveScenario struct {
 	m                   *metrics.Metrics
 }
 
-func NewActiveScenarios(name string, env map[string]string, fn MultiStageSetupFn, autoTeardownIdleDuration time.Duration) (*ActiveScenario, error) {
+func NewActiveScenarios(name string, env map[string]string, fn MultiStageSetupFn, autoTeardownIdleDuration time.Duration) (*ActiveScenario, bool) {
 
 	s := &ActiveScenario{
 		Name:              name,
@@ -32,7 +31,7 @@ func NewActiveScenarios(name string, env map[string]string, fn MultiStageSetupFn
 		AutoTeardownAfter: autoTeardownIdleDuration,
 		m:                 metrics.Instance(),
 	}
-	err := s.Run(metrics.SetupResult, "setup", "0", "setup", func(t *T) {
+	successful := s.Run(metrics.SetupResult, "setup", "0", "setup", func(t *T) {
 		s.Stages, s.TeardownFn = fn(t)
 
 		if autoTeardownIdleDuration > 0 {
@@ -50,7 +49,7 @@ func NewActiveScenarios(name string, env map[string]string, fn MultiStageSetupFn
 		log.Infof("Added active scenario %s",
 			s.id)
 	})
-	return s, err
+	return s, successful
 }
 
 func (s *ActiveScenario) AutoTeardown() *CancellableTimer {
@@ -67,7 +66,8 @@ func (s *ActiveScenario) SetAutoTeardown(timer *CancellableTimer) {
 	s.autoTeardownTimer = timer
 }
 
-func (s *ActiveScenario) Run(metric metrics.MetricType, stage, vu, iter string, f func(t *T)) error {
+// Run performs a single iteration of the test. It returns `true` if the test was successful, `false` otherwise.
+func (s *ActiveScenario) Run(metric metrics.MetricType, stage, vu, iter string, f func(t *T)) bool {
 	t := NewT(s.env, vu, iter, s.Name)
 	start := time.Now()
 	done := make(chan struct{})
@@ -81,22 +81,18 @@ func (s *ActiveScenario) Run(metric metrics.MetricType, stage, vu, iter string, 
 	// wait for completion
 	<-done
 	s.m.Record(metric, s.Name, stage, metrics.Result(t.HasFailed()), time.Since(start).Nanoseconds())
-	if t.HasFailed() {
-		return errors.New("failed")
-	}
-	return nil
+	return !t.HasFailed()
 }
 
 func (s *ActiveScenario) checkResults(t *T, done chan<- struct{}) {
 	r := recover()
 	if r != nil {
-		t.Fail()
 		err, isError := r.(error)
 		if isError {
-			t.Log.WithError(err).Errorf("panic in `%s` test scenario on iteration `%s` for user `%s`", t.Scenario, t.Iteration, t.VirtualUser)
+			t.FailWithError(err)
 			debug.PrintStack()
 		} else {
-			t.Log.Errorf("panic in `%s` test scenario on iteration `%s` for user `%s`: %v", t.Scenario, t.Iteration, t.VirtualUser, r)
+			t.Errorf("panic in test iteration: %v", err)
 		}
 	}
 	close(done)
@@ -105,9 +101,9 @@ func (s *ActiveScenario) checkResults(t *T, done chan<- struct{}) {
 func (s *ActiveScenario) autoTeardown() {
 	log.Warn("Teardown not called - triggering timed teardown")
 	if s.TeardownFn != nil {
-		err := s.Run(metrics.TeardownResult, "teardown", "0", "teardown", s.TeardownFn)
-		if err != nil {
-			log.WithError(err).Error("auto teardown failed")
+		successful := s.Run(metrics.TeardownResult, "teardown", "0", "teardown", s.TeardownFn)
+		if !successful {
+			log.Error("auto teardown failed")
 		}
 	}
 	activeScenarios.Delete(s.id)
