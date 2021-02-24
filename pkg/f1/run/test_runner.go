@@ -89,13 +89,13 @@ func (r *Run) Do() *RunResult {
 	r.configureLogging()
 
 	metrics.Instance().Reset()
-	var err error
-	r.activeScenario, err = testing.NewActiveScenarios(r.Options.Scenario, r.Options.Env, testing.GetScenario(r.Options.Scenario), 0)
+	var setupSuccessful bool
+	r.activeScenario, setupSuccessful = testing.NewActiveScenarios(r.Options.Scenario, r.Options.Env, testing.GetScenario(r.Options.Scenario), 0)
 	r.pushMetrics()
 	fmt.Println(r.result.Setup())
 
-	if err != nil {
-		return r.fail(err, "setup failed")
+	if !setupSuccessful {
+		return r.fail("setup failed")
 	}
 
 	// set initial started timestamp so that the progress trackers work
@@ -135,9 +135,9 @@ func (r *Run) teardown() {
 	}
 
 	if r.activeScenario.TeardownFn != nil {
-		err := r.activeScenario.Run(metrics.TeardownResult, "teardown", "0", "teardown", r.activeScenario.TeardownFn)
-		if err != nil {
-			r.fail(err, "teardown failed")
+		successful := r.activeScenario.Run(metrics.TeardownResult, "teardown", "0", "teardown", r.activeScenario.TeardownFn)
+		if !successful {
+			r.fail("teardown failed")
 		}
 	} else {
 		log.Infof("nil teardown function for scenario %s", r.Options.Scenario)
@@ -308,9 +308,8 @@ func (r *Run) runWorker(input <-chan int32, stop <-chan struct{}, wg *sync.WaitG
 			trace.Event("Received work (%v) from Channel 'doWork' iteration (%v)", worker, iteration)
 			atomic.AddInt32(&r.busyWorkers, 1)
 			for _, stage := range r.activeScenario.Stages {
-				err := r.activeScenario.Run(metrics.IterationResult, stage.Name, worker, fmt.Sprint(iteration), stage.RunFn)
-				if err != nil {
-					log.WithError(err).Error("failed iteration run")
+				successful := r.activeScenario.Run(metrics.IterationResult, stage.Name, worker, fmt.Sprint(iteration), stage.RunFn)
+				if !successful {
 					atomic.AddInt32(&r.failures, 1)
 				}
 			}
@@ -330,8 +329,8 @@ func (r *Run) runWorker(input <-chan int32, stop <-chan struct{}, wg *sync.WaitG
 	}
 }
 
-func (r *Run) fail(err error, message string) *RunResult {
-	r.result.AddError(errors.Wrap(err, message))
+func (r *Run) fail(message string) *RunResult {
+	r.result.AddError(fmt.Errorf(message))
 	return &r.result
 }
 
