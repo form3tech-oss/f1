@@ -2,7 +2,6 @@ package chart
 
 import (
 	"github.com/wcharczuk/go-chart/drawing"
-	"github.com/wcharczuk/go-chart/util"
 )
 
 // Legend returns a legend renderable function.
@@ -36,7 +35,7 @@ func Legend(c *Chart, userDefaults ...Style) Renderable {
 		var labels []string
 		var lines []Style
 		for index, s := range c.Series {
-			if s.GetStyle().IsZero() || s.GetStyle().Show {
+			if !s.GetStyle().Hidden {
 				if _, isAnnotationSeries := s.(AnnotationSeries); !isAnnotationSeries {
 					labels = append(labels, s.GetName())
 					lines = append(lines, s.GetStyle().InheritFrom(c.styleDefaultsSeries(index)))
@@ -69,7 +68,7 @@ func Legend(c *Chart, userDefaults ...Style) Renderable {
 				}
 				legendContent.Bottom += tb.Height()
 				right := legendContent.Left + tb.Width() + lineTextGap + lineLengthMinimum
-				legendContent.Right = util.Math.MaxInt(legendContent.Right, right)
+				legendContent.Right = MaxInt(legendContent.Right, right)
 				labelCount++
 			}
 		}
@@ -150,7 +149,7 @@ func LegendThin(c *Chart, userDefaults ...Style) Renderable {
 		var labels []string
 		var lines []Style
 		for index, s := range c.Series {
-			if s.GetStyle().IsZero() || s.GetStyle().Show {
+			if !s.GetStyle().Hidden {
 				if _, isAnnotationSeries := s.(AnnotationSeries); !isAnnotationSeries {
 					labels = append(labels, s.GetName())
 					lines = append(lines, s.GetStyle().InheritFrom(c.styleDefaultsSeries(index)))
@@ -164,8 +163,8 @@ func LegendThin(c *Chart, userDefaults ...Style) Renderable {
 		for x := 0; x < len(labels); x++ {
 			if len(labels[x]) > 0 {
 				textBox = r.MeasureText(labels[x])
-				textHeight = util.Math.MaxInt(textBox.Height(), textHeight)
-				textWidth = util.Math.MaxInt(textBox.Width(), textWidth)
+				textHeight = MaxInt(textBox.Height(), textHeight)
+				textWidth = MaxInt(textBox.Width(), textWidth)
 			}
 		}
 
@@ -248,7 +247,7 @@ func LegendLeft(c *Chart, userDefaults ...Style) Renderable {
 		var labels []string
 		var lines []Style
 		for index, s := range c.Series {
-			if s.GetStyle().IsZero() || s.GetStyle().Show {
+			if !s.GetStyle().Hidden {
 				if _, isAnnotationSeries := s.(AnnotationSeries); !isAnnotationSeries {
 					labels = append(labels, s.GetName())
 					lines = append(lines, s.GetStyle().InheritFrom(c.styleDefaultsSeries(index)))
@@ -281,7 +280,7 @@ func LegendLeft(c *Chart, userDefaults ...Style) Renderable {
 				}
 				legendContent.Bottom += tb.Height()
 				right := legendContent.Left + tb.Width() + lineTextGap + lineLengthMinimum
-				legendContent.Right = util.Math.MaxInt(legendContent.Right, right)
+				legendContent.Right = MaxInt(legendContent.Right, right)
 				labelCount++
 			}
 		}

@@ -1,4 +1,4 @@
-[![Gopher Ataman](https://s11.postimg.org/nnf914djn/gopher_ataman.png)](https://postimg.org/image/zcj8p34i7/)
+![Gopher Ataman](https://github.com/workanator/repo-faces/blob/main/go-ataman/main.png)
 
 # go-ataman
 **Another Text Attribute Manipulator**
@@ -42,7 +42,7 @@ fmt.Println(rndr.MustRenderf(tpl, "Hello", "Terminal World"))
 
 This example produces colored text like this.
 
-[![Example Output](https://s24.postimg.org/cpl13bvp1/2017-05-19_15.56.34.png)](https://postimg.org/image/6onc6992p/)
+![Example Output](https://github.com/workanator/repo-faces/blob/main/go-ataman/example1.png)
 
 Renderer is able to pre-render templates so in further output operations they
 can be reused without parsing and rendering. In this example the renderer uses

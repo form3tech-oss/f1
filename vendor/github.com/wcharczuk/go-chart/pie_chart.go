@@ -4,16 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"math"
 
 	"github.com/golang/freetype/truetype"
-	"github.com/wcharczuk/go-chart/util"
-)
-
-const (
-	_pi  = math.Pi
-	_pi2 = math.Pi / 2.0
-	_pi4 = math.Pi / 4.0
 )
 
 // PieChart is a chart that draws sections of a circle based on percentages.
@@ -124,33 +116,40 @@ func (pc PieChart) drawCanvas(r Renderer, canvasBox Box) {
 }
 
 func (pc PieChart) drawTitle(r Renderer) {
-	if len(pc.Title) > 0 && pc.TitleStyle.Show {
+	if len(pc.Title) > 0 && !pc.TitleStyle.Hidden {
 		Draw.TextWithin(r, pc.Title, pc.Box(), pc.styleDefaultsTitle())
 	}
 }
 
 func (pc PieChart) drawSlices(r Renderer, canvasBox Box, values []Value) {
 	cx, cy := canvasBox.Center()
-	diameter := util.Math.MinInt(canvasBox.Width(), canvasBox.Height())
+	diameter := MinInt(canvasBox.Width(), canvasBox.Height())
 	radius := float64(diameter >> 1)
 	labelRadius := (radius * 2.0) / 3.0
 
 	// draw the pie slices
 	var rads, delta, delta2, total float64
 	var lx, ly int
-	for index, v := range values {
-		v.Style.InheritFrom(pc.stylePieChartValue(index)).WriteToRenderer(r)
 
+	if len(values) == 1 {
+		pc.stylePieChartValue(0).WriteToRenderer(r)
 		r.MoveTo(cx, cy)
-		rads = util.Math.PercentToRadians(total)
-		delta = util.Math.PercentToRadians(v.Value)
+		r.Circle(radius, cx, cy)
+	} else {
+		for index, v := range values {
+			v.Style.InheritFrom(pc.stylePieChartValue(index)).WriteToRenderer(r)
 
-		r.ArcTo(cx, cy, radius, radius, rads, delta)
+			r.MoveTo(cx, cy)
+			rads = PercentToRadians(total)
+			delta = PercentToRadians(v.Value)
 
-		r.LineTo(cx, cy)
-		r.Close()
-		r.FillStroke()
-		total = total + v.Value
+			r.ArcTo(cx, cy, radius, radius, rads, delta)
+
+			r.LineTo(cx, cy)
+			r.Close()
+			r.FillStroke()
+			total = total + v.Value
+		}
 	}
 
 	// draw the labels
@@ -158,13 +157,20 @@ func (pc PieChart) drawSlices(r Renderer, canvasBox Box, values []Value) {
 	for index, v := range values {
 		v.Style.InheritFrom(pc.stylePieChartValue(index)).WriteToRenderer(r)
 		if len(v.Label) > 0 {
-			delta2 = util.Math.PercentToRadians(total + (v.Value / 2.0))
-			delta2 = util.Math.RadianAdd(delta2, _pi2)
-			lx, ly = util.Math.CirclePoint(cx, cy, labelRadius, delta2)
+			delta2 = PercentToRadians(total + (v.Value / 2.0))
+			delta2 = RadianAdd(delta2, _pi2)
+			lx, ly = CirclePoint(cx, cy, labelRadius, delta2)
 
 			tb := r.MeasureText(v.Label)
 			lx = lx - (tb.Width() >> 1)
 			ly = ly + (tb.Height() >> 1)
+
+			if lx < 0 {
+				lx = 0
+			}
+			if ly < 0 {
+				lx = 0
+			}
 
 			r.Text(v.Label, lx, ly)
 		}
@@ -185,7 +191,7 @@ func (pc PieChart) getDefaultCanvasBox() Box {
 }
 
 func (pc PieChart) getCircleAdjustedCanvasBox(canvasBox Box) Box {
-	circleDiameter := util.Math.MinInt(canvasBox.Width(), canvasBox.Height())
+	circleDiameter := MinInt(canvasBox.Width(), canvasBox.Height())
 
 	square := Box{
 		Right:  circleDiameter,
@@ -231,7 +237,7 @@ func (pc PieChart) stylePieChartValue(index int) Style {
 }
 
 func (pc PieChart) getScaledFontSize() float64 {
-	effectiveDimension := util.Math.MinInt(pc.GetWidth(), pc.GetHeight())
+	effectiveDimension := MinInt(pc.GetWidth(), pc.GetHeight())
 	if effectiveDimension >= 2048 {
 		return 48.0
 	} else if effectiveDimension >= 1024 {
@@ -270,7 +276,7 @@ func (pc PieChart) styleDefaultsTitle() Style {
 }
 
 func (pc PieChart) getTitleFontSize() float64 {
-	effectiveDimension := util.Math.MinInt(pc.GetWidth(), pc.GetHeight())
+	effectiveDimension := MinInt(pc.GetWidth(), pc.GetHeight())
 	if effectiveDimension >= 2048 {
 		return 48
 	} else if effectiveDimension >= 1024 {

@@ -3,8 +3,11 @@ package chart
 import (
 	"fmt"
 	"math"
+)
 
-	util "github.com/wcharczuk/go-chart/util"
+// Interface Assertions.
+var (
+	_ Series = (*AnnotationSeries)(nil)
 )
 
 // AnnotationSeries is a series of labels on the chart.
@@ -50,17 +53,17 @@ func (as AnnotationSeries) Measure(r Renderer, canvasBox Box, xrange, yrange Ran
 		Right:  0,
 		Bottom: 0,
 	}
-	if as.Style.IsZero() || as.Style.Show {
+	if !as.Style.Hidden {
 		seriesStyle := as.Style.InheritFrom(as.annotationStyleDefaults(defaults))
 		for _, a := range as.Annotations {
 			style := a.Style.InheritFrom(seriesStyle)
 			lx := canvasBox.Left + xrange.Translate(a.XValue)
 			ly := canvasBox.Bottom - yrange.Translate(a.YValue)
 			ab := Draw.MeasureAnnotation(r, canvasBox, style, lx, ly, a.Label)
-			box.Top = util.Math.MinInt(box.Top, ab.Top)
-			box.Left = util.Math.MinInt(box.Left, ab.Left)
-			box.Right = util.Math.MaxInt(box.Right, ab.Right)
-			box.Bottom = util.Math.MaxInt(box.Bottom, ab.Bottom)
+			box.Top = MinInt(box.Top, ab.Top)
+			box.Left = MinInt(box.Left, ab.Left)
+			box.Right = MaxInt(box.Right, ab.Right)
+			box.Bottom = MaxInt(box.Bottom, ab.Bottom)
 		}
 	}
 	return box
@@ -68,7 +71,7 @@ func (as AnnotationSeries) Measure(r Renderer, canvasBox Box, xrange, yrange Ran
 
 // Render draws the series.
 func (as AnnotationSeries) Render(r Renderer, canvasBox Box, xrange, yrange Range, defaults Style) {
-	if as.Style.IsZero() || as.Style.Show {
+	if !as.Style.Hidden {
 		seriesStyle := as.Style.InheritFrom(as.annotationStyleDefaults(defaults))
 		for _, a := range as.Annotations {
 			style := a.Style.InheritFrom(seriesStyle)

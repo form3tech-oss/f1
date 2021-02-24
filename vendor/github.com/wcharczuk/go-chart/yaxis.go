@@ -2,9 +2,14 @@ package chart
 
 import (
 	"math"
-
-	util "github.com/wcharczuk/go-chart/util"
 )
+
+// HideYAxis hides a y-axis.
+func HideYAxis() YAxis {
+	return YAxis{
+		Style: Hidden(),
+	}
+}
 
 // YAxis is a veritcal rule of the range.
 // There can be (2) y-axes; a primary and secondary.
@@ -105,21 +110,21 @@ func (ya YAxis) Measure(r Renderer, canvasBox Box, ra Range, defaults Style, tic
 			finalTextX = tx - tb.Width()
 		}
 
-		maxTextHeight = util.Math.MaxInt(tb.Height(), maxTextHeight)
+		maxTextHeight = MaxInt(tb.Height(), maxTextHeight)
 
 		if ya.AxisType == YAxisPrimary {
 			minx = canvasBox.Right
-			maxx = util.Math.MaxInt(maxx, tx+tb.Width())
+			maxx = MaxInt(maxx, tx+tb.Width())
 		} else if ya.AxisType == YAxisSecondary {
-			minx = util.Math.MinInt(minx, finalTextX)
-			maxx = util.Math.MaxInt(maxx, tx)
+			minx = MinInt(minx, finalTextX)
+			maxx = MaxInt(maxx, tx)
 		}
 
-		miny = util.Math.MinInt(miny, ly-tbh2)
-		maxy = util.Math.MaxInt(maxy, ly+tbh2)
+		miny = MinInt(miny, ly-tbh2)
+		maxy = MaxInt(maxy, ly+tbh2)
 	}
 
-	if ya.NameStyle.Show && len(ya.Name) > 0 {
+	if !ya.NameStyle.Hidden && len(ya.Name) > 0 {
 		maxx += (DefaultYAxisMargin + maxTextHeight)
 	}
 
@@ -190,7 +195,7 @@ func (ya YAxis) Render(r Renderer, canvasBox Box, ra Range, defaults Style, tick
 	}
 
 	nameStyle := ya.NameStyle.InheritFrom(defaults.InheritFrom(Style{TextRotationDegrees: 90}))
-	if ya.NameStyle.Show && len(ya.Name) > 0 {
+	if !ya.NameStyle.Hidden && len(ya.Name) > 0 {
 		nameStyle.GetTextOptions().WriteToRenderer(r)
 		tb := Draw.MeasureText(r, ya.Name, nameStyle)
 
@@ -211,13 +216,13 @@ func (ya YAxis) Render(r Renderer, canvasBox Box, ra Range, defaults Style, tick
 		Draw.Text(r, ya.Name, tx, ty, nameStyle)
 	}
 
-	if ya.Zero.Style.Show {
+	if !ya.Zero.Style.Hidden {
 		ya.Zero.Render(r, canvasBox, ra, false, Style{})
 	}
 
-	if ya.GridMajorStyle.Show || ya.GridMinorStyle.Show {
+	if !ya.GridMajorStyle.Hidden || !ya.GridMinorStyle.Hidden {
 		for _, gl := range ya.GetGridLines(ticks) {
-			if (gl.IsMinor && ya.GridMinorStyle.Show) || (!gl.IsMinor && ya.GridMajorStyle.Show) {
+			if (gl.IsMinor && !ya.GridMinorStyle.Hidden) || (!gl.IsMinor && !ya.GridMajorStyle.Hidden) {
 				defaults := ya.GridMajorStyle
 				if gl.IsMinor {
 					defaults = ya.GridMinorStyle
