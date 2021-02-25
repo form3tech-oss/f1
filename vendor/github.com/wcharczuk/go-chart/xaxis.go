@@ -2,9 +2,14 @@ package chart
 
 import (
 	"math"
-
-	util "github.com/wcharczuk/go-chart/util"
 )
+
+// HideXAxis hides the x-axis.
+func HideXAxis() XAxis {
+	return XAxis{
+		Style: Hidden(),
+	}
+}
 
 // XAxis represents the horizontal axis.
 type XAxis struct {
@@ -105,12 +110,12 @@ func (xa XAxis) Measure(r Renderer, canvasBox Box, ra Range, defaults Style, tic
 			break
 		}
 
-		left = util.Math.MinInt(left, ltx)
-		right = util.Math.MaxInt(right, rtx)
-		bottom = util.Math.MaxInt(bottom, ty)
+		left = MinInt(left, ltx)
+		right = MaxInt(right, rtx)
+		bottom = MaxInt(bottom, ty)
 	}
 
-	if xa.NameStyle.Show && len(xa.Name) > 0 {
+	if !xa.NameStyle.Hidden && len(xa.Name) > 0 {
 		tb := Draw.MeasureText(r, xa.Name, xa.NameStyle.InheritFrom(defaults))
 		bottom += DefaultXAxisMargin + tb.Height()
 	}
@@ -159,7 +164,7 @@ func (xa XAxis) Render(r Renderer, canvasBox Box, ra Range, defaults Style, tick
 				ty = canvasBox.Bottom + (2 * DefaultXAxisMargin)
 			}
 			Draw.Text(r, t.Label, tx, ty, tickWithAxisStyle)
-			maxTextHeight = util.Math.MaxInt(maxTextHeight, tb.Height())
+			maxTextHeight = MaxInt(maxTextHeight, tb.Height())
 			break
 		case TickPositionBetweenTicks:
 			if index > 0 {
@@ -175,23 +180,23 @@ func (xa XAxis) Render(r Renderer, canvasBox Box, ra Range, defaults Style, tick
 				}, finalTickStyle)
 
 				ftb := Text.MeasureLines(r, Text.WrapFit(r, t.Label, tx-ltx, finalTickStyle), finalTickStyle)
-				maxTextHeight = util.Math.MaxInt(maxTextHeight, ftb.Height())
+				maxTextHeight = MaxInt(maxTextHeight, ftb.Height())
 			}
 			break
 		}
 	}
 
 	nameStyle := xa.NameStyle.InheritFrom(defaults)
-	if xa.NameStyle.Show && len(xa.Name) > 0 {
+	if !xa.NameStyle.Hidden && len(xa.Name) > 0 {
 		tb := Draw.MeasureText(r, xa.Name, nameStyle)
 		tx := canvasBox.Right - (canvasBox.Width()>>1 + tb.Width()>>1)
 		ty := canvasBox.Bottom + DefaultXAxisMargin + maxTextHeight + DefaultXAxisMargin + tb.Height()
 		Draw.Text(r, xa.Name, tx, ty, nameStyle)
 	}
 
-	if xa.GridMajorStyle.Show || xa.GridMinorStyle.Show {
+	if !xa.GridMajorStyle.Hidden || !xa.GridMinorStyle.Hidden {
 		for _, gl := range xa.GetGridLines(ticks) {
-			if (gl.IsMinor && xa.GridMinorStyle.Show) || (!gl.IsMinor && xa.GridMajorStyle.Show) {
+			if (gl.IsMinor && !xa.GridMinorStyle.Hidden) || (!gl.IsMinor && !xa.GridMajorStyle.Hidden) {
 				defaults := xa.GridMajorStyle
 				if gl.IsMinor {
 					defaults = xa.GridMinorStyle

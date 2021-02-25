@@ -2,13 +2,18 @@ package chart
 
 import (
 	"fmt"
-
-	util "github.com/wcharczuk/go-chart/util"
 )
 
 const (
 	// DefaultSimpleMovingAveragePeriod is the default number of values to average.
 	DefaultSimpleMovingAveragePeriod = 16
+)
+
+// Interface Assertions.
+var (
+	_ Series              = (*SMASeries)(nil)
+	_ FirstValuesProvider = (*SMASeries)(nil)
+	_ LastValuesProvider  = (*SMASeries)(nil)
 )
 
 // SMASeries is a computed series.
@@ -63,6 +68,17 @@ func (sma SMASeries) GetValues(index int) (x, y float64) {
 	return
 }
 
+// GetFirstValues computes the first moving average value.
+func (sma SMASeries) GetFirstValues() (x, y float64) {
+	if sma.InnerSeries == nil || sma.InnerSeries.Len() == 0 {
+		return
+	}
+	px, _ := sma.InnerSeries.GetValues(0)
+	x = px
+	y = sma.getAverage(0)
+	return
+}
+
 // GetLastValues computes the last moving average value but walking back window size samples,
 // and recomputing the last moving average chunk.
 func (sma SMASeries) GetLastValues() (x, y float64) {
@@ -78,7 +94,7 @@ func (sma SMASeries) GetLastValues() (x, y float64) {
 
 func (sma SMASeries) getAverage(index int) float64 {
 	period := sma.GetPeriod()
-	floor := util.Math.MaxInt(0, index-period)
+	floor := MaxInt(0, index-period)
 	var accum float64
 	var count float64
 	for x := index; x >= floor; x-- {

@@ -1,9 +1,21 @@
 all: test
 
+ci: profanity coverage
+
+new-install:
+	@go get -v -u ./...
+	@go get -v -u github.com/blend/go-sdk/cmd/coverage
+	@go get -v -u github.com/blend/go-sdk/cmd/profanity
+
+generate:
+	@go generate ./...
+
 test:
 	@go test ./...
 
-cover:
-	@go test -short -covermode=set -coverprofile=profile.cov
-	@go tool cover -html=profile.cov
-	@rm profile.cov
+.PHONY: profanity
+profanity:
+	@profanity
+
+coverage:
+	@coverage

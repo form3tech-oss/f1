@@ -2,8 +2,6 @@ package chart
 
 import (
 	"strings"
-
-	util "github.com/wcharczuk/go-chart/util"
 )
 
 // TextHorizontalAlign is an enum for the horizontal alignment options.
@@ -48,7 +46,7 @@ const (
 	TextVerticalAlignBottom TextVerticalAlign = 2
 	// TextVerticalAlignMiddle aligns the text so that there is an equal amount of space above and below the top and bottom of the ligatures.
 	TextVerticalAlignMiddle TextVerticalAlign = 3
-	// TextVerticalAlignMiddleBaseline aligns the text veritcally so that there is an equal number of pixels above and below the baseline of the string.
+	// TextVerticalAlignMiddleBaseline aligns the text vertically so that there is an equal number of pixels above and below the baseline of the string.
 	TextVerticalAlignMiddleBaseline TextVerticalAlign = 4
 	// TextVerticalAlignTop alignts the text so that the top of the ligatures are at y-pixel 0 in the container.
 	TextVerticalAlignTop TextVerticalAlign = 5
@@ -149,7 +147,7 @@ func (t text) MeasureLines(r Renderer, lines []string, style Style) Box {
 	var output Box
 	for index, line := range lines {
 		lineBox := r.MeasureText(line)
-		output.Right = util.Math.MaxInt(lineBox.Right, output.Right)
+		output.Right = MaxInt(lineBox.Right, output.Right)
 		output.Bottom += lineBox.Height()
 		if index < len(lines)-1 {
 			output.Bottom += +style.GetTextLineSpacing()

@@ -108,7 +108,6 @@ func chartCmdExecute(t api.Builder) func(cmd *cobra.Command, args []string) erro
 			Series: []chart.Series{
 				chart.TimeSeries{
 					Style: chart.Style{
-						Show:        true,
 						StrokeColor: chart.GetDefaultColor(0).WithAlpha(64),
 					},
 					Name:    "testing",

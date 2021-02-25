@@ -11,7 +11,6 @@ import (
 
 	"github.com/golang/freetype/truetype"
 	"github.com/wcharczuk/go-chart/drawing"
-	"github.com/wcharczuk/go-chart/util"
 )
 
 // SVG returns a new png/raster renderer.
@@ -26,6 +25,25 @@ func SVG(width, height int) (Renderer, error) {
 		p:   []string{},
 		dpi: DefaultDPI,
 	}, nil
+}
+
+// SVGWithCSS returns a new png/raster renderer with attached custom CSS
+// The optional nonce argument sets a CSP nonce.
+func SVGWithCSS(css string, nonce string) func(width, height int) (Renderer, error) {
+	return func(width, height int) (Renderer, error) {
+		buffer := bytes.NewBuffer([]byte{})
+		canvas := newCanvas(buffer)
+		canvas.css = css
+		canvas.nonce = nonce
+		canvas.Start(width, height)
+		return &vectorRenderer{
+			b:   buffer,
+			c:   canvas,
+			s:   &Style{},
+			p:   []string{},
+			dpi: DefaultDPI,
+		}, nil
+	}
 }
 
 // vectorRenderer renders chart commands to a bitmap.
@@ -52,6 +70,11 @@ func (vr *vectorRenderer) GetDPI() float64 {
 func (vr *vectorRenderer) SetDPI(dpi float64) {
 	vr.dpi = dpi
 	vr.c.dpi = dpi
+}
+
+// SetClassName implements the interface method.
+func (vr *vectorRenderer) SetClassName(classname string) {
+	vr.s.ClassName = classname
 }
 
 // SetStrokeColor implements the interface method.
@@ -90,8 +113,8 @@ func (vr *vectorRenderer) QuadCurveTo(cx, cy, x, y int) {
 }
 
 func (vr *vectorRenderer) ArcTo(cx, cy int, rx, ry, startAngle, delta float64) {
-	startAngle = util.Math.RadianAdd(startAngle, _pi2)
-	endAngle := util.Math.RadianAdd(startAngle, delta)
+	startAngle = RadianAdd(startAngle, _pi2)
+	endAngle := RadianAdd(startAngle, delta)
 
 	startx := cx + int(rx*math.Sin(startAngle))
 	starty := cy - int(ry*math.Cos(startAngle))
@@ -105,7 +128,7 @@ func (vr *vectorRenderer) ArcTo(cx, cy int, rx, ry, startAngle, delta float64) {
 	endx := cx + int(rx*math.Sin(endAngle))
 	endy := cy - int(ry*math.Cos(endAngle))
 
-	dd := util.Math.RadiansToDegrees(delta)
+	dd := RadiansToDegrees(delta)
 
 	largeArcFlag := 0
 	if delta > _pi {
@@ -182,7 +205,7 @@ func (vr *vectorRenderer) MeasureText(body string) (box Box) {
 		if vr.c.textTheta == nil {
 			return
 		}
-		box = box.Corners().Rotate(util.Math.RadiansToDegrees(*vr.c.textTheta)).Box()
+		box = box.Corners().Rotate(RadiansToDegrees(*vr.c.textTheta)).Box()
 	}
 	return
 }
@@ -217,12 +240,23 @@ type canvas struct {
 	textTheta *float64
 	width     int
 	height    int
+	css       string
+	nonce     string
 }
 
 func (c *canvas) Start(width, height int) {
 	c.width = width
 	c.height = height
 	c.w.Write([]byte(fmt.Sprintf(`<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="%d" height="%d">\n`, c.width, c.height)))
+	if c.css != "" {
+		c.w.Write([]byte(`<style type="text/css"`))
+		if c.nonce != "" {
+			// https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy
+			c.w.Write([]byte(fmt.Sprintf(` nonce="%s"`, c.nonce)))
+		}
+		// To avoid compatibility issues between XML and CSS (f.e. with child selectors) we should encapsulate the CSS with CDATA.
+		c.w.Write([]byte(fmt.Sprintf(`><![CDATA[%s]]></style>`, c.css)))
+	}
 }
 
 func (c *canvas) Path(d string, style Style) {
@@ -230,20 +264,20 @@ func (c *canvas) Path(d string, style Style) {
 	if len(style.StrokeDashArray) > 0 {
 		strokeDashArrayProperty = c.getStrokeDashArray(style)
 	}
-	c.w.Write([]byte(fmt.Sprintf(`<path %s d="%s" style="%s"/>`, strokeDashArrayProperty, d, c.styleAsSVG(style))))
+	c.w.Write([]byte(fmt.Sprintf(`<path %s d="%s" %s/>`, strokeDashArrayProperty, d, c.styleAsSVG(style))))
 }
 
 func (c *canvas) Text(x, y int, body string, style Style) {
 	if c.textTheta == nil {
-		c.w.Write([]byte(fmt.Sprintf(`<text x="%d" y="%d" style="%s">%s</text>`, x, y, c.styleAsSVG(style), body)))
+		c.w.Write([]byte(fmt.Sprintf(`<text x="%d" y="%d" %s>%s</text>`, x, y, c.styleAsSVG(style), body)))
 	} else {
-		transform := fmt.Sprintf(` transform="rotate(%0.2f,%d,%d)"`, util.Math.RadiansToDegrees(*c.textTheta), x, y)
-		c.w.Write([]byte(fmt.Sprintf(`<text x="%d" y="%d" style="%s"%s>%s</text>`, x, y, c.styleAsSVG(style), transform, body)))
+		transform := fmt.Sprintf(` transform="rotate(%0.2f,%d,%d)"`, RadiansToDegrees(*c.textTheta), x, y)
+		c.w.Write([]byte(fmt.Sprintf(`<text x="%d" y="%d" %s%s>%s</text>`, x, y, c.styleAsSVG(style), transform, body)))
 	}
 }
 
 func (c *canvas) Circle(x, y, r int, style Style) {
-	c.w.Write([]byte(fmt.Sprintf(`<circle cx="%d" cy="%d" r="%d" style="%s"/>`, x, y, r, c.styleAsSVG(style))))
+	c.w.Write([]byte(fmt.Sprintf(`<circle cx="%d" cy="%d" r="%d" %s/>`, x, y, r, c.styleAsSVG(style))))
 }
 
 func (c *canvas) End() {
@@ -274,13 +308,29 @@ func (c *canvas) getFontFace(s Style) string {
 	return fmt.Sprintf("font-family:%s", family)
 }
 
-// styleAsSVG returns the style as a svg style string.
+// styleAsSVG returns the style as a svg style or class string.
 func (c *canvas) styleAsSVG(s Style) string {
 	sw := s.StrokeWidth
 	sc := s.StrokeColor
 	fc := s.FillColor
 	fs := s.FontSize
 	fnc := s.FontColor
+
+	if s.ClassName != "" {
+		var classes []string
+		classes = append(classes, s.ClassName)
+		if !sc.IsZero() {
+			classes = append(classes, "stroke")
+		}
+		if !fc.IsZero() {
+			classes = append(classes, "fill")
+		}
+		if fs != 0 || s.Font != nil {
+			classes = append(classes, "text")
+		}
+
+		return fmt.Sprintf("class=\"%s\"", strings.Join(classes, " "))
+	}
 
 	var pieces []string
 
@@ -311,5 +361,5 @@ func (c *canvas) styleAsSVG(s Style) string {
 	if s.Font != nil {
 		pieces = append(pieces, c.getFontFace(s))
 	}
-	return strings.Join(pieces, ";")
+	return fmt.Sprintf("style=\"%s\"", strings.Join(pieces, ";"))
 }
