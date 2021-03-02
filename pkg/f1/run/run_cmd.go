@@ -116,7 +116,7 @@ func runCmdExecute(t api.Builder, hookFunc logging.RegisterLogHookFunc) func(cmd
 			Scenario:            scenarioName,
 			MaxDuration:         duration,
 			Concurrency:         concurrency,
-			Env:                 loadEnvironment(),
+			Env:                 LoadEnvironment(),
 			Verbose:             verbose,
 			VerboseFail:         verboseFail,
 			MaxIterations:       maxIterations,
@@ -137,7 +137,7 @@ func runCmdExecute(t api.Builder, hookFunc logging.RegisterLogHookFunc) func(cmd
 	}
 }
 
-func loadEnvironment() map[string]string {
+func LoadEnvironment() map[string]string {
 	env := make(map[string]string)
 	for _, e := range os.Environ() {
 		keyAndValue := strings.SplitN(e, "=", 2)

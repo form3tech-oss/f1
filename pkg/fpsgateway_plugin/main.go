@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"github.com/form3tech-oss/f1/pkg/common_plugin"
+	"github.com/form3tech-oss/f1/pkg/f1/run"
 	"github.com/form3tech-oss/f1/pkg/f1/testing"
 	"github.com/form3tech-oss/f1/pkg/fpsgateway_plugin/scenarios"
 	"github.com/hashicorp/go-plugin"
@@ -29,7 +30,7 @@ func (g *ScenarioPlugin) GetScenarios() []string {
 
 func (g *ScenarioPlugin) SetupScenario(name string) error {
 	s := g.getScenarioByName(name)
-	s.t = testing.NewT(make(map[string]string), "0", "0", name)
+	s.t = testing.NewT(run.LoadEnvironment(), "0", "0", name)
 
 	s.runFn, s.teardownFn = s.setupFn(s.t)
 
@@ -42,7 +43,7 @@ func (g *ScenarioPlugin) SetupScenario(name string) error {
 
 func (g *ScenarioPlugin) RunScenarioIteration(name string) error {
 	s := g.getScenarioByName(name)
-	s.t = testing.NewT(make(map[string]string), "0", "0", name)
+	s.t = testing.NewT(run.LoadEnvironment(), "0", "0", name)
 
 	s.runFn(s.t)
 
