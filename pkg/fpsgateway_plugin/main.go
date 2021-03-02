@@ -2,16 +2,14 @@ package main
 
 import (
 	"errors"
-	"log"
-	"time"
 
 	"github.com/form3tech-oss/f1/pkg/common_plugin"
 	"github.com/form3tech-oss/f1/pkg/f1/testing"
+	"github.com/form3tech-oss/f1/pkg/fpsgateway_plugin/scenarios"
 	"github.com/hashicorp/go-plugin"
 )
 
-// Interface implementation
-type F1PluginFpsGateway struct {
+type ScenarioPlugin struct {
 	scenarios map[string]*scenario
 }
 
@@ -22,11 +20,7 @@ type scenario struct {
 	t          *testing.T
 }
 
-func (g *F1PluginFpsGateway) getScenarioByName(name string) *scenario {
-	return g.scenarios[name]
-}
-
-func (g *F1PluginFpsGateway) GetScenarios() []string {
+func (g *ScenarioPlugin) GetScenarios() []string {
 	var result []string
 	for name := range g.scenarios {
 		result = append(result, name)
@@ -34,11 +28,11 @@ func (g *F1PluginFpsGateway) GetScenarios() []string {
 	return result
 }
 
-func (g *F1PluginFpsGateway) SetupScenario(name string) error {
+func (g *ScenarioPlugin) SetupScenario(name string) error {
 	s := g.getScenarioByName(name)
 	s.t = testing.NewT(make(map[string]string), "virtual user", "iter", name)
 
-	s.runFn, s.teardownFn = setupFpsGatewayScenario(s.t)
+	s.runFn, s.teardownFn = s.setupFn(s.t)
 
 	if s.t.HasFailed() {
 		return errors.New("setup scenario failed")
@@ -47,7 +41,7 @@ func (g *F1PluginFpsGateway) SetupScenario(name string) error {
 	return nil
 }
 
-func (g *F1PluginFpsGateway) RunScenarioIteration(name string) error {
+func (g *ScenarioPlugin) RunScenarioIteration(name string) error {
 	s := g.getScenarioByName(name)
 	s.runFn(s.t)
 
@@ -58,7 +52,7 @@ func (g *F1PluginFpsGateway) RunScenarioIteration(name string) error {
 	return nil
 }
 
-func (g *F1PluginFpsGateway) StopScenario(name string) error {
+func (g *ScenarioPlugin) StopScenario(name string) error {
 	s := g.getScenarioByName(name)
 	s.teardownFn(s.t)
 
@@ -69,19 +63,8 @@ func (g *F1PluginFpsGateway) StopScenario(name string) error {
 	return nil
 }
 
-func setupFpsGatewayScenario(t *testing.T) (testing.RunFn, testing.TeardownFn) {
-	log.Println("setting up scenario inside plugin")
-
-	runFunc := func(t *testing.T) {
-		// assert.Fail(t, "I'm failing")
-		time.Sleep(50 * time.Millisecond)
-	}
-
-	teardownFunc := func(t *testing.T) {
-		log.Println("tearing down scenario inside plugin")
-	}
-
-	return runFunc, teardownFunc
+func (g *ScenarioPlugin) getScenarioByName(name string) *scenario {
+	return g.scenarios[name]
 }
 
 var handshakeConfig = plugin.HandshakeConfig{
@@ -90,16 +73,16 @@ var handshakeConfig = plugin.HandshakeConfig{
 	MagicCookieValue: "hello",
 }
 
-// Serve the FPS gateway plugin
+// Serve the f1 scenario plugin
 func main() {
-	f1PluginFpsGateway := &F1PluginFpsGateway{}
-	f1PluginFpsGateway.scenarios = make(map[string]*scenario)
-	f1PluginFpsGateway.scenarios["fpsGateway"] = &scenario{
-		setupFn: setupFpsGatewayScenario,
+	p := &ScenarioPlugin{}
+	p.scenarios = make(map[string]*scenario)
+	p.scenarios["fpsGatewayAdmission"] = &scenario{
+		setupFn: scenarios.AdmissionScenario,
 	}
 
 	pluginMap := map[string]plugin.Plugin{
-		"fpsgateway": &common_plugin.F1Plugin{Impl: f1PluginFpsGateway},
+		"fpsgateway": &common_plugin.F1Plugin{Impl: p},
 	}
 
 	plugin.Serve(&plugin.ServeConfig{
