@@ -7,6 +7,7 @@ import (
 	"github.com/form3tech-oss/f1/pkg/common_plugin"
 	"github.com/form3tech-oss/f1/pkg/f1/testing"
 	"github.com/hashicorp/go-plugin"
+	"github.com/stretchr/testify/assert"
 )
 
 var (
@@ -21,25 +22,27 @@ func (g *F1PluginFpsGateway) GetScenarios() []string {
 	return []string{"scenario 1", "scenario 2"}
 }
 
-func (g *F1PluginFpsGateway) SetupScenario(name string) {
+func (g *F1PluginFpsGateway) SetupScenario(name string) error {
 	runFunc, teardownFunc = setupFpsGatewayScenario(nil)
+	return nil
 }
 
-func (g *F1PluginFpsGateway) RunScenarioIteration(name string) {
+func (g *F1PluginFpsGateway) RunScenarioIteration(name string) error {
 	runFunc(nil)
+	return nil
 }
 
-func (g *F1PluginFpsGateway) StopScenario(name string) {
+func (g *F1PluginFpsGateway) StopScenario(name string) error {
 	teardownFunc(nil)
+	return nil
 }
 
 func setupFpsGatewayScenario(t *testing.T) (testing.RunFn, testing.TeardownFn) {
 	log.Println("setting up scenario inside plugin")
 
 	runFunc := func(t *testing.T) {
-		// log.Println("starting plugin iteration")
+		assert.Fail(t, "I'm failing")
 		time.Sleep(50 * time.Millisecond)
-		// log.Println("finished plugin iteration")
 	}
 
 	teardownFunc := func(t *testing.T) {

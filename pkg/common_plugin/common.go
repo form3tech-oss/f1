@@ -9,9 +9,9 @@ import (
 // Interface
 type F1PluginInterface interface {
 	GetScenarios() []string
-	SetupScenario(name string)        // Setup pool of go workers and run SetupFn
-	RunScenarioIteration(name string) // Run RunFn inside of go worker
-	StopScenario(name string)
+	SetupScenario(name string) error        // Setup pool of go workers and run SetupFn
+	RunScenarioIteration(name string) error // Run RunFn inside of go worker
+	StopScenario(name string) error
 }
 
 // F1 plugin
@@ -31,18 +31,15 @@ func (s *F1PluginRpcServer) GetScenarios(args interface{}, resp *[]string) error
 }
 
 func (s *F1PluginRpcServer) SetupScenario(args interface{}, resp *[]string) error {
-	s.Impl.SetupScenario("setupFpsGatewayScenario")
-	return nil
+	return s.Impl.SetupScenario("setupFpsGatewayScenario")
 }
 
 func (s *F1PluginRpcServer) RunScenarioIteration(args interface{}, resp *[]string) error {
-	s.Impl.RunScenarioIteration("setupFpsGatewayScenario")
-	return nil
+	return s.Impl.RunScenarioIteration("setupFpsGatewayScenario")
 }
 
 func (s *F1PluginRpcServer) StopScenario(args interface{}, resp *[]string) error {
-	s.Impl.StopScenario("setupFpsGatewayScenario")
-	return nil
+	return s.Impl.StopScenario("setupFpsGatewayScenario")
 }
 
 func (p *F1Plugin) Server(*plugin.MuxBroker) (interface{}, error) {
@@ -64,34 +61,43 @@ func (g *F1PluginRpcClient) GetScenarios() []string {
 	return resp
 }
 
-func (g *F1PluginRpcClient) SetupScenario(name string) {
-	var resp []string
-	err := g.client.Call("Plugin.SetupScenario", new(interface{}), &resp)
-	if err != nil {
+func (g *F1PluginRpcClient) SetupScenario(name string) error {
+	var err error
+
+	clientErr := g.client.Call("Plugin.SetupScenario", new(interface{}), &err)
+	if clientErr != nil {
 		// You usually want your interfaces to return errors. If they don't,
 		// there isn't much other choice here.
-		panic(err)
+		panic(clientErr)
 	}
+
+	return err
 }
 
-func (g *F1PluginRpcClient) RunScenarioIteration(name string) {
-	var resp []string
-	err := g.client.Call("Plugin.RunScenarioIteration", new(interface{}), &resp)
-	if err != nil {
+func (g *F1PluginRpcClient) RunScenarioIteration(name string) error {
+	var err error
+
+	clientErr := g.client.Call("Plugin.RunScenarioIteration", new(interface{}), &err)
+	if clientErr != nil {
 		// You usually want your interfaces to return errors. If they don't,
 		// there isn't much other choice here.
-		panic(err)
+		panic(clientErr)
 	}
+
+	return err
 }
 
-func (g *F1PluginRpcClient) StopScenario(name string) {
-	var resp []string
-	err := g.client.Call("Plugin.StopScenario", new(interface{}), &resp)
-	if err != nil {
+func (g *F1PluginRpcClient) StopScenario(name string) error {
+	var err error
+
+	clientErr := g.client.Call("Plugin.StopScenario", new(interface{}), &err)
+	if clientErr != nil {
 		// You usually want your interfaces to return errors. If they don't,
 		// there isn't much other choice here.
-		panic(err)
+		panic(clientErr)
 	}
+
+	return err
 }
 
 func (F1Plugin) Client(b *plugin.MuxBroker, c *rpc.Client) (interface{}, error) {

@@ -90,6 +90,7 @@ func (r *Run) Do() *RunResult {
 
 	metrics.Instance().Reset()
 	var setupSuccessful bool
+
 	r.activeScenario, setupSuccessful = testing.NewActiveScenarios(r.Options.Scenario, r.Options.Env, testing.GetScenario(r.Options.Scenario), 0)
 	r.pushMetrics()
 	fmt.Println(r.result.Setup())
@@ -171,6 +172,7 @@ func (r *Run) run() {
 
 	r.busyWorkers = int32(0)
 	workDone := make(chan bool, workers)
+
 	for i := 0; i < workers; i++ {
 		wg.Add(1)
 		go r.runWorker(doWorkChannel, stopWorkers, wg, fmt.Sprint(i), workDone)
@@ -307,12 +309,14 @@ func (r *Run) runWorker(input <-chan int32, stop <-chan struct{}, wg *sync.WaitG
 		case iteration := <-input:
 			trace.Event("Received work (%v) from Channel 'doWork' iteration (%v)", worker, iteration)
 			atomic.AddInt32(&r.busyWorkers, 1)
+
 			for _, stage := range r.activeScenario.Stages {
 				successful := r.activeScenario.Run(metrics.IterationResult, stage.Name, worker, fmt.Sprint(iteration), stage.RunFn)
 				if !successful {
 					atomic.AddInt32(&r.failures, 1)
 				}
 			}
+
 			atomic.AddInt32(&r.busyWorkers, -1)
 
 			// if we need to stop - no one is listening for workDone,
