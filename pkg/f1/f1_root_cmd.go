@@ -44,9 +44,16 @@ func buildRootCmd() *cobra.Command {
 }
 
 func Execute() {
-	client, p := common_plugin.Launch()
-	plugin.RegisterPlugin(p)
-	defer client.Kill()
+	pluginsPaths := []string{
+		"./pkg/fpsgateway_plugin/fpsgateway",
+		"./pkg/paymentapi_plugin/payment_api",
+	}
+
+	for _, path := range pluginsPaths {
+		client, p := common_plugin.Launch(path)
+		defer client.Kill()
+		plugin.RegisterPlugin(p)
+	}
 
 	if err := buildRootCmd().Execute(); err != nil {
 		writeProfiles()
@@ -90,7 +97,7 @@ func writeProfiles() {
 }
 
 func ExecuteWithArgs(args []string) error {
-	client, p := common_plugin.Launch()
+	client, p := common_plugin.Launch("./pkg/fpsgateway_plugin/fpsgateway")
 	plugin.RegisterPlugin(p)
 	defer client.Kill()
 

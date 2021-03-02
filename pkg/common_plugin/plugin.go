@@ -15,15 +15,15 @@ var handshakeConfig = plugin.HandshakeConfig{
 
 // pluginMap is the map of plugins we can dispense.
 var pluginMap = map[string]plugin.Plugin{
-	"fpsgateway": &F1Plugin{},
+	"scenarioplugin": &F1Plugin{},
 }
 
-func Launch() (*plugin.Client, F1PluginInterface) {
+func Launch(pluginPath string) (*plugin.Client, F1PluginInterface) {
 	// We're a host! Start by launching the plugin process.
 	client := plugin.NewClient(&plugin.ClientConfig{
 		HandshakeConfig: handshakeConfig,
 		Plugins:         pluginMap,
-		Cmd:             exec.Command("./pkg/fpsgateway_plugin/fpsgateway"),
+		Cmd:             exec.Command(pluginPath),
 	})
 
 	// Connect via RPC
@@ -33,7 +33,7 @@ func Launch() (*plugin.Client, F1PluginInterface) {
 	}
 
 	// Request the plugin
-	raw, err := rpcClient.Dispense("fpsgateway")
+	raw, err := rpcClient.Dispense("scenarioplugin")
 	if err != nil {
 		log.Fatal(err)
 	}

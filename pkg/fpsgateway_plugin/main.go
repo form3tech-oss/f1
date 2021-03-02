@@ -84,7 +84,7 @@ func main() {
 	}
 
 	pluginMap := map[string]plugin.Plugin{
-		"fpsgateway": &common_plugin.F1Plugin{Impl: p},
+		"scenarioplugin": &common_plugin.F1Plugin{Impl: p},
 	}
 
 	plugin.Serve(&plugin.ServeConfig{
