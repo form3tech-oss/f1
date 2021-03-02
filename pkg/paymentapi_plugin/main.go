@@ -29,7 +29,7 @@ func (g *ScenarioPlugin) GetScenarios() []string {
 
 func (g *ScenarioPlugin) SetupScenario(name string) error {
 	s := g.getScenarioByName(name)
-	s.t = testing.NewT(make(map[string]string), "virtual user", "iter", name)
+	s.t = testing.NewT(make(map[string]string), "0", "0", name)
 
 	s.runFn, s.teardownFn = s.setupFn(s.t)
 
@@ -42,6 +42,8 @@ func (g *ScenarioPlugin) SetupScenario(name string) error {
 
 func (g *ScenarioPlugin) RunScenarioIteration(name string) error {
 	s := g.getScenarioByName(name)
+	s.t = testing.NewT(make(map[string]string), "0", "0", name)
+
 	s.runFn(s.t)
 
 	if s.t.HasFailed() {
