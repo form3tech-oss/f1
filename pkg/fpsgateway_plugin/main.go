@@ -1,16 +1,17 @@
 package main
 
 import (
+	"errors"
 	"log"
 	"time"
 
 	"github.com/form3tech-oss/f1/pkg/common_plugin"
 	"github.com/form3tech-oss/f1/pkg/f1/testing"
 	"github.com/hashicorp/go-plugin"
-	"github.com/stretchr/testify/assert"
 )
 
 var (
+	t            *testing.T
 	runFunc      testing.RunFn
 	teardownFunc testing.TeardownFn
 )
@@ -23,17 +24,34 @@ func (g *F1PluginFpsGateway) GetScenarios() []string {
 }
 
 func (g *F1PluginFpsGateway) SetupScenario(name string) error {
-	runFunc, teardownFunc = setupFpsGatewayScenario(nil)
+	t = testing.NewT(make(map[string]string), "virtual user", "iter", name)
+
+	runFunc, teardownFunc = setupFpsGatewayScenario(t)
+
+	if t.HasFailed() {
+		return errors.New("setup scenario failed")
+	}
+
 	return nil
 }
 
 func (g *F1PluginFpsGateway) RunScenarioIteration(name string) error {
-	runFunc(nil)
+	runFunc(t)
+
+	if t.HasFailed() {
+		return errors.New("iteration failed")
+	}
+
 	return nil
 }
 
 func (g *F1PluginFpsGateway) StopScenario(name string) error {
-	teardownFunc(nil)
+	teardownFunc(t)
+
+	if t.HasFailed() {
+		return errors.New("stop scenario failed")
+	}
+
 	return nil
 }
 
@@ -41,7 +59,7 @@ func setupFpsGatewayScenario(t *testing.T) (testing.RunFn, testing.TeardownFn) {
 	log.Println("setting up scenario inside plugin")
 
 	runFunc := func(t *testing.T) {
-		assert.Fail(t, "I'm failing")
+		// assert.Fail(t, "I'm failing")
 		time.Sleep(50 * time.Millisecond)
 	}
 

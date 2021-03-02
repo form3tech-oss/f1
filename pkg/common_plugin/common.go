@@ -64,7 +64,7 @@ func (g *F1PluginRpcClient) GetScenarios() []string {
 func (g *F1PluginRpcClient) SetupScenario(name string) error {
 	var err error
 
-	clientErr := g.client.Call("Plugin.SetupScenario", new(interface{}), &err)
+	clientErr := g.client.Call("Plugin.SetupScenario", new(interface{}), err)
 	if clientErr != nil {
 		// You usually want your interfaces to return errors. If they don't,
 		// there isn't much other choice here.
@@ -77,7 +77,7 @@ func (g *F1PluginRpcClient) SetupScenario(name string) error {
 func (g *F1PluginRpcClient) RunScenarioIteration(name string) error {
 	var err error
 
-	clientErr := g.client.Call("Plugin.RunScenarioIteration", new(interface{}), &err)
+	clientErr := g.client.Call("Plugin.RunScenarioIteration", new(interface{}), err)
 	if clientErr != nil {
 		// You usually want your interfaces to return errors. If they don't,
 		// there isn't much other choice here.
@@ -90,7 +90,7 @@ func (g *F1PluginRpcClient) RunScenarioIteration(name string) error {
 func (g *F1PluginRpcClient) StopScenario(name string) error {
 	var err error
 
-	clientErr := g.client.Call("Plugin.StopScenario", new(interface{}), &err)
+	clientErr := g.client.Call("Plugin.StopScenario", new(interface{}), err)
 	if clientErr != nil {
 		// You usually want your interfaces to return errors. If they don't,
 		// there isn't much other choice here.
