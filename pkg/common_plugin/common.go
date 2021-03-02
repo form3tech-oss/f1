@@ -1,13 +1,17 @@
 package common_plugin
 
 import (
-	"github.com/hashicorp/go-plugin"
 	"net/rpc"
+
+	"github.com/hashicorp/go-plugin"
 )
 
 // Interface
 type F1PluginInterface interface {
 	GetScenarios() []string
+	SetupScenario(name string)        // Setup pool of go workers and run SetupFn
+	RunScenarioIteration(name string) // Run RunFn inside of go worker
+	StopScenario(name string)
 }
 
 // F1 plugin
@@ -23,6 +27,21 @@ type F1PluginRpcServer struct {
 
 func (s *F1PluginRpcServer) GetScenarios(args interface{}, resp *[]string) error {
 	*resp = s.Impl.GetScenarios()
+	return nil
+}
+
+func (s *F1PluginRpcServer) SetupScenario(args interface{}, resp *[]string) error {
+	s.Impl.SetupScenario("setupFpsGatewayScenario")
+	return nil
+}
+
+func (s *F1PluginRpcServer) RunScenarioIteration(args interface{}, resp *[]string) error {
+	s.Impl.RunScenarioIteration("setupFpsGatewayScenario")
+	return nil
+}
+
+func (s *F1PluginRpcServer) StopScenario(args interface{}, resp *[]string) error {
+	s.Impl.StopScenario("setupFpsGatewayScenario")
 	return nil
 }
 
@@ -43,6 +62,36 @@ func (g *F1PluginRpcClient) GetScenarios() []string {
 	}
 
 	return resp
+}
+
+func (g *F1PluginRpcClient) SetupScenario(name string) {
+	var resp []string
+	err := g.client.Call("Plugin.SetupScenario", new(interface{}), &resp)
+	if err != nil {
+		// You usually want your interfaces to return errors. If they don't,
+		// there isn't much other choice here.
+		panic(err)
+	}
+}
+
+func (g *F1PluginRpcClient) RunScenarioIteration(name string) {
+	var resp []string
+	err := g.client.Call("Plugin.RunScenarioIteration", new(interface{}), &resp)
+	if err != nil {
+		// You usually want your interfaces to return errors. If they don't,
+		// there isn't much other choice here.
+		panic(err)
+	}
+}
+
+func (g *F1PluginRpcClient) StopScenario(name string) {
+	var resp []string
+	err := g.client.Call("Plugin.StopScenario", new(interface{}), &resp)
+	if err != nil {
+		// You usually want your interfaces to return errors. If they don't,
+		// there isn't much other choice here.
+		panic(err)
+	}
 }
 
 func (F1Plugin) Client(b *plugin.MuxBroker, c *rpc.Client) (interface{}, error) {
