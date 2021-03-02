@@ -8,7 +8,9 @@ import (
 
 	"github.com/form3tech-oss/f1/internal/support/errorh"
 
+	"github.com/form3tech-oss/f1/pkg/common_plugin"
 	"github.com/form3tech-oss/f1/pkg/f1/fluentd_hook"
+	"github.com/form3tech-oss/f1/pkg/f1/plugin"
 
 	"github.com/form3tech-oss/f1/pkg/f1/scenarios"
 
@@ -42,6 +44,10 @@ func buildRootCmd() *cobra.Command {
 }
 
 func Execute() {
+	client, p := common_plugin.Launch()
+	plugin.RegisterPlugin(p)
+	defer client.Kill()
+
 	if err := buildRootCmd().Execute(); err != nil {
 		writeProfiles()
 		fmt.Println(err)
@@ -84,6 +90,10 @@ func writeProfiles() {
 }
 
 func ExecuteWithArgs(args []string) error {
+	client, p := common_plugin.Launch()
+	plugin.RegisterPlugin(p)
+	defer client.Kill()
+
 	rootCmd := buildRootCmd()
 	rootCmd.SetArgs(args)
 	err := rootCmd.Execute()
