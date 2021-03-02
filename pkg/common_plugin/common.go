@@ -30,16 +30,16 @@ func (s *F1PluginRpcServer) GetScenarios(args interface{}, resp *[]string) error
 	return nil
 }
 
-func (s *F1PluginRpcServer) SetupScenario(args interface{}, resp *[]string) error {
-	return s.Impl.SetupScenario("setupFpsGatewayScenario")
+func (s *F1PluginRpcServer) SetupScenario(name string, resp *[]string) error {
+	return s.Impl.SetupScenario(name)
 }
 
-func (s *F1PluginRpcServer) RunScenarioIteration(args interface{}, resp *[]string) error {
-	return s.Impl.RunScenarioIteration("setupFpsGatewayScenario")
+func (s *F1PluginRpcServer) RunScenarioIteration(name string, resp *[]string) error {
+	return s.Impl.RunScenarioIteration(name)
 }
 
-func (s *F1PluginRpcServer) StopScenario(args interface{}, resp *[]string) error {
-	return s.Impl.StopScenario("setupFpsGatewayScenario")
+func (s *F1PluginRpcServer) StopScenario(name string, resp *[]string) error {
+	return s.Impl.StopScenario(name)
 }
 
 func (p *F1Plugin) Server(*plugin.MuxBroker) (interface{}, error) {
@@ -64,7 +64,7 @@ func (g *F1PluginRpcClient) GetScenarios() []string {
 func (g *F1PluginRpcClient) SetupScenario(name string) error {
 	var err error
 
-	clientErr := g.client.Call("Plugin.SetupScenario", new(interface{}), err)
+	clientErr := g.client.Call("Plugin.SetupScenario", name, err)
 	if clientErr != nil {
 		// You usually want your interfaces to return errors. If they don't,
 		// there isn't much other choice here.
@@ -77,7 +77,7 @@ func (g *F1PluginRpcClient) SetupScenario(name string) error {
 func (g *F1PluginRpcClient) RunScenarioIteration(name string) error {
 	var err error
 
-	clientErr := g.client.Call("Plugin.RunScenarioIteration", new(interface{}), err)
+	clientErr := g.client.Call("Plugin.RunScenarioIteration", name, err)
 	if clientErr != nil {
 		// You usually want your interfaces to return errors. If they don't,
 		// there isn't much other choice here.
@@ -90,7 +90,7 @@ func (g *F1PluginRpcClient) RunScenarioIteration(name string) error {
 func (g *F1PluginRpcClient) StopScenario(name string) error {
 	var err error
 
-	clientErr := g.client.Call("Plugin.StopScenario", new(interface{}), err)
+	clientErr := g.client.Call("Plugin.StopScenario", name, err)
 	if clientErr != nil {
 		// You usually want your interfaces to return errors. If they don't,
 		// there isn't much other choice here.

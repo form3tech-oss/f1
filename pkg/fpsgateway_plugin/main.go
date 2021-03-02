@@ -10,25 +10,37 @@ import (
 	"github.com/hashicorp/go-plugin"
 )
 
-var (
-	t            *testing.T
-	runFunc      testing.RunFn
-	teardownFunc testing.TeardownFn
-)
-
 // Interface implementation
-type F1PluginFpsGateway struct{}
+type F1PluginFpsGateway struct {
+	scenarios map[string]*scenario
+}
+
+type scenario struct {
+	setupFn    testing.SetupFn
+	runFn      testing.RunFn
+	teardownFn testing.TeardownFn
+	t          *testing.T
+}
+
+func (g *F1PluginFpsGateway) getScenarioByName(name string) *scenario {
+	return g.scenarios[name]
+}
 
 func (g *F1PluginFpsGateway) GetScenarios() []string {
-	return []string{"scenario 1", "scenario 2"}
+	var result []string
+	for name := range g.scenarios {
+		result = append(result, name)
+	}
+	return result
 }
 
 func (g *F1PluginFpsGateway) SetupScenario(name string) error {
-	t = testing.NewT(make(map[string]string), "virtual user", "iter", name)
+	s := g.getScenarioByName(name)
+	s.t = testing.NewT(make(map[string]string), "virtual user", "iter", name)
 
-	runFunc, teardownFunc = setupFpsGatewayScenario(t)
+	s.runFn, s.teardownFn = setupFpsGatewayScenario(s.t)
 
-	if t.HasFailed() {
+	if s.t.HasFailed() {
 		return errors.New("setup scenario failed")
 	}
 
@@ -36,9 +48,10 @@ func (g *F1PluginFpsGateway) SetupScenario(name string) error {
 }
 
 func (g *F1PluginFpsGateway) RunScenarioIteration(name string) error {
-	runFunc(t)
+	s := g.getScenarioByName(name)
+	s.runFn(s.t)
 
-	if t.HasFailed() {
+	if s.t.HasFailed() {
 		return errors.New("iteration failed")
 	}
 
@@ -46,9 +59,10 @@ func (g *F1PluginFpsGateway) RunScenarioIteration(name string) error {
 }
 
 func (g *F1PluginFpsGateway) StopScenario(name string) error {
-	teardownFunc(t)
+	s := g.getScenarioByName(name)
+	s.teardownFn(s.t)
 
-	if t.HasFailed() {
+	if s.t.HasFailed() {
 		return errors.New("stop scenario failed")
 	}
 
@@ -79,6 +93,10 @@ var handshakeConfig = plugin.HandshakeConfig{
 // Serve the FPS gateway plugin
 func main() {
 	f1PluginFpsGateway := &F1PluginFpsGateway{}
+	f1PluginFpsGateway.scenarios = make(map[string]*scenario)
+	f1PluginFpsGateway.scenarios["fpsGateway"] = &scenario{
+		setupFn: setupFpsGatewayScenario,
+	}
 
 	pluginMap := map[string]plugin.Plugin{
 		"fpsgateway": &common_plugin.F1Plugin{Impl: f1PluginFpsGateway},

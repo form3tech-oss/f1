@@ -11,7 +11,7 @@ var (
 
 func RegisterPlugin(p common_plugin.F1PluginInterface) {
 	plugins = append(plugins, p)
-	registerScenarios()
+	registerScenarios(p)
 }
 
 func ActivePlugins() []common_plugin.F1PluginInterface {
@@ -22,21 +22,22 @@ func GetPlugin() common_plugin.F1PluginInterface {
 	return plugins[0]
 }
 
-func registerScenarios() {
-	setupFn := func(t *testing.T) (testing.RunFn, testing.TeardownFn) {
-		p := GetPlugin()
-		p.SetupScenario("dummy")
+func registerScenarios(p common_plugin.F1PluginInterface) {
+	for _, s := range p.GetScenarios() {
+		setupFn := func(t *testing.T) (testing.RunFn, testing.TeardownFn) {
+			p.SetupScenario(s)
 
-		runFn := func(t *testing.T) {
-			p.RunScenarioIteration("dummy")
+			runFn := func(t *testing.T) {
+				p.RunScenarioIteration(s)
+			}
+
+			teardownFn := func(t *testing.T) {
+				p.StopScenario(s)
+			}
+
+			return runFn, teardownFn
 		}
 
-		teardownFn := func(t *testing.T) {
-			p.StopScenario("dummy")
-		}
-
-		return runFn, teardownFn
+		testing.Add(s, setupFn)
 	}
-
-	testing.Add("dummy", setupFn)
 }
