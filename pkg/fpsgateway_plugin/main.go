@@ -2,7 +2,6 @@ package main
 
 import (
 	"errors"
-
 	"github.com/form3tech-oss/f1/pkg/common_plugin"
 	"github.com/form3tech-oss/f1/pkg/f1/testing"
 	"github.com/form3tech-oss/f1/pkg/fpsgateway_plugin/scenarios"
@@ -79,6 +78,9 @@ func main() {
 	p.scenarios = make(map[string]*scenario)
 	p.scenarios["fpsGatewayAdmission"] = &scenario{
 		setupFn: scenarios.AdmissionScenario,
+	}
+	p.scenarios["fpsGatewaySubmission"] = &scenario{
+		setupFn: scenarios.SubmissionScenario,
 	}
 
 	pluginMap := map[string]plugin.Plugin{

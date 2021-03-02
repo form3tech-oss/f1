@@ -7,20 +7,21 @@ import (
 
 func RegisterPlugin(p common_plugin.F1PluginInterface) {
 	for _, scenarioName := range p.GetScenarios() {
+		copyScenario := scenarioName
 		setupFn := func(t *testing.T) (testing.RunFn, testing.TeardownFn) {
-			p.SetupScenario(scenarioName)
+			p.SetupScenario(copyScenario)
 
 			runFn := func(t *testing.T) {
-				p.RunScenarioIteration(scenarioName)
+				p.RunScenarioIteration(copyScenario)
 			}
 
 			teardownFn := func(t *testing.T) {
-				p.StopScenario(scenarioName)
+				p.StopScenario(copyScenario)
 			}
 
 			return runFn, teardownFn
 		}
 
-		testing.Add(scenarioName, setupFn)
+		testing.Add(copyScenario, setupFn)
 	}
 }

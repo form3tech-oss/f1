@@ -6,6 +6,7 @@ import (
 
 // Run f1
 // TODOS:
+// - check multiple scenarios implementation - done
 // - check multiple plugins implementation
 func main() {
 	f1.Execute()

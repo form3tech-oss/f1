@@ -17,3 +17,15 @@ func AdmissionScenario(t *testing.T) (testing.RunFn, testing.TeardownFn) {
 
 	return runFunc, teardownFunc
 }
+
+func SubmissionScenario(t *testing.T) (testing.RunFn, testing.TeardownFn) {
+	runFunc := func(t *testing.T) {
+		// assert.Fail(t, "I'm failing")
+		time.Sleep(10 * time.Millisecond)
+	}
+
+	teardownFunc := func(t *testing.T) {
+	}
+
+	return runFunc, teardownFunc
+}
