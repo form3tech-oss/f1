@@ -2,9 +2,9 @@ package scenarios
 
 import (
 	"fmt"
+	"github.com/form3tech-oss/f1/pkg/f1/testing"
 	"sort"
 
-	"github.com/form3tech-oss/f1/pkg/f1/plugin"
 	"github.com/spf13/cobra"
 )
 
@@ -27,12 +27,10 @@ func lsCmd() *cobra.Command {
 
 func lsCmdExecute() func(*cobra.Command, []string) {
 	return func(cmd *cobra.Command, args []string) {
-		for _, p := range plugin.ActivePlugins() {
-			scenarios := p.GetScenarios()
-			sort.Strings(scenarios)
-			for _, scenario := range scenarios {
-				fmt.Println(scenario)
-			}
+		scenarios := testing.GetScenarioNames()
+		sort.Strings(scenarios)
+		for _, scenario := range scenarios {
+			fmt.Println(scenario)
 		}
 	}
 }

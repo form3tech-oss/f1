@@ -5,6 +5,8 @@ import (
 )
 
 // Run f1
+// TODOS:
+// - check multiple plugins implementation
 func main() {
 	f1.Execute()
 }
