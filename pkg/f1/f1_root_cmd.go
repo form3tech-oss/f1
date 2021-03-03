@@ -8,7 +8,6 @@ import (
 
 	"github.com/form3tech-oss/f1/internal/support/errorh"
 
-	"github.com/form3tech-oss/f1/pkg/common_plugin"
 	"github.com/form3tech-oss/f1/pkg/f1/fluentd_hook"
 	"github.com/form3tech-oss/f1/pkg/f1/plugin"
 
@@ -44,16 +43,14 @@ func buildRootCmd() *cobra.Command {
 }
 
 func Execute() {
-	pluginsPaths := []string{
-		"./pkg/fpsgateway_plugin/fpsgateway",
-		"./pkg/paymentapi_plugin/payment_api",
+	shutdown, err := plugin.LaunchAll()
+	if err != nil {
+		writeProfiles()
+		fmt.Println(err)
+		os.Exit(1)
 	}
 
-	for _, path := range pluginsPaths {
-		client, p := common_plugin.Launch(path)
-		defer client.Kill()
-		plugin.RegisterPlugin(p)
-	}
+	defer shutdown()
 
 	if err := buildRootCmd().Execute(); err != nil {
 		writeProfiles()
@@ -97,13 +94,17 @@ func writeProfiles() {
 }
 
 func ExecuteWithArgs(args []string) error {
-	client, p := common_plugin.Launch("./pkg/fpsgateway_plugin/fpsgateway")
-	plugin.RegisterPlugin(p)
-	defer client.Kill()
+	shutdown, err := plugin.LaunchAll()
+	if err != nil {
+		writeProfiles()
+		return err
+	}
+
+	defer shutdown()
 
 	rootCmd := buildRootCmd()
 	rootCmd.SetArgs(args)
-	err := rootCmd.Execute()
+	err = rootCmd.Execute()
 	writeProfiles()
 	return err
 }
