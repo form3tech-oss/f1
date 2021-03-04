@@ -18,19 +18,17 @@ type T struct {
 	// Iteration number, "setup" or "teardown"
 	Iteration string
 	// Logger with user and iteration tags
-	Log         *log.Logger
-	failed      int64
-	Require     *require.Assertions
-	Environment map[string]string
-	Scenario    string
+	Log      *log.Logger
+	failed   int64
+	Require  *require.Assertions
+	Scenario string
 }
 
-func NewT(env map[string]string, vu, iter string, scenarioName string) *T {
+func NewT(vu, iter string, scenarioName string) *T {
 	t := &T{
 		VirtualUser: vu,
 		Iteration:   iter,
 		Log:         log.WithField("u", vu).WithField("i", iter).WithField("scenario", scenarioName).Logger,
-		Environment: env,
 		Scenario:    scenarioName,
 	}
 	t.Require = require.New(t)
