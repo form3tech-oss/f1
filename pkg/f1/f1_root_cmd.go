@@ -1,10 +1,13 @@
 package f1
 
 import (
+	"crypto/tls"
 	"fmt"
+	"net/http"
 	"os"
 	"runtime"
 	"runtime/pprof"
+	"time"
 
 	"github.com/form3tech-oss/f1/internal/support/errorh"
 
@@ -42,6 +45,7 @@ func buildRootCmd() *cobra.Command {
 }
 
 func Execute() {
+	configureHttpDefaults()
 	if err := buildRootCmd().Execute(); err != nil {
 		writeProfiles()
 		fmt.Println(err)
@@ -84,9 +88,22 @@ func writeProfiles() {
 }
 
 func ExecuteWithArgs(args []string) error {
+	configureHttpDefaults()
 	rootCmd := buildRootCmd()
 	rootCmd.SetArgs(args)
 	err := rootCmd.Execute()
 	writeProfiles()
 	return err
+}
+
+func configureHttpDefaults() {
+	runtime.GOMAXPROCS(48)
+
+	// disable TLS verification to reduce performance impact of this load test server
+	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true} // #nosec  G402 (CWE-295): TLS InsecureSkipVerify set true
+	http.DefaultTransport.(*http.Transport).MaxConnsPerHost = 0
+	http.DefaultTransport.(*http.Transport).MaxIdleConns = 1000
+	http.DefaultTransport.(*http.Transport).MaxIdleConnsPerHost = 1000
+	http.DefaultTransport.(*http.Transport).TLSHandshakeTimeout = 1 * time.Minute
+	http.DefaultTransport.(*http.Transport).ExpectContinueTimeout = 1 * time.Minute
 }
