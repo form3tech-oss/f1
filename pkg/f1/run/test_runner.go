@@ -306,7 +306,7 @@ func (r *Run) runWorker(input <-chan int32, stop <-chan struct{}, wg *sync.WaitG
 			trace.Event("Received work (%v) from Channel 'doWork' iteration (%v)", worker, iteration)
 			atomic.AddInt32(&r.busyWorkers, 1)
 			for _, stage := range r.activeScenario.Stages {
-				successful := r.activeScenario.Run(metrics.IterationResult, stage.Name, worker, fmt.Sprint(iteration), stage.RunFn)
+				successful := r.activeScenario.Run(metrics.IterationResult, stage.Name, worker, fmt.Sprintf("iteration %d", iteration), stage.RunFn)
 				if !successful {
 					atomic.AddInt32(&r.failures, 1)
 				}

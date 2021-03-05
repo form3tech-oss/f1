@@ -66,7 +66,7 @@ func checkResults(t *T, done chan<- struct{}) {
 			t.FailWithError(err)
 			debug.PrintStack()
 		} else {
-			t.Errorf("panic in test iteration: %v", err)
+			t.Errorf("panic in %s: %v", t.Iteration, err)
 		}
 	}
 	close(done)

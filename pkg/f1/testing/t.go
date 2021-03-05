@@ -44,18 +44,18 @@ func (t *T) Errorf(format string, args ...interface{}) {
 
 func (t *T) FailNow() {
 	atomic.StoreInt64(&t.failed, int64(1))
-	t.Log.Errorf("test failed and stopped")
+	t.Log.Errorf("%s failed and stopped", t.Iteration)
 	runtime.Goexit()
 }
 
 func (t *T) Fail() {
 	atomic.StoreInt64(&t.failed, int64(1))
-	t.Log.Errorf("test failed")
+	t.Log.Errorf("%s failed", t.Iteration)
 }
 
 func (t *T) FailWithError(err error) {
 	atomic.StoreInt64(&t.failed, int64(1))
-	t.Log.WithError(err).Errorf("test failed due to %s", err.Error())
+	t.Log.WithError(err).Errorf("%s failed due to %s", t.Iteration, err.Error())
 }
 
 func (t *T) HasFailed() bool {
