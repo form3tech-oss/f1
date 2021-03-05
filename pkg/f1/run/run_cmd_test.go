@@ -239,8 +239,8 @@ func TestParameterised(t *testing.T) {
 		{
 			name:                   "users test slow iterations",
 			triggerType:            Users,
-			testDuration:           2 * time.Second,
-			expectedRunTime:        2 * time.Second,
+			testDuration:           1900 * time.Millisecond,
+			expectedRunTime:        1900 * time.Millisecond,
 			expectedCompletedTests: 10,
 			concurrency:            10,
 			iterationDuration:      2 * time.Second,
@@ -248,8 +248,8 @@ func TestParameterised(t *testing.T) {
 		{
 			name:                   "users test normal iterations",
 			triggerType:            Users,
-			testDuration:           2 * time.Second,
-			expectedRunTime:        2 * time.Second,
+			testDuration:           1900 * time.Millisecond,
+			expectedRunTime:        1900 * time.Millisecond,
 			expectedCompletedTests: 20,
 			concurrency:            10,
 			iterationDuration:      1 * time.Second,
@@ -257,8 +257,8 @@ func TestParameterised(t *testing.T) {
 		{
 			name:                   "users test fast iterations",
 			triggerType:            Users,
-			testDuration:           2 * time.Second,
-			expectedRunTime:        2 * time.Second,
+			testDuration:           1900 * time.Millisecond,
+			expectedRunTime:        1900 * time.Millisecond,
 			expectedCompletedTests: 40,
 			concurrency:            10,
 			iterationDuration:      500 * time.Millisecond,

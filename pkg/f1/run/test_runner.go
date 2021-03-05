@@ -31,6 +31,8 @@ import (
 	"github.com/form3tech-oss/f1/pkg/f1/testing"
 )
 
+const NextIterationWindow = 10 * time.Millisecond
+
 func NewRun(options options.RunOptions, t *api.Trigger) (*Run, error) {
 	run := Run{
 		Options:         options,
@@ -168,7 +170,7 @@ func (r *Run) run() {
 	}
 
 	// Cancel work slightly before end of duration to avoid starting a new iteration
-	durationElapsed := testing.NewCancellableTimer(duration - 10*time.Millisecond)
+	durationElapsed := testing.NewCancellableTimer(duration - NextIterationWindow)
 	r.result.RecordStarted()
 	defer r.result.RecordTestFinished()
 

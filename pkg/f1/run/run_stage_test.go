@@ -257,7 +257,7 @@ func (s *RunTestStage) setup_teardown_is_called() *RunTestStage {
 }
 
 func (s *RunTestStage) iteration_teardown_is_called_n_times(n int32) *RunTestStage {
-	s.assert.Equal(atomic.LoadInt32(s.iterationTeardownCount), n)
+	s.assert.Equal(n, atomic.LoadInt32(s.iterationTeardownCount))
 	return s
 }
 
