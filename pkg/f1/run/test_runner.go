@@ -81,7 +81,7 @@ var startTemplate = template.Must(template.New("result parse").
 Running {yellow}{{.Options.Scenario}}{-} scenario for {{if .Options.MaxIterations}}up to {{.Options.MaxIterations}} iterations or up to {{end}}{{duration .Options.MaxDuration}} at a rate of {{.RateDescription}}.
 `))
 
-func (r *Run) Do() *RunResult {
+func (r *Run) Do(s *testing.Scenarios) *RunResult {
 	fmt.Print(renderTemplate(startTemplate, r))
 	defer r.printSummary()
 	defer r.printLogOnFailure()
@@ -90,7 +90,7 @@ func (r *Run) Do() *RunResult {
 
 	metrics.Instance().Reset()
 	var setupSuccessful bool
-	r.activeScenario, setupSuccessful = testing.NewActiveScenarios(r.Options.Scenario, testing.GetScenario(r.Options.Scenario), 0)
+	r.activeScenario, setupSuccessful = testing.NewActiveScenarios(r.Options.Scenario, s.GetScenario(r.Options.Scenario), 0)
 	r.pushMetrics()
 	fmt.Println(r.result.Setup())
 

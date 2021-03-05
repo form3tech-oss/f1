@@ -4,22 +4,23 @@ import (
 	"os"
 
 	"github.com/form3tech-oss/f1/internal/support/errorh"
+	"github.com/form3tech-oss/f1/pkg/f1/testing"
 
 	"github.com/spf13/cobra"
 )
 
-func completionsCmd() *cobra.Command {
+func completionsCmd(s *testing.Scenarios, p *profiling) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "generate",
 		Short: "Generates shell completions",
 	}
-	cmd.AddCommand(bashCmd())
-	cmd.AddCommand(zshCmd())
-	cmd.AddCommand(fishCmd())
+	cmd.AddCommand(bashCmd(s, p))
+	cmd.AddCommand(zshCmd(s, p))
+	cmd.AddCommand(fishCmd(s, p))
 	return cmd
 }
 
-func bashCmd() *cobra.Command {
+func bashCmd(s *testing.Scenarios, p *profiling) *cobra.Command {
 	return &cobra.Command{
 		Use:   "bash",
 		Short: "Generates bash completion scripts",
@@ -33,11 +34,11 @@ To configure your bash shell to load completions for each session add to your ba
 . <(f1 completion)
 `,
 		Run: func(cmd *cobra.Command, args []string) {
-			errorh.Print(buildRootCmd().GenBashCompletion(os.Stdout), "error generating bash completion")
+			errorh.Print(buildRootCmd(s, p).GenBashCompletion(os.Stdout), "error generating bash completion")
 		},
 	}
 }
-func zshCmd() *cobra.Command {
+func zshCmd(s *testing.Scenarios, p *profiling) *cobra.Command {
 	return &cobra.Command{
 		Use:   "zsh",
 		Short: "Generates zsh completion scripts",
@@ -46,19 +47,19 @@ func zshCmd() *cobra.Command {
 . <(f1 completion)
 `,
 		Run: func(cmd *cobra.Command, args []string) {
-			errorh.Print(buildRootCmd().GenZshCompletion(os.Stdout), "error generating zsh completion")
+			errorh.Print(buildRootCmd(s, p).GenZshCompletion(os.Stdout), "error generating zsh completion")
 		},
 	}
 }
 
-func fishCmd() *cobra.Command {
+func fishCmd(s *testing.Scenarios, p *profiling) *cobra.Command {
 	return &cobra.Command{
 		Use:   "fish",
 		Short: "Generates fish completion scripts",
 		Long: `To define completions run
 ./f1 completions fish >  ~/.config/fish/completions/f1.fish`,
 		Run: func(cmd *cobra.Command, args []string) {
-			errorh.Print(buildRootCmd().GenFishCompletion(os.Stdout, true), "error generating fish completion")
+			errorh.Print(buildRootCmd(s, p).GenFishCompletion(os.Stdout, true), "error generating fish completion")
 		},
 	}
 }

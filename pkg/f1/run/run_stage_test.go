@@ -125,7 +125,7 @@ func (s *RunTestStage) i_execute_the_run_command() *RunTestStage {
 		s.runResult = (&RunResult{}).AddError(err)
 		return s
 	}
-	s.runResult = run.Do()
+	s.runResult = run.Do(f1_testing.New())
 	return s
 }
 

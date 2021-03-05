@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/form3tech-oss/f1/pkg/f1/options"
+	"github.com/form3tech-oss/f1/pkg/f1/testing"
 
 	"github.com/pkg/errors"
 
@@ -12,11 +13,11 @@ import (
 
 	"github.com/form3tech-oss/f1/pkg/f1/trigger/api"
 
-	"github.com/form3tech-oss/f1/pkg/f1/testing"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
-func Cmd(builders []api.Builder, hookFunc logging.RegisterLogHookFunc) *cobra.Command {
+func Cmd(s *testing.Scenarios, builders []api.Builder, hookFunc logging.RegisterLogHookFunc) *cobra.Command {
 	runCmd := &cobra.Command{
 		Use:   "run <subcommand>",
 		Short: "Runs a test scenario",
@@ -27,7 +28,7 @@ func Cmd(builders []api.Builder, hookFunc logging.RegisterLogHookFunc) *cobra.Co
 			triggerCmd := &cobra.Command{
 				Use:   t.Name,
 				Short: t.Description,
-				RunE:  runCmdExecute(t, hookFunc),
+				RunE:  runCmdExecute(s, t, hookFunc),
 				Args:  cobra.ExactValidArgs(1),
 			}
 			triggerCmd.Flags().BoolP("verbose", "v", false, "enables log output to stdout")
@@ -39,9 +40,9 @@ func Cmd(builders []api.Builder, hookFunc logging.RegisterLogHookFunc) *cobra.Co
 			triggerCmd := &cobra.Command{
 				Use:       t.Name,
 				Short:     t.Description,
-				RunE:      runCmdExecute(t, hookFunc),
+				RunE:      runCmdExecute(s, t, hookFunc),
 				Args:      cobra.ExactValidArgs(1),
-				ValidArgs: testing.GetScenarioNames(),
+				ValidArgs: s.GetScenarioNames(),
 			}
 			triggerCmd.Flags().BoolP("verbose", "v", false, "enables log output to stdout")
 			triggerCmd.Flags().Bool("verbose-fail", false, "log output to stdout on failure")
@@ -59,7 +60,7 @@ func Cmd(builders []api.Builder, hookFunc logging.RegisterLogHookFunc) *cobra.Co
 	return runCmd
 }
 
-func runCmdExecute(t api.Builder, hookFunc logging.RegisterLogHookFunc) func(cmd *cobra.Command, args []string) error {
+func runCmdExecute(s *testing.Scenarios, t api.Builder, hookFunc logging.RegisterLogHookFunc) func(cmd *cobra.Command, args []string) error {
 	return func(cmd *cobra.Command, args []string) error {
 		cmd.SilenceUsage = true
 
@@ -122,7 +123,7 @@ func runCmdExecute(t api.Builder, hookFunc logging.RegisterLogHookFunc) func(cmd
 		if err != nil {
 			return err
 		}
-		result := run.Do()
+		result := run.Do(s)
 		if result.Error() != nil {
 			return result.Error()
 		} else if result.Failed() {

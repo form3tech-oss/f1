@@ -8,27 +8,29 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func Cmd() *cobra.Command {
+func Cmd(s *testing.Scenarios) *cobra.Command {
 	scenariosCmd := &cobra.Command{
 		Use:   "scenarios",
 		Short: "Prints information about available test scenarios",
 	}
-	scenariosCmd.AddCommand(lsCmd())
+	scenariosCmd.AddCommand(lsCmd(s))
 	return scenariosCmd
 }
 
-func lsCmd() *cobra.Command {
+func lsCmd(s *testing.Scenarios) *cobra.Command {
 	lsCmd := &cobra.Command{
 		Use: "ls",
-		Run: lsCmdExecute,
+		Run: lsCmdExecute(s),
 	}
 	return lsCmd
 }
 
-func lsCmdExecute(cmd *cobra.Command, args []string) {
-	scenarios := testing.GetScenarioNames()
-	sort.Strings(scenarios)
-	for _, scenario := range scenarios {
-		fmt.Println(scenario)
+func lsCmdExecute(s *testing.Scenarios) func(*cobra.Command, []string) {
+	return func(cmd *cobra.Command, args []string) {
+		scenarios := s.GetScenarioNames()
+		sort.Strings(scenarios)
+		for _, scenario := range scenarios {
+			fmt.Println(scenario)
+		}
 	}
 }
