@@ -54,3 +54,7 @@ func (f *F1) ExecuteWithArgs(args []string) error {
 	writeProfiles(f.profiling)
 	return err
 }
+
+func (f *F1) GetScenarios() *testing.Scenarios {
+	return f.scenarios
+}

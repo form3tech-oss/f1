@@ -1,7 +1,9 @@
-package run
+package run_test
 
 import (
 	"fmt"
+	"github.com/form3tech-oss/f1/pkg/f1"
+	"github.com/form3tech-oss/f1/pkg/f1/run"
 	"math"
 	"sync"
 	"sync/atomic"
@@ -40,7 +42,7 @@ type RunTestStage struct {
 	startTime        time.Time
 	t                *testing.T
 	scenario         string
-	runResult        *RunResult
+	runResult        *run.RunResult
 	concurrency      int
 	tearDownCount    *int32
 	assert           *assert.Assertions
@@ -56,6 +58,7 @@ type RunTestStage struct {
 	endRate          string
 	rampDuration     string
 	durations        sync.Map
+	f1               *f1.F1
 }
 
 func NewRunTestStage(t *testing.T) (*RunTestStage, *RunTestStage, *RunTestStage) {
@@ -66,6 +69,7 @@ func NewRunTestStage(t *testing.T) (*RunTestStage, *RunTestStage, *RunTestStage)
 		assert:        assert.New(t),
 		require:       require.New(t),
 		tearDownCount: &teardownCount,
+		f1:            f1.New(),
 	}
 	fakePrometheus.ClearMetrics()
 	return stage, stage, stage
@@ -111,7 +115,7 @@ func (s *RunTestStage) a_ramp_duration_of(rampDuration string) *RunTestStage {
 }
 
 func (s *RunTestStage) i_execute_the_run_command() *RunTestStage {
-	run, err := NewRun(
+	r, err := run.NewRun(
 		options.RunOptions{
 			Scenario:            s.scenario,
 			MaxDuration:         s.duration,
@@ -122,10 +126,10 @@ func (s *RunTestStage) i_execute_the_run_command() *RunTestStage {
 		s.build_trigger())
 	if err != nil {
 		log.WithError(err).Info("run creation failed")
-		s.runResult = (&RunResult{}).AddError(err)
+		s.runResult = (&run.RunResult{}).AddError(err)
 		return s
 	}
-	s.runResult = run.Do(f1_testing.New())
+	s.runResult = r.Do(s.f1.GetScenarios())
 	return s
 }
 
@@ -166,7 +170,7 @@ func (s *RunTestStage) the_command_should_fail() *RunTestStage {
 
 func (s *RunTestStage) a_test_scenario_that_always_fails() *RunTestStage {
 	s.scenario = uuid.New().String()
-	f1_testing.Add(s.scenario, func(t *f1_testing.T) (fn f1_testing.RunFn, fn2 f1_testing.TeardownFn) {
+	s.f1.WithScenario(s.scenario, func(t *f1_testing.T) (fn f1_testing.RunFn, fn2 f1_testing.TeardownFn) {
 		return func(t *f1_testing.T) {
 				t.FailNow()
 			}, func(t *f1_testing.T) {
@@ -178,7 +182,7 @@ func (s *RunTestStage) a_test_scenario_that_always_fails() *RunTestStage {
 
 func (s *RunTestStage) a_test_scenario_that_always_panics() *RunTestStage {
 	s.scenario = uuid.New().String()
-	f1_testing.Add(s.scenario, func(t *f1_testing.T) (fn f1_testing.RunFn, fn2 f1_testing.TeardownFn) {
+	s.f1.WithScenario(s.scenario, func(t *f1_testing.T) (fn f1_testing.RunFn, fn2 f1_testing.TeardownFn) {
 		return func(t *f1_testing.T) {
 				panic("aaargh!")
 			}, func(t *f1_testing.T) {
@@ -190,7 +194,7 @@ func (s *RunTestStage) a_test_scenario_that_always_panics() *RunTestStage {
 
 func (s *RunTestStage) a_test_scenario_that_always_fails_an_assertion() *RunTestStage {
 	s.scenario = uuid.New().String()
-	f1_testing.Add(s.scenario, func(t *f1_testing.T) (fn f1_testing.RunFn, fn2 f1_testing.TeardownFn) {
+	s.f1.WithScenario(s.scenario, func(t *f1_testing.T) (fn f1_testing.RunFn, fn2 f1_testing.TeardownFn) {
 		return func(t *f1_testing.T) {
 				assert.Equal(t, 3, 1+1)
 			}, func(t *f1_testing.T) {
@@ -202,7 +206,7 @@ func (s *RunTestStage) a_test_scenario_that_always_fails_an_assertion() *RunTest
 
 func (s *RunTestStage) a_test_scenario_that_always_fails_setup() *RunTestStage {
 	s.scenario = uuid.New().String()
-	f1_testing.Add(s.scenario, func(t *f1_testing.T) (fn f1_testing.RunFn, fn2 f1_testing.TeardownFn) {
+	s.f1.WithScenario(s.scenario, func(t *f1_testing.T) (fn f1_testing.RunFn, fn2 f1_testing.TeardownFn) {
 		t.FailNow()
 		return nil, nil
 	})
@@ -211,7 +215,7 @@ func (s *RunTestStage) a_test_scenario_that_always_fails_setup() *RunTestStage {
 
 func (s *RunTestStage) a_scenario_where_each_iteration_takes(duration time.Duration) *RunTestStage {
 	s.scenario = uuid.New().String()
-	f1_testing.Add(s.scenario, func(t *f1_testing.T) (fn f1_testing.RunFn, fn2 f1_testing.TeardownFn) {
+	s.f1.WithScenario(s.scenario, func(t *f1_testing.T) (fn f1_testing.RunFn, fn2 f1_testing.TeardownFn) {
 		s.runCount = 0
 		return func(t *f1_testing.T) {
 				atomic.AddInt32(&s.runCount, 1)
@@ -236,7 +240,7 @@ func (s *RunTestStage) teardown_is_called_once() *RunTestStage {
 
 func (s *RunTestStage) a_test_scenario_that_fails_intermittently() *RunTestStage {
 	s.scenario = uuid.New().String()
-	f1_testing.Add(s.scenario, func(t *f1_testing.T) (fn f1_testing.RunFn, fn2 f1_testing.TeardownFn) {
+	s.f1.WithScenario(s.scenario, func(t *f1_testing.T) (fn f1_testing.RunFn, fn2 f1_testing.TeardownFn) {
 		s.runCount = 0
 		return func(t *f1_testing.T) {
 				count := atomic.AddInt32(&s.runCount, 1)
@@ -310,7 +314,7 @@ func (s *RunTestStage) an_iteration_limit_of(iterations int32) *RunTestStage {
 
 func (s *RunTestStage) the_test_run_is_started() *RunTestStage {
 	go func() {
-		run, err := NewRun(options.RunOptions{
+		r, err := run.NewRun(options.RunOptions{
 			Scenario:            s.scenario,
 			MaxDuration:         s.duration,
 			Concurrency:         s.concurrency,
@@ -319,7 +323,7 @@ func (s *RunTestStage) the_test_run_is_started() *RunTestStage {
 		},
 			s.build_trigger())
 		require.Nil(s.t, err)
-		s.runResult = run.Do()
+		s.runResult = r.Do(s.f1.GetScenarios())
 	}()
 	return s
 }
@@ -442,7 +446,7 @@ func (s *RunTestStage) metrics_are_pushed_to_prometheus() *RunTestStage {
 
 func (s *RunTestStage) a_scenario_where_the_final_iteration_takes_100ms() *RunTestStage {
 	s.scenario = uuid.New().String()
-	f1_testing.Add(s.scenario, func(t *f1_testing.T) (fn f1_testing.RunFn, fn2 f1_testing.TeardownFn) {
+	s.f1.WithScenario(s.scenario, func(t *f1_testing.T) (fn f1_testing.RunFn, fn2 f1_testing.TeardownFn) {
 		s.runCount = 0
 		return func(t *f1_testing.T) {
 				current := atomic.AddInt32(&s.runCount, 1)
