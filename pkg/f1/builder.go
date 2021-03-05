@@ -24,12 +24,28 @@ func New() *F1 {
 	}
 }
 
-func (f *F1) WithScenario(name string, setupFn testing.SetupFn) *F1 {
-	f.scenarios.AddByName(name, setupFn)
+type ScenarioOption func(info *testing.ScenarioInfo)
+
+func Description(d string) ScenarioOption {
+	return func(i *testing.ScenarioInfo) {
+		i.Description = d
+	}
+}
+
+
+
+func (f *F1) WithScenario(name string, scenarioFn testing.ScenarioFn, options ...ScenarioOption) *F1 {
+	info := &testing.ScenarioInfo{Name: name}
+
+	for _, opt := range options {
+		opt(info)
+	}
+
+	f.scenarios.Add(*info, scenarioFn)
 	return f
 }
 
-func (f *F1) WithScenarioDescription(info testing.ScenarioInfo, setupFn testing.SetupFn) *F1 {
+func (f *F1) WithScenarioDescription(info testing.ScenarioInfo, setupFn testing.ScenarioFn) *F1 {
 	f.scenarios.Add(info, setupFn)
 	return f
 }

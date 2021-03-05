@@ -17,7 +17,7 @@ func New() *Scenarios {
 	}
 }
 
-func (s *Scenarios) Add(scenario ScenarioInfo, testSetup SetupFn) *Scenarios {
+func (s *Scenarios) Add(scenario ScenarioInfo, testSetup ScenarioFn) *Scenarios {
 	s.scenarioDescriptions = append(s.scenarioDescriptions, scenario)
 
 	multiStageSetup := func(t *T) []Stage {
@@ -28,7 +28,7 @@ func (s *Scenarios) Add(scenario ScenarioInfo, testSetup SetupFn) *Scenarios {
 	return s.AddMultiStage(scenario.Name, multiStageSetup)
 }
 
-func (s *Scenarios) AddByName(name string, testSetup SetupFn) *Scenarios {
+func (s *Scenarios) AddByName(name string, testSetup ScenarioFn) *Scenarios {
 	return s.Add(ScenarioInfo{Name: name}, testSetup)
 }
 
@@ -53,7 +53,7 @@ func (s *Scenarios) GetScenarioNames() []string {
 	return names
 }
 
-func WithNoSetup(fn func(t *T)) SetupFn {
+func WithNoSetup(fn func(t *T)) ScenarioFn {
 	return func(t *T) RunFn {
 		return fn
 	}
