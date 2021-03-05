@@ -2,7 +2,6 @@ package testing
 
 import (
 	"sort"
-	"sync"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -11,10 +10,6 @@ type Scenarios struct {
 	scenarios            map[string]MultiStageSetupFn
 	scenarioDescriptions []ScenarioInfo
 }
-
-// scenarios which have been set up, so may receive run or teardown calls
-// map[string]*ActiveScenario
-var activeScenarios sync.Map
 
 func New() *Scenarios {
 	return &Scenarios{

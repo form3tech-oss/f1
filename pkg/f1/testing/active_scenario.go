@@ -43,7 +43,6 @@ func NewActiveScenarios(name string, fn MultiStageSetupFn, autoTeardownIdleDurat
 			}()
 		}
 
-		activeScenarios.Store(s.id, s)
 		log.Infof("Added active scenario %s",
 			s.id)
 	})
@@ -104,7 +103,6 @@ func (s *ActiveScenario) autoTeardown() {
 			log.Error("auto teardown failed")
 		}
 	}
-	activeScenarios.Delete(s.id)
 }
 
 func (s *ActiveScenario) RecordDroppedIteration() {

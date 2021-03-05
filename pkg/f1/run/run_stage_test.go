@@ -2,14 +2,15 @@ package run_test
 
 import (
 	"fmt"
-	"github.com/form3tech-oss/f1/pkg/f1"
-	"github.com/form3tech-oss/f1/pkg/f1/run"
 	"math"
 	"sync"
 	"sync/atomic"
 	"syscall"
 	"testing"
 	"time"
+
+	"github.com/form3tech-oss/f1/pkg/f1"
+	"github.com/form3tech-oss/f1/pkg/f1/run"
 
 	"github.com/form3tech-oss/f1/pkg/f1/trigger/ramp"
 
