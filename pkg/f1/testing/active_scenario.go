@@ -6,7 +6,6 @@ import (
 
 	"github.com/form3tech-oss/f1/pkg/f1/metrics"
 	"github.com/google/uuid"
-	log "github.com/sirupsen/logrus"
 )
 
 type ActiveScenario struct {
@@ -15,27 +14,35 @@ type ActiveScenario struct {
 	Name       string
 	id         string
 	m          *metrics.Metrics
+	t          *T
 }
 
-func NewActiveScenarios(name string, fn MultiStageSetupFn) (*ActiveScenario, bool) {
+func NewActiveScenario(name string, fn MultiStageSetupFn) (*ActiveScenario, bool) {
+	t := NewT("0", "setup", name)
+
 	s := &ActiveScenario{
 		Name: name,
 		id:   uuid.New().String(),
 		m:    metrics.Instance(),
+		t:    t,
 	}
 
-	successful := s.Run(metrics.SetupResult, "setup", "0", "setup", func(t *T) {
-		s.Stages, s.TeardownFn = fn(t)
+	start := time.Now()
 
-		log.Infof("Added active scenario %s", s.id)
-	})
+	// if the setup function panics then f1 will exit. we should provide a recovery mechanism if multi-stage scenarios
+	// are to be implemented correctly.
+	s.Stages, s.TeardownFn = fn(t)
 
-	return s, successful
+	s.m.Record(metrics.SetupResult, s.Name, "setup", metrics.Result(t.HasFailed()), time.Since(start).Nanoseconds())
+
+	return s, !t.HasFailed()
 }
 
 // Run performs a single iteration of the test. It returns `true` if the test was successful, `false` otherwise.
 func (s *ActiveScenario) Run(metric metrics.MetricType, stage, vu, iter string, f func(t *T)) bool {
 	t := NewT(vu, iter, s.Name)
+	defer t.teardown()
+
 	start := time.Now()
 	done := make(chan struct{})
 	go func() {
@@ -65,4 +72,8 @@ func (s *ActiveScenario) checkResults(t *T, done chan<- struct{}) {
 
 func (s *ActiveScenario) RecordDroppedIteration() {
 	s.m.Record(metrics.IterationResult, s.Name, "single", "dropped", 0)
+}
+
+func (s *ActiveScenario) Teardown() {
+	s.t.teardown()
 }

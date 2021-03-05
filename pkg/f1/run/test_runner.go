@@ -90,7 +90,7 @@ func (r *Run) Do(s *testing.Scenarios) *RunResult {
 
 	metrics.Instance().Reset()
 	var setupSuccessful bool
-	r.activeScenario, setupSuccessful = testing.NewActiveScenarios(r.Options.Scenario, s.GetScenario(r.Options.Scenario))
+	r.activeScenario, setupSuccessful = testing.NewActiveScenario(r.Options.Scenario, s.GetScenario(r.Options.Scenario))
 	r.pushMetrics()
 	fmt.Println(r.result.Setup())
 
@@ -130,6 +130,8 @@ func (r *Run) configureLogging() {
 }
 
 func (r *Run) teardown() {
+	r.activeScenario.Teardown()
+
 	if r.activeScenario.TeardownFn != nil {
 		successful := r.activeScenario.Run(metrics.TeardownResult, "teardown", "0", "teardown", r.activeScenario.TeardownFn)
 		if !successful {

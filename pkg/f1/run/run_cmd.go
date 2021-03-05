@@ -13,7 +13,6 @@ import (
 
 	"github.com/form3tech-oss/f1/pkg/f1/trigger/api"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
