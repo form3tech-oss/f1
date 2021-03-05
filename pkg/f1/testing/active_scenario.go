@@ -28,13 +28,15 @@ func NewActiveScenario(name string, fn MultiStageSetupFn) (*ActiveScenario, bool
 	}
 
 	start := time.Now()
+	done := make(chan struct{})
+	go func() {
+		defer checkResults(t, done)
+		s.Stages, s.TeardownFn = fn(t)
+	}()
 
-	// if the setup function panics then f1 will exit. we should provide a recovery mechanism if multi-stage scenarios
-	// are to be implemented correctly.
-	s.Stages, s.TeardownFn = fn(t)
-
+	// wait for completion
+	<-done
 	s.m.Record(metrics.SetupResult, s.Name, "setup", metrics.Result(t.HasFailed()), time.Since(start).Nanoseconds())
-
 	return s, !t.HasFailed()
 }
 
@@ -46,7 +48,7 @@ func (s *ActiveScenario) Run(metric metrics.MetricType, stage, vu, iter string, 
 	start := time.Now()
 	done := make(chan struct{})
 	go func() {
-		defer s.checkResults(t, done)
+		defer checkResults(t, done)
 		f(t)
 	}()
 
@@ -56,7 +58,7 @@ func (s *ActiveScenario) Run(metric metrics.MetricType, stage, vu, iter string, 
 	return !t.HasFailed()
 }
 
-func (s *ActiveScenario) checkResults(t *T, done chan<- struct{}) {
+func checkResults(t *T, done chan<- struct{}) {
 	r := recover()
 	if r != nil {
 		err, isError := r.(error)
