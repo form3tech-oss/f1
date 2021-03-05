@@ -17,7 +17,7 @@ type ActiveScenario struct {
 }
 
 func NewActiveScenario(name string, fn MultiStageSetupFn) (*ActiveScenario, bool) {
-	t := NewT("0", "setup", name)
+	t := NewT("setup", name)
 
 	s := &ActiveScenario{
 		Name: name,
@@ -40,8 +40,8 @@ func NewActiveScenario(name string, fn MultiStageSetupFn) (*ActiveScenario, bool
 }
 
 // Run performs a single iteration of the test. It returns `true` if the test was successful, `false` otherwise.
-func (s *ActiveScenario) Run(metric metrics.MetricType, stage, vu, iter string, f func(t *T)) bool {
-	t := NewT(vu, iter, s.Name)
+func (s *ActiveScenario) Run(metric metrics.MetricType, stage, iter string, f func(t *T)) bool {
+	t := NewT(iter, s.Name)
 	defer t.teardown()
 
 	start := time.Now()

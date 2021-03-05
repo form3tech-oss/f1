@@ -13,8 +13,6 @@ import (
 )
 
 type T struct {
-	// Identifier of the user for the test
-	VirtualUser string
 	// "iteration " + iteration number or "setup"
 	Iteration string
 	// Logger with user and iteration tags
@@ -25,11 +23,10 @@ type T struct {
 	teardownStack []func()
 }
 
-func NewT(vu, iter string, scenarioName string) *T {
+func NewT(iter, scenarioName string) *T {
 	t := &T{
-		VirtualUser:   vu,
 		Iteration:     iter,
-		Log:           log.WithField("u", vu).WithField("i", iter).WithField("scenario", scenarioName).Logger,
+		Log:           log.WithField("i", iter).WithField("scenario", scenarioName).Logger,
 		Scenario:      scenarioName,
 		teardownStack: []func(){},
 	}
