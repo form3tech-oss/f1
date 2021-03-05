@@ -97,8 +97,6 @@ func ExecuteWithArgs(args []string) error {
 }
 
 func configureHttpDefaults() {
-	runtime.GOMAXPROCS(48)
-
 	// disable TLS verification to reduce performance impact of this load test server
 	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true} // #nosec  G402 (CWE-295): TLS InsecureSkipVerify set true
 	http.DefaultTransport.(*http.Transport).MaxConnsPerHost = 0
