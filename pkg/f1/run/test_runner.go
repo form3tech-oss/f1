@@ -90,7 +90,7 @@ func (r *Run) Do() *RunResult {
 
 	metrics.Instance().Reset()
 	var setupSuccessful bool
-	r.activeScenario, setupSuccessful = testing.NewActiveScenarios(r.Options.Scenario, r.Options.Env, testing.GetScenario(r.Options.Scenario), 0)
+	r.activeScenario, setupSuccessful = testing.NewActiveScenarios(r.Options.Scenario, testing.GetScenario(r.Options.Scenario), 0)
 	r.pushMetrics()
 	fmt.Println(r.result.Setup())
 

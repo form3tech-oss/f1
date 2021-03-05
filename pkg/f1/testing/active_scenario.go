@@ -13,7 +13,6 @@ import (
 type ActiveScenario struct {
 	Stages              []Stage
 	TeardownFn          TeardownFn
-	env                 map[string]string
 	Name                string
 	id                  string
 	autoTeardownTimer   *CancellableTimer
@@ -22,12 +21,11 @@ type ActiveScenario struct {
 	m                   *metrics.Metrics
 }
 
-func NewActiveScenarios(name string, env map[string]string, fn MultiStageSetupFn, autoTeardownIdleDuration time.Duration) (*ActiveScenario, bool) {
+func NewActiveScenarios(name string, fn MultiStageSetupFn, autoTeardownIdleDuration time.Duration) (*ActiveScenario, bool) {
 
 	s := &ActiveScenario{
 		Name:              name,
 		id:                uuid.New().String(),
-		env:               env,
 		AutoTeardownAfter: autoTeardownIdleDuration,
 		m:                 metrics.Instance(),
 	}
@@ -68,7 +66,7 @@ func (s *ActiveScenario) SetAutoTeardown(timer *CancellableTimer) {
 
 // Run performs a single iteration of the test. It returns `true` if the test was successful, `false` otherwise.
 func (s *ActiveScenario) Run(metric metrics.MetricType, stage, vu, iter string, f func(t *T)) bool {
-	t := NewT(s.env, vu, iter, s.Name)
+	t := NewT(vu, iter, s.Name)
 	start := time.Now()
 	done := make(chan struct{})
 	go func() {

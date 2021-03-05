@@ -10,7 +10,6 @@ type RunOptions struct {
 	Scenario            string
 	MaxDuration         time.Duration
 	Concurrency         int
-	Env                 map[string]string
 	Verbose             bool
 	VerboseFail         bool
 	MaxIterations       int32

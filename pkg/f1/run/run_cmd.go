@@ -2,8 +2,6 @@ package run
 
 import (
 	"fmt"
-	"os"
-	"strings"
 	"time"
 
 	"github.com/form3tech-oss/f1/pkg/f1/options"
@@ -15,7 +13,6 @@ import (
 	"github.com/form3tech-oss/f1/pkg/f1/trigger/api"
 
 	"github.com/form3tech-oss/f1/pkg/f1/testing"
-	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -116,7 +113,6 @@ func runCmdExecute(t api.Builder, hookFunc logging.RegisterLogHookFunc) func(cmd
 			Scenario:            scenarioName,
 			MaxDuration:         duration,
 			Concurrency:         concurrency,
-			Env:                 loadEnvironment(),
 			Verbose:             verbose,
 			VerboseFail:         verboseFail,
 			MaxIterations:       maxIterations,
@@ -135,17 +131,4 @@ func runCmdExecute(t api.Builder, hookFunc logging.RegisterLogHookFunc) func(cmd
 		cmd.SilenceUsage = false
 		return nil
 	}
-}
-
-func loadEnvironment() map[string]string {
-	env := make(map[string]string)
-	for _, e := range os.Environ() {
-		keyAndValue := strings.SplitN(e, "=", 2)
-		if len(keyAndValue) < 2 {
-			log.Warnf("Malformed environment variable was not loaded: %s", e)
-			continue
-		}
-		env[keyAndValue[0]] = keyAndValue[1]
-	}
-	return env
 }
