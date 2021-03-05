@@ -8,7 +8,6 @@ import (
 	"github.com/form3tech-oss/f1/internal/support/errorh"
 
 	"github.com/form3tech-oss/f1/pkg/f1/fluentd_hook"
-	"github.com/form3tech-oss/f1/pkg/f1/testing"
 
 	"github.com/form3tech-oss/f1/pkg/f1/scenarios"
 
@@ -20,7 +19,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func buildRootCmd(s *testing.Scenarios, p *profiling) *cobra.Command {
+func buildRootCmd(s *scenarios.Scenarios, p *profiling) *cobra.Command {
 	rootCmd := &cobra.Command{
 		Use:              "f1",
 		Short:            "F1 load testing tool",

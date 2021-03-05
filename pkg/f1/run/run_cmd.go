@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/form3tech-oss/f1/pkg/f1/options"
-	"github.com/form3tech-oss/f1/pkg/f1/testing"
+	"github.com/form3tech-oss/f1/pkg/f1/scenarios"
 
 	"github.com/pkg/errors"
 
@@ -16,7 +16,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func Cmd(s *testing.Scenarios, builders []api.Builder, hookFunc logging.RegisterLogHookFunc) *cobra.Command {
+func Cmd(s *scenarios.Scenarios, builders []api.Builder, hookFunc logging.RegisterLogHookFunc) *cobra.Command {
 	runCmd := &cobra.Command{
 		Use:   "run <subcommand>",
 		Short: "Runs a test scenario",
@@ -59,7 +59,7 @@ func Cmd(s *testing.Scenarios, builders []api.Builder, hookFunc logging.Register
 	return runCmd
 }
 
-func runCmdExecute(s *testing.Scenarios, t api.Builder, hookFunc logging.RegisterLogHookFunc) func(cmd *cobra.Command, args []string) error {
+func runCmdExecute(s *scenarios.Scenarios, t api.Builder, hookFunc logging.RegisterLogHookFunc) func(cmd *cobra.Command, args []string) error {
 	return func(cmd *cobra.Command, args []string) error {
 		cmd.SilenceUsage = true
 

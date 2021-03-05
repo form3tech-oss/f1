@@ -4,11 +4,12 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/form3tech-oss/f1/pkg/f1/scenarios"
 	"github.com/form3tech-oss/f1/pkg/f1/testing"
 )
 
 type F1 struct {
-	scenarios *testing.Scenarios
+	scenarios *scenarios.Scenarios
 	profiling *profiling
 }
 
@@ -17,41 +18,21 @@ type profiling struct {
 	memProfile string
 }
 
-func New() *F1 {
+func Scenarios() *F1 {
 	return &F1{
-		scenarios: testing.New(),
+		scenarios: scenarios.New(),
 		profiling: &profiling{},
 	}
 }
 
-type ScenarioOption func(info *testing.ScenarioInfo)
-
-func Description(d string) ScenarioOption {
-	return func(i *testing.ScenarioInfo) {
-		i.Description = d
-	}
-}
-
-
-
-func (f *F1) WithScenario(name string, scenarioFn testing.ScenarioFn, options ...ScenarioOption) *F1 {
-	info := &testing.ScenarioInfo{Name: name}
+func (f *F1) Add(name string, scenarioFn testing.ScenarioFn, options ...scenarios.ScenarioOption) *F1 {
+	info := &scenarios.ScenarioInfo{Name: name}
 
 	for _, opt := range options {
 		opt(info)
 	}
 
 	f.scenarios.Add(*info, scenarioFn)
-	return f
-}
-
-func (f *F1) WithScenarioDescription(info testing.ScenarioInfo, setupFn testing.ScenarioFn) *F1 {
-	f.scenarios.Add(info, setupFn)
-	return f
-}
-
-func (f *F1) WithMultiStageScenario(name string, setupFn testing.MultiStageSetupFn) *F1 {
-	f.scenarios.AddMultiStage(name, setupFn)
 	return f
 }
 
@@ -71,6 +52,6 @@ func (f *F1) ExecuteWithArgs(args []string) error {
 	return err
 }
 
-func (f *F1) GetScenarios() *testing.Scenarios {
+func (f *F1) GetScenarios() *scenarios.Scenarios {
 	return f.scenarios
 }

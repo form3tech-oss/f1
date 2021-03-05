@@ -4,12 +4,12 @@ import (
 	"os"
 
 	"github.com/form3tech-oss/f1/internal/support/errorh"
-	"github.com/form3tech-oss/f1/pkg/f1/testing"
+	"github.com/form3tech-oss/f1/pkg/f1/scenarios"
 
 	"github.com/spf13/cobra"
 )
 
-func completionsCmd(s *testing.Scenarios, p *profiling) *cobra.Command {
+func completionsCmd(s *scenarios.Scenarios, p *profiling) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "generate",
 		Short: "Generates shell completions",
@@ -20,7 +20,7 @@ func completionsCmd(s *testing.Scenarios, p *profiling) *cobra.Command {
 	return cmd
 }
 
-func bashCmd(s *testing.Scenarios, p *profiling) *cobra.Command {
+func bashCmd(s *scenarios.Scenarios, p *profiling) *cobra.Command {
 	return &cobra.Command{
 		Use:   "bash",
 		Short: "Generates bash completion scripts",
@@ -38,7 +38,7 @@ To configure your bash shell to load completions for each session add to your ba
 		},
 	}
 }
-func zshCmd(s *testing.Scenarios, p *profiling) *cobra.Command {
+func zshCmd(s *scenarios.Scenarios, p *profiling) *cobra.Command {
 	return &cobra.Command{
 		Use:   "zsh",
 		Short: "Generates zsh completion scripts",
@@ -52,7 +52,7 @@ func zshCmd(s *testing.Scenarios, p *profiling) *cobra.Command {
 	}
 }
 
-func fishCmd(s *testing.Scenarios, p *profiling) *cobra.Command {
+func fishCmd(s *scenarios.Scenarios, p *profiling) *cobra.Command {
 	return &cobra.Command{
 		Use:   "fish",
 		Short: "Generates fish completion scripts",

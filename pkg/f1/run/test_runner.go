@@ -14,6 +14,7 @@ import (
 
 	"github.com/form3tech-oss/f1/pkg/f1/logging"
 	"github.com/form3tech-oss/f1/pkg/f1/options"
+	"github.com/form3tech-oss/f1/pkg/f1/scenarios"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 
@@ -83,7 +84,7 @@ var startTemplate = template.Must(template.New("result parse").
 Running {yellow}{{.Options.Scenario}}{-} scenario for {{if .Options.MaxIterations}}up to {{.Options.MaxIterations}} iterations or up to {{end}}{{duration .Options.MaxDuration}} at a rate of {{.RateDescription}}.
 `))
 
-func (r *Run) Do(s *testing.Scenarios) *RunResult {
+func (r *Run) Do(s *scenarios.Scenarios) *RunResult {
 	fmt.Print(renderTemplate(startTemplate, r))
 	defer r.printSummary()
 	defer r.printLogOnFailure()

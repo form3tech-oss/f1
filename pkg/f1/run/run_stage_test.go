@@ -73,7 +73,7 @@ func NewRunTestStage(t *testing.T) (*RunTestStage, *RunTestStage, *RunTestStage)
 		require:                require.New(t),
 		setupTeardownCount:     &setupTeardownCount,
 		iterationTeardownCount: &iterationTeardownCount,
-		f1:                     f1.New(),
+		f1:                     f1.Scenarios(),
 	}
 	fakePrometheus.ClearMetrics()
 	return stage, stage, stage
@@ -174,7 +174,7 @@ func (s *RunTestStage) the_command_should_fail() *RunTestStage {
 
 func (s *RunTestStage) a_test_scenario_that_always_fails() *RunTestStage {
 	s.scenario = uuid.New().String()
-	s.f1.WithScenario(s.scenario, func(t *f1_testing.T) (fn f1_testing.RunFn) {
+	s.f1.Add(s.scenario, func(t *f1_testing.T) (fn f1_testing.RunFn) {
 		t.Cleanup(func() {
 			atomic.AddInt32(s.setupTeardownCount, 1)
 		})
@@ -190,7 +190,7 @@ func (s *RunTestStage) a_test_scenario_that_always_fails() *RunTestStage {
 
 func (s *RunTestStage) a_test_scenario_that_always_panics() *RunTestStage {
 	s.scenario = uuid.New().String()
-	s.f1.WithScenario(s.scenario, func(t *f1_testing.T) (fn f1_testing.RunFn) {
+	s.f1.Add(s.scenario, func(t *f1_testing.T) (fn f1_testing.RunFn) {
 		t.Cleanup(func() {
 			atomic.AddInt32(s.setupTeardownCount, 1)
 		})
@@ -206,7 +206,7 @@ func (s *RunTestStage) a_test_scenario_that_always_panics() *RunTestStage {
 
 func (s *RunTestStage) a_test_scenario_that_always_fails_an_assertion() *RunTestStage {
 	s.scenario = uuid.New().String()
-	s.f1.WithScenario(s.scenario, func(t *f1_testing.T) (fn f1_testing.RunFn) {
+	s.f1.Add(s.scenario, func(t *f1_testing.T) (fn f1_testing.RunFn) {
 		t.Cleanup(func() {
 			atomic.AddInt32(s.setupTeardownCount, 1)
 		})
@@ -222,7 +222,7 @@ func (s *RunTestStage) a_test_scenario_that_always_fails_an_assertion() *RunTest
 
 func (s *RunTestStage) a_test_scenario_that_always_fails_setup() *RunTestStage {
 	s.scenario = uuid.New().String()
-	s.f1.WithScenario(s.scenario, func(t *f1_testing.T) (fn f1_testing.RunFn) {
+	s.f1.Add(s.scenario, func(t *f1_testing.T) (fn f1_testing.RunFn) {
 		t.Cleanup(func() {
 			atomic.AddInt32(s.setupTeardownCount, 1)
 		})
@@ -234,7 +234,7 @@ func (s *RunTestStage) a_test_scenario_that_always_fails_setup() *RunTestStage {
 
 func (s *RunTestStage) a_scenario_where_each_iteration_takes(duration time.Duration) *RunTestStage {
 	s.scenario = uuid.New().String()
-	s.f1.WithScenario(s.scenario, func(t *f1_testing.T) (fn f1_testing.RunFn) {
+	s.f1.Add(s.scenario, func(t *f1_testing.T) (fn f1_testing.RunFn) {
 		t.Cleanup(func() {
 			atomic.AddInt32(s.setupTeardownCount, 1)
 		})
@@ -263,7 +263,7 @@ func (s *RunTestStage) iteration_teardown_is_called_n_times(n int32) *RunTestSta
 
 func (s *RunTestStage) a_test_scenario_that_fails_intermittently() *RunTestStage {
 	s.scenario = uuid.New().String()
-	s.f1.WithScenario(s.scenario, func(t *f1_testing.T) (fn f1_testing.RunFn) {
+	s.f1.Add(s.scenario, func(t *f1_testing.T) (fn f1_testing.RunFn) {
 		t.Cleanup(func() {
 			atomic.AddInt32(s.setupTeardownCount, 1)
 		})
@@ -473,7 +473,7 @@ func (s *RunTestStage) metrics_are_pushed_to_prometheus() *RunTestStage {
 
 func (s *RunTestStage) a_scenario_where_the_final_iteration_takes_100ms() *RunTestStage {
 	s.scenario = uuid.New().String()
-	s.f1.WithScenario(s.scenario, func(t *f1_testing.T) (fn f1_testing.RunFn) {
+	s.f1.Add(s.scenario, func(t *f1_testing.T) (fn f1_testing.RunFn) {
 		t.Cleanup(func() {
 			atomic.AddInt32(s.setupTeardownCount, 1)
 		})
