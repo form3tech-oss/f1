@@ -2,6 +2,7 @@ package f1
 
 import (
 	"os"
+	"path"
 	"runtime"
 	"runtime/pprof"
 
@@ -21,7 +22,7 @@ import (
 
 func buildRootCmd(s *scenarios.Scenarios, p *profiling) *cobra.Command {
 	rootCmd := &cobra.Command{
-		Use:              "f1",
+		Use:              getCmdName(),
 		Short:            "F1 load testing tool",
 		PersistentPreRun: startProfiling(p),
 	}
@@ -69,4 +70,8 @@ func writeProfiles(p *profiling) {
 			log.Fatal("could not write memory profile: ", err)
 		}
 	}
+}
+
+func getCmdName() string {
+	return path.Base(os.Args[0])
 }
