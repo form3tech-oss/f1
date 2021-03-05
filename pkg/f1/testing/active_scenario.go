@@ -9,12 +9,11 @@ import (
 )
 
 type ActiveScenario struct {
-	Stages     []Stage
-	TeardownFn TeardownFn
-	Name       string
-	id         string
-	m          *metrics.Metrics
-	t          *T
+	Stages []Stage
+	Name   string
+	id     string
+	m      *metrics.Metrics
+	t      *T
 }
 
 func NewActiveScenario(name string, fn MultiStageSetupFn) (*ActiveScenario, bool) {
@@ -31,7 +30,7 @@ func NewActiveScenario(name string, fn MultiStageSetupFn) (*ActiveScenario, bool
 	done := make(chan struct{})
 	go func() {
 		defer checkResults(t, done)
-		s.Stages, s.TeardownFn = fn(t)
+		s.Stages = fn(t)
 	}()
 
 	// wait for completion

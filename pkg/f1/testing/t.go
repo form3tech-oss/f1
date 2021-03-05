@@ -15,7 +15,7 @@ import (
 type T struct {
 	// Identifier of the user for the test
 	VirtualUser string
-	// Iteration number, "setup" or "teardown"
+	// "iteration " + iteration number or "setup"
 	Iteration string
 	// Logger with user and iteration tags
 	Log           *log.Logger
@@ -80,6 +80,11 @@ func (t *T) Cleanup(f func()) {
 
 func (t *T) teardown() {
 	for i := len(t.teardownStack) - 1; i >= 0; i-- {
-		t.teardownStack[i]()
+		done := make(chan struct{})
+		go func() {
+			defer checkResults(t, done)
+			t.teardownStack[i]()
+		}()
+		<-done
 	}
 }

@@ -112,7 +112,7 @@ func (r *Run) Do(s *testing.Scenarios) *RunResult {
 	metricsTick.Close()
 	r.gatherMetrics()
 
-	r.teardown()
+	r.activeScenario.Teardown()
 	r.pushMetrics()
 	fmt.Println(r.result.Teardown())
 
@@ -126,19 +126,6 @@ func (r *Run) configureLogging() {
 		welcomeMessage := renderTemplate(startTemplate, r)
 		log.Info(welcomeMessage)
 		fmt.Printf("Saving logs to %s\n\n", r.result.LogFile)
-	}
-}
-
-func (r *Run) teardown() {
-	r.activeScenario.Teardown()
-
-	if r.activeScenario.TeardownFn != nil {
-		successful := r.activeScenario.Run(metrics.TeardownResult, "teardown", "0", "teardown", r.activeScenario.TeardownFn)
-		if !successful {
-			r.fail("teardown failed")
-		}
-	} else {
-		log.Infof("nil teardown function for scenario %s", r.Options.Scenario)
 	}
 }
 
