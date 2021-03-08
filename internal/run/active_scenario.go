@@ -40,8 +40,8 @@ func NewActiveScenario(scenario *scenarios.Scenario) (*ActiveScenario, bool) {
 
 	// wait for completion
 	<-done
-	s.m.Record(metrics.SetupResult, scenario.Name, "setup", metrics.Result(t.HasFailed()), time.Since(start).Nanoseconds())
-	return s, !t.HasFailed()
+	s.m.Record(metrics.SetupResult, scenario.Name, "setup", metrics.Result(t.Failed()), time.Since(start).Nanoseconds())
+	return s, !t.Failed()
 }
 
 // Run performs a single iteration of the test. It returns `true` if the test was successful, `false` otherwise.
@@ -58,8 +58,8 @@ func (s *ActiveScenario) Run(metric metrics.MetricType, stage, iter string, f fu
 
 	// wait for completion
 	<-done
-	s.m.Record(metric, s.scenario.Name, stage, metrics.Result(t.HasFailed()), time.Since(start).Nanoseconds())
-	return !t.HasFailed()
+	s.m.Record(metric, s.scenario.Name, stage, metrics.Result(t.Failed()), time.Since(start).Nanoseconds())
+	return !t.Failed()
 }
 
 func checkResults(t *testing.T, done chan<- struct{}) {
@@ -67,7 +67,7 @@ func checkResults(t *testing.T, done chan<- struct{}) {
 	if r != nil {
 		err, isError := r.(error)
 		if isError {
-			t.FailWithError(err)
+			t.Error(err)
 			debug.PrintStack()
 		} else {
 			t.Errorf("panic in %s: %v", t.Iteration, err)

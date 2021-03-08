@@ -17,7 +17,7 @@ type T struct {
 	// "iteration " + iteration number or "setup"
 	Iteration string
 	// Logger with user and iteration tags
-	Log           *log.Logger
+	Logger        *log.Logger
 	failed        int64
 	Require       *require.Assertions
 	Scenario      string
@@ -27,7 +27,7 @@ type T struct {
 func NewT(iter, scenarioName string) (*T, func()) {
 	t := &T{
 		Iteration:     iter,
-		Log:           log.WithField("i", iter).WithField("scenario", scenarioName).Logger,
+		Logger:        log.WithField("i", iter).WithField("scenario", scenarioName).Logger,
 		Scenario:      scenarioName,
 		teardownStack: []func(){},
 	}
@@ -35,28 +35,48 @@ func NewT(iter, scenarioName string) (*T, func()) {
 	return t, t.teardown
 }
 
-func (t *T) Errorf(format string, args ...interface{}) {
-	atomic.StoreInt64(&t.failed, int64(1))
-	t.Log.Errorf(format, args...)
+func (t *T) Name() string {
+	return t.Scenario
 }
 
 func (t *T) FailNow() {
 	atomic.StoreInt64(&t.failed, int64(1))
-	t.Log.Errorf("%s failed and stopped", t.Iteration)
 	runtime.Goexit()
 }
 
 func (t *T) Fail() {
 	atomic.StoreInt64(&t.failed, int64(1))
-	t.Log.Errorf("%s failed", t.Iteration)
 }
 
-func (t *T) FailWithError(err error) {
-	atomic.StoreInt64(&t.failed, int64(1))
-	t.Log.WithError(err).Errorf("%s failed due to %s", t.Iteration, err.Error())
+func (t *T) Errorf(format string, args ...interface{}) {
+	t.Logf(format, args...)
+	t.Fail()
 }
 
-func (t *T) HasFailed() bool {
+func (t *T) Error(err error) {
+	t.Logf("%s failed due to %s", t.Iteration, err.Error())
+	t.Fail()
+}
+
+func (t *T) Fatalf(format string, args ...interface{}) {
+	t.Logf(format, args...)
+	t.FailNow()
+}
+
+func (t *T) Fatal(err error) {
+	t.Logf("%s failed due to %s", t.Iteration, err.Error())
+	t.FailNow()
+}
+
+func (t *T) Log(args ...interface{}) {
+	t.Logger.Error(args...)
+}
+
+func (t *T) Logf(format string, args ...interface{}) {
+	t.Logger.Errorf(format, args...)
+}
+
+func (t *T) Failed() bool {
 	return atomic.LoadInt64(&t.failed) == int64(1)
 }
 
@@ -68,7 +88,7 @@ func (t *T) Time(stageName string, f func()) {
 }
 
 func recordTime(t *T, stageName string, start time.Time) {
-	metrics.Instance().Record(metrics.IterationResult, t.Scenario, stageName, metrics.Result(t.HasFailed()), time.Since(start).Nanoseconds())
+	metrics.Instance().Record(metrics.IterationResult, t.Scenario, stageName, metrics.Result(t.Failed()), time.Since(start).Nanoseconds())
 }
 
 // Cleanup registers a teardown function to be called when T has completed
@@ -92,7 +112,7 @@ func checkResults(t *T, done chan<- struct{}) {
 	if r != nil {
 		err, isError := r.(error)
 		if isError {
-			t.FailWithError(err)
+			t.Error(err)
 			debug.PrintStack()
 		} else {
 			t.Errorf("panic in %s: %v", t.Iteration, err)
