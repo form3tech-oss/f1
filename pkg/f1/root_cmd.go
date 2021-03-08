@@ -13,8 +13,8 @@ import (
 	"github.com/form3tech-oss/f1/pkg/f1/scenarios"
 
 	"github.com/form3tech-oss/f1/internal/chart"
-	"github.com/form3tech-oss/f1/internal/trigger"
 	"github.com/form3tech-oss/f1/internal/run"
+	"github.com/form3tech-oss/f1/internal/trigger"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
