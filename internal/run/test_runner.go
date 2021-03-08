@@ -32,6 +32,7 @@ import (
 )
 
 const NextIterationWindow = 10 * time.Millisecond
+const IterationStage = "iteration"
 
 func NewRun(options options.RunOptions, t *api.Trigger) (*Run, error) {
 	run := Run{
@@ -282,8 +283,6 @@ func (r *Run) gatherProgressMetrics(duration time.Duration) {
 		}
 	}
 }
-
-const IterationStage = "iteration"
 
 func (r *Run) runWorker(input <-chan int32, stop <-chan struct{}, wg *sync.WaitGroup, worker string, workDone chan<- bool) {
 	defer wg.Done()
