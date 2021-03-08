@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/form3tech-oss/f1/pkg/f1"
 	"github.com/form3tech-oss/f1/internal/run"
+	"github.com/form3tech-oss/f1/pkg/f1"
 
 	"github.com/form3tech-oss/f1/internal/trigger/ramp"
 
@@ -21,7 +21,7 @@ import (
 	"github.com/form3tech-oss/f1/internal/options"
 	"github.com/form3tech-oss/f1/internal/trigger/users"
 
-	"github.com/form3tech-oss/f1/pkg/f1/fluentd_hook"
+	"github.com/form3tech-oss/f1/internal/fluentd_hook"
 
 	"github.com/form3tech-oss/f1/internal/trigger/api"
 
