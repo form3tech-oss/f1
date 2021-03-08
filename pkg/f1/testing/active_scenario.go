@@ -2,87 +2,62 @@ package testing
 
 import (
 	"runtime/debug"
-	"sync"
 	"time"
 
 	"github.com/form3tech-oss/f1/pkg/f1/metrics"
 	"github.com/google/uuid"
-	log "github.com/sirupsen/logrus"
 )
 
 type ActiveScenario struct {
-	Stages              []Stage
-	TeardownFn          TeardownFn
-	Name                string
-	id                  string
-	autoTeardownTimer   *CancellableTimer
-	autoTeardownTimerMu sync.RWMutex
-	AutoTeardownAfter   time.Duration
-	m                   *metrics.Metrics
+	Stages []Stage
+	Name   string
+	id     string
+	m      *metrics.Metrics
+	t      *T
 }
 
-func NewActiveScenarios(name string, fn MultiStageSetupFn, autoTeardownIdleDuration time.Duration) (*ActiveScenario, bool) {
+func NewActiveScenario(name string, fn MultiStageSetupFn) (*ActiveScenario, bool) {
+	t := NewT("setup", name)
 
 	s := &ActiveScenario{
-		Name:              name,
-		id:                uuid.New().String(),
-		AutoTeardownAfter: autoTeardownIdleDuration,
-		m:                 metrics.Instance(),
+		Name: name,
+		id:   uuid.New().String(),
+		m:    metrics.Instance(),
+		t:    t,
 	}
-	successful := s.Run(metrics.SetupResult, "setup", "0", "setup", func(t *T) {
-		s.Stages, s.TeardownFn = fn(t)
 
-		if autoTeardownIdleDuration > 0 {
-			s.SetAutoTeardown(NewCancellableTimer(autoTeardownIdleDuration))
-			go func() {
-				ok := <-s.AutoTeardown().C
-				s.SetAutoTeardown(nil)
-				if ok {
-					s.autoTeardown()
-				}
-			}()
-		}
-
-		activeScenarios.Store(s.id, s)
-		log.Infof("Added active scenario %s",
-			s.id)
-	})
-	return s, successful
-}
-
-func (s *ActiveScenario) AutoTeardown() *CancellableTimer {
-	s.autoTeardownTimerMu.RLock()
-	defer s.autoTeardownTimerMu.RUnlock()
-
-	return s.autoTeardownTimer
-}
-
-func (s *ActiveScenario) SetAutoTeardown(timer *CancellableTimer) {
-	s.autoTeardownTimerMu.Lock()
-	defer s.autoTeardownTimerMu.Unlock()
-
-	s.autoTeardownTimer = timer
-}
-
-// Run performs a single iteration of the test. It returns `true` if the test was successful, `false` otherwise.
-func (s *ActiveScenario) Run(metric metrics.MetricType, stage, vu, iter string, f func(t *T)) bool {
-	t := NewT(vu, iter, s.Name)
 	start := time.Now()
 	done := make(chan struct{})
 	go func() {
-		defer s.checkResults(t, done)
+		defer checkResults(t, done)
+		s.Stages = fn(t)
+	}()
+
+	// wait for completion
+	<-done
+	s.m.Record(metrics.SetupResult, s.Name, "setup", metrics.Result(t.HasFailed()), time.Since(start).Nanoseconds())
+	return s, !t.HasFailed()
+}
+
+// Run performs a single iteration of the test. It returns `true` if the test was successful, `false` otherwise.
+func (s *ActiveScenario) Run(metric metrics.MetricType, stage, iter string, f func(t *T)) bool {
+	t := NewT(iter, s.Name)
+	defer t.teardown()
+
+	start := time.Now()
+	done := make(chan struct{})
+	go func() {
+		defer checkResults(t, done)
 		f(t)
 	}()
-	if s.AutoTeardown() != nil {
-		s.AutoTeardown().Reset(s.AutoTeardownAfter)
-	}
+
 	// wait for completion
 	<-done
 	s.m.Record(metric, s.Name, stage, metrics.Result(t.HasFailed()), time.Since(start).Nanoseconds())
 	return !t.HasFailed()
 }
 
-func (s *ActiveScenario) checkResults(t *T, done chan<- struct{}) {
+func checkResults(t *T, done chan<- struct{}) {
 	r := recover()
 	if r != nil {
 		err, isError := r.(error)
@@ -90,23 +65,16 @@ func (s *ActiveScenario) checkResults(t *T, done chan<- struct{}) {
 			t.FailWithError(err)
 			debug.PrintStack()
 		} else {
-			t.Errorf("panic in test iteration: %v", err)
+			t.Errorf("panic in %s: %v", t.Iteration, err)
 		}
 	}
 	close(done)
 }
 
-func (s *ActiveScenario) autoTeardown() {
-	log.Warn("Teardown not called - triggering timed teardown")
-	if s.TeardownFn != nil {
-		successful := s.Run(metrics.TeardownResult, "teardown", "0", "teardown", s.TeardownFn)
-		if !successful {
-			log.Error("auto teardown failed")
-		}
-	}
-	activeScenarios.Delete(s.id)
-}
-
 func (s *ActiveScenario) RecordDroppedIteration() {
 	s.m.Record(metrics.IterationResult, s.Name, "single", "dropped", 0)
+}
+
+func (s *ActiveScenario) Teardown() {
+	s.t.teardown()
 }

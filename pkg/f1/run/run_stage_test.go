@@ -1,4 +1,4 @@
-package run
+package run_test
 
 import (
 	"fmt"
@@ -8,6 +8,9 @@ import (
 	"syscall"
 	"testing"
 	"time"
+
+	"github.com/form3tech-oss/f1/pkg/f1"
+	"github.com/form3tech-oss/f1/pkg/f1/run"
 
 	"github.com/form3tech-oss/f1/pkg/f1/trigger/ramp"
 
@@ -35,37 +38,42 @@ import (
 )
 
 type RunTestStage struct {
-	duration         time.Duration
-	runCount         int32
-	startTime        time.Time
-	t                *testing.T
-	scenario         string
-	runResult        *RunResult
-	concurrency      int
-	tearDownCount    *int32
-	assert           *assert.Assertions
-	rate             string
-	maxIterations    int32
-	triggerType      TriggerType
-	stages           string
-	frequency        string
-	require          *require.Assertions
-	distributionType string
-	configFile       string
-	startRate        string
-	endRate          string
-	rampDuration     string
-	durations        sync.Map
+	duration               time.Duration
+	runCount               int32
+	startTime              time.Time
+	t                      *testing.T
+	scenario               string
+	runResult              *run.RunResult
+	concurrency            int
+	setupTeardownCount     *int32
+	iterationTeardownCount *int32
+	assert                 *assert.Assertions
+	rate                   string
+	maxIterations          int32
+	triggerType            TriggerType
+	stages                 string
+	frequency              string
+	require                *require.Assertions
+	distributionType       string
+	configFile             string
+	startRate              string
+	endRate                string
+	rampDuration           string
+	durations              sync.Map
+	f1                     *f1.F1
 }
 
 func NewRunTestStage(t *testing.T) (*RunTestStage, *RunTestStage, *RunTestStage) {
-	teardownCount := int32(0)
+	setupTeardownCount := int32(0)
+	iterationTeardownCount := int32(0)
 	stage := &RunTestStage{
-		t:             t,
-		concurrency:   100,
-		assert:        assert.New(t),
-		require:       require.New(t),
-		tearDownCount: &teardownCount,
+		t:                      t,
+		concurrency:            100,
+		assert:                 assert.New(t),
+		require:                require.New(t),
+		setupTeardownCount:     &setupTeardownCount,
+		iterationTeardownCount: &iterationTeardownCount,
+		f1:                     f1.Scenarios(),
 	}
 	fakePrometheus.ClearMetrics()
 	return stage, stage, stage
@@ -111,7 +119,7 @@ func (s *RunTestStage) a_ramp_duration_of(rampDuration string) *RunTestStage {
 }
 
 func (s *RunTestStage) i_execute_the_run_command() *RunTestStage {
-	run, err := NewRun(
+	r, err := run.NewRun(
 		options.RunOptions{
 			Scenario:            s.scenario,
 			MaxDuration:         s.duration,
@@ -122,10 +130,10 @@ func (s *RunTestStage) i_execute_the_run_command() *RunTestStage {
 		s.build_trigger())
 	if err != nil {
 		log.WithError(err).Info("run creation failed")
-		s.runResult = (&RunResult{}).AddError(err)
+		s.runResult = (&run.RunResult{}).AddError(err)
 		return s
 	}
-	s.runResult = run.Do()
+	s.runResult = r.Do(s.f1.GetScenarios())
 	return s
 }
 
@@ -166,84 +174,107 @@ func (s *RunTestStage) the_command_should_fail() *RunTestStage {
 
 func (s *RunTestStage) a_test_scenario_that_always_fails() *RunTestStage {
 	s.scenario = uuid.New().String()
-	f1_testing.Add(s.scenario, func(t *f1_testing.T) (fn f1_testing.RunFn, fn2 f1_testing.TeardownFn) {
+	s.f1.Add(s.scenario, func(t *f1_testing.T) (fn f1_testing.RunFn) {
+		t.Cleanup(func() {
+			atomic.AddInt32(s.setupTeardownCount, 1)
+		})
 		return func(t *f1_testing.T) {
-				t.FailNow()
-			}, func(t *f1_testing.T) {
-				atomic.AddInt32(s.tearDownCount, 1)
-			}
+			t.Cleanup(func() {
+				atomic.AddInt32(s.iterationTeardownCount, 1)
+			})
+			t.FailNow()
+		}
 	})
 	return s
 }
 
 func (s *RunTestStage) a_test_scenario_that_always_panics() *RunTestStage {
 	s.scenario = uuid.New().String()
-	f1_testing.Add(s.scenario, func(t *f1_testing.T) (fn f1_testing.RunFn, fn2 f1_testing.TeardownFn) {
+	s.f1.Add(s.scenario, func(t *f1_testing.T) (fn f1_testing.RunFn) {
+		t.Cleanup(func() {
+			atomic.AddInt32(s.setupTeardownCount, 1)
+		})
 		return func(t *f1_testing.T) {
-				panic("aaargh!")
-			}, func(t *f1_testing.T) {
-				atomic.AddInt32(s.tearDownCount, 1)
-			}
+			t.Cleanup(func() {
+				atomic.AddInt32(s.iterationTeardownCount, 1)
+			})
+			panic("aaargh!")
+		}
 	})
 	return s
 }
 
 func (s *RunTestStage) a_test_scenario_that_always_fails_an_assertion() *RunTestStage {
 	s.scenario = uuid.New().String()
-	f1_testing.Add(s.scenario, func(t *f1_testing.T) (fn f1_testing.RunFn, fn2 f1_testing.TeardownFn) {
+	s.f1.Add(s.scenario, func(t *f1_testing.T) (fn f1_testing.RunFn) {
+		t.Cleanup(func() {
+			atomic.AddInt32(s.setupTeardownCount, 1)
+		})
 		return func(t *f1_testing.T) {
-				assert.Equal(t, 3, 1+1)
-			}, func(t *f1_testing.T) {
-				atomic.AddInt32(s.tearDownCount, 1)
-			}
+			t.Cleanup(func() {
+				atomic.AddInt32(s.iterationTeardownCount, 1)
+			})
+			assert.Equal(t, 3, 1+1)
+		}
 	})
 	return s
 }
 
 func (s *RunTestStage) a_test_scenario_that_always_fails_setup() *RunTestStage {
 	s.scenario = uuid.New().String()
-	f1_testing.Add(s.scenario, func(t *f1_testing.T) (fn f1_testing.RunFn, fn2 f1_testing.TeardownFn) {
+	s.f1.Add(s.scenario, func(t *f1_testing.T) (fn f1_testing.RunFn) {
+		t.Cleanup(func() {
+			atomic.AddInt32(s.setupTeardownCount, 1)
+		})
 		t.FailNow()
-		return nil, nil
+		return nil
 	})
 	return s
 }
 
 func (s *RunTestStage) a_scenario_where_each_iteration_takes(duration time.Duration) *RunTestStage {
 	s.scenario = uuid.New().String()
-	f1_testing.Add(s.scenario, func(t *f1_testing.T) (fn f1_testing.RunFn, fn2 f1_testing.TeardownFn) {
+	s.f1.Add(s.scenario, func(t *f1_testing.T) (fn f1_testing.RunFn) {
+		t.Cleanup(func() {
+			atomic.AddInt32(s.setupTeardownCount, 1)
+		})
 		s.runCount = 0
 		return func(t *f1_testing.T) {
-				atomic.AddInt32(&s.runCount, 1)
-				s.durations.Store(time.Now(), time.Since(s.startTime))
-				time.Sleep(duration)
-			}, func(t *f1_testing.T) {
-				atomic.AddInt32(s.tearDownCount, 1)
-			}
+			t.Cleanup(func() {
+				atomic.AddInt32(s.iterationTeardownCount, 1)
+			})
+			atomic.AddInt32(&s.runCount, 1)
+			s.durations.Store(time.Now(), time.Since(s.startTime))
+			time.Sleep(duration)
+		}
 	})
 	return s
 }
 
-func (s *RunTestStage) teardown_is_called() *RunTestStage {
-	assert.True(s.t, atomic.LoadInt32(s.tearDownCount) > 0)
+func (s *RunTestStage) setup_teardown_is_called() *RunTestStage {
+	s.assert.Equal(int32(1), atomic.LoadInt32(s.setupTeardownCount))
 	return s
 }
 
-func (s *RunTestStage) teardown_is_called_once() *RunTestStage {
-	s.assert.Equal(atomic.LoadInt32(s.tearDownCount), int32(1))
+func (s *RunTestStage) iteration_teardown_is_called_n_times(n int32) *RunTestStage {
+	s.assert.Equal(n, atomic.LoadInt32(s.iterationTeardownCount))
 	return s
 }
 
 func (s *RunTestStage) a_test_scenario_that_fails_intermittently() *RunTestStage {
 	s.scenario = uuid.New().String()
-	f1_testing.Add(s.scenario, func(t *f1_testing.T) (fn f1_testing.RunFn, fn2 f1_testing.TeardownFn) {
+	s.f1.Add(s.scenario, func(t *f1_testing.T) (fn f1_testing.RunFn) {
+		t.Cleanup(func() {
+			atomic.AddInt32(s.setupTeardownCount, 1)
+		})
 		s.runCount = 0
 		return func(t *f1_testing.T) {
-				count := atomic.AddInt32(&s.runCount, 1)
-				t.Require.True(count%2 == 0)
-			}, func(t *f1_testing.T) {
-				atomic.AddInt32(s.tearDownCount, 1)
-			}
+			t.Cleanup(func() {
+				atomic.AddInt32(s.iterationTeardownCount, 1)
+			})
+			count := atomic.AddInt32(&s.runCount, 1)
+			t.Require.True(count%2 == 0)
+		}
 	})
 	return s
 }
@@ -310,7 +341,7 @@ func (s *RunTestStage) an_iteration_limit_of(iterations int32) *RunTestStage {
 
 func (s *RunTestStage) the_test_run_is_started() *RunTestStage {
 	go func() {
-		run, err := NewRun(options.RunOptions{
+		r, err := run.NewRun(options.RunOptions{
 			Scenario:            s.scenario,
 			MaxDuration:         s.duration,
 			Concurrency:         s.concurrency,
@@ -319,7 +350,7 @@ func (s *RunTestStage) the_test_run_is_started() *RunTestStage {
 		},
 			s.build_trigger())
 		require.Nil(s.t, err)
-		s.runResult = run.Do()
+		s.runResult = r.Do(s.f1.GetScenarios())
 	}()
 	return s
 }
@@ -403,15 +434,15 @@ func (s *RunTestStage) the_test_run_is_interrupted() *RunTestStage {
 	return s
 }
 
-func (s *RunTestStage) teardown_is_called_within_50ms() *RunTestStage {
+func (s *RunTestStage) setup_teardown_is_called_within_50ms() *RunTestStage {
 	err := retry.Do(func() error {
-		if atomic.LoadInt32(s.tearDownCount) <= 0 {
+		if atomic.LoadInt32(s.setupTeardownCount) <= 0 {
 			return fmt.Errorf("no teardown yet")
 		}
 		return nil
 	}, retry.Sleep(10*time.Millisecond), retry.MaxTries(5))
 	s.assert.NoError(err)
-	s.assert.True(atomic.LoadInt32(s.tearDownCount) >= 1)
+	s.assert.True(atomic.LoadInt32(s.setupTeardownCount) >= 1)
 	return s
 }
 
@@ -442,16 +473,20 @@ func (s *RunTestStage) metrics_are_pushed_to_prometheus() *RunTestStage {
 
 func (s *RunTestStage) a_scenario_where_the_final_iteration_takes_100ms() *RunTestStage {
 	s.scenario = uuid.New().String()
-	f1_testing.Add(s.scenario, func(t *f1_testing.T) (fn f1_testing.RunFn, fn2 f1_testing.TeardownFn) {
+	s.f1.Add(s.scenario, func(t *f1_testing.T) (fn f1_testing.RunFn) {
+		t.Cleanup(func() {
+			atomic.AddInt32(s.setupTeardownCount, 1)
+		})
 		s.runCount = 0
 		return func(t *f1_testing.T) {
-				current := atomic.AddInt32(&s.runCount, 1)
-				if current == 400 {
-					time.Sleep(100 * time.Millisecond)
-				}
-			}, func(t *f1_testing.T) {
-				atomic.AddInt32(s.tearDownCount, 1)
+			t.Cleanup(func() {
+				atomic.AddInt32(s.iterationTeardownCount, 1)
+			})
+			current := atomic.AddInt32(&s.runCount, 1)
+			if current == 400 {
+				time.Sleep(100 * time.Millisecond)
 			}
+		}
 	})
 	return s
 }

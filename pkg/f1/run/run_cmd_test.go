@@ -1,4 +1,4 @@
-package run
+package run_test
 
 import (
 	"testing"
@@ -239,8 +239,8 @@ func TestParameterised(t *testing.T) {
 		{
 			name:                   "users test slow iterations",
 			triggerType:            Users,
-			testDuration:           2 * time.Second,
-			expectedRunTime:        2 * time.Second,
+			testDuration:           1900 * time.Millisecond,
+			expectedRunTime:        1900 * time.Millisecond,
 			expectedCompletedTests: 10,
 			concurrency:            10,
 			iterationDuration:      2 * time.Second,
@@ -248,8 +248,8 @@ func TestParameterised(t *testing.T) {
 		{
 			name:                   "users test normal iterations",
 			triggerType:            Users,
-			testDuration:           2 * time.Second,
-			expectedRunTime:        2 * time.Second,
+			testDuration:           1900 * time.Millisecond,
+			expectedRunTime:        1900 * time.Millisecond,
 			expectedCompletedTests: 20,
 			concurrency:            10,
 			iterationDuration:      1 * time.Second,
@@ -257,8 +257,8 @@ func TestParameterised(t *testing.T) {
 		{
 			name:                   "users test fast iterations",
 			triggerType:            Users,
-			testDuration:           2 * time.Second,
-			expectedRunTime:        2 * time.Second,
+			testDuration:           1900 * time.Millisecond,
+			expectedRunTime:        1900 * time.Millisecond,
 			expectedCompletedTests: 40,
 			concurrency:            10,
 			iterationDuration:      500 * time.Millisecond,
@@ -395,7 +395,8 @@ func TestParameterised(t *testing.T) {
 				the_command_should_have_run_for_approx(test.expectedRunTime).and().
 				the_number_of_started_iterations_should_be(test.expectedCompletedTests).and().
 				the_number_of_dropped_iterations_should_be(test.expectedDroppedIterations).and().
-				teardown_is_called_once()
+				setup_teardown_is_called().and().
+				iteration_teardown_is_called_n_times(test.expectedCompletedTests)
 		})
 	}
 }
@@ -479,7 +480,8 @@ func TestRunScenarioThatFails(t *testing.T) {
 	when.i_execute_the_run_command()
 
 	then.the_command_should_fail().and().
-		teardown_is_called().and().
+		setup_teardown_is_called().and().
+		iteration_teardown_is_called_n_times(1).and().
 		metrics_are_pushed_to_prometheus()
 }
 
@@ -494,7 +496,8 @@ func TestRunScenarioThatPanics(t *testing.T) {
 	when.i_execute_the_run_command()
 
 	then.the_command_should_fail().and().
-		teardown_is_called().and().
+		setup_teardown_is_called().and().
+		iteration_teardown_is_called_n_times(1).and().
 		metrics_are_pushed_to_prometheus()
 }
 
@@ -509,7 +512,8 @@ func TestRunScenarioThatFailsAnAssertion(t *testing.T) {
 	when.i_execute_the_run_command()
 
 	then.the_command_should_fail().and().
-		teardown_is_called().and().
+		setup_teardown_is_called().and().
+		iteration_teardown_is_called_n_times(1).and().
 		metrics_are_pushed_to_prometheus()
 }
 
@@ -527,7 +531,8 @@ func TestRunScenarioThatFailsOccasionally(t *testing.T) {
 
 	then.the_results_should_show_n_failures(50).and().
 		the_results_should_show_n_successful_iterations(50).and().
-		teardown_is_called()
+		setup_teardown_is_called().and().
+		iteration_teardown_is_called_n_times(100)
 }
 
 func TestInterruptedRun(t *testing.T) {
@@ -543,7 +548,7 @@ func TestInterruptedRun(t *testing.T) {
 		the_test_run_is_interrupted()
 
 	then.
-		teardown_is_called_within_50ms().and().
+		setup_teardown_is_called_within_50ms().and().
 		metrics_are_pushed_to_prometheus()
 
 }

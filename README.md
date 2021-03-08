@@ -74,7 +74,7 @@ Once you have written a load test and compiled a binary test runner, you can use
 
 * `constant` - applies load at a constant rate (e.g. one request per second, irrespective of request duration).
 * `staged` - applies load at various stages (e.g. one request per second for 10s, then two per second for 10s).
-* `users` - applies load from a pool of virtual users (e.g. requests from two virtual users being sent sequentially - they are as fast or as slow as the requests themselves).
+* `users` - applies load from a pool of users (e.g. requests from two users being sent sequentially - they are as fast or as slow as the requests themselves).
 * `gaussian` - applies load based on a [Gaussian distribution](https://en.wikipedia.org/wiki/Normal_distribution) (e.g. varies load throughout a given duration with a mean and standard deviation).
 * `ramp` - applies load constantly increasing or decreasing an initial load during a given ramp duration (e.g. from 0/s requests to 100/s requests during 10s).
 * `file` - applies load based on a yaml config file - the file can contain any of the previous load modes (e.g. ["config-file-example.yaml"](config-file-example.yaml)).
@@ -84,7 +84,7 @@ Once you have written a load test and compiled a binary test runner, you can use
 At Form3, we invest a lot of engineering time into load and performance testing of our platform. We initially used [`k6`](https://github.com/loadimpact/k6) to develop and run these tests, but this was problematic for us for a couple of reasons:
 
 1. The tests that `k6` executes are written in Javascript - in order to test our platform, we often need to do things not easily done in Javascript (e.g. connect to SQS queues). The tests themselves can get quite complicated, and Javascript is not well suited to testing these sorts of tests.
-2. `k6` only really supports a single model for applying load - virtual users. This model assumes you have a finite pool of users, repeatedly making requests in sequence. This doesn't really work for us, since the payments industry has a pool of millions of users, each of whom could make a payment at any moment - when they do, they don't wait around for the previous customer to finish!
+2. `k6` only really supports a single model for applying load - users. This model assumes you have a finite pool of users, repeatedly making requests in sequence. This doesn't really work for us, since the payments industry has a pool of millions of users, each of whom could make a payment at any moment - when they do, they don't wait around for the previous customer to finish!
 
 ### Enter `f1`
 We started working on `f1`, because we already had a suite of load test scenarios that we had started writing in Go. `k6` interfaced with these by making web requests to a server that actually ran the tests - a bit of a hack.

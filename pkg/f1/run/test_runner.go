@@ -14,6 +14,7 @@ import (
 
 	"github.com/form3tech-oss/f1/pkg/f1/logging"
 	"github.com/form3tech-oss/f1/pkg/f1/options"
+	"github.com/form3tech-oss/f1/pkg/f1/scenarios"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 
@@ -30,6 +31,8 @@ import (
 	"github.com/form3tech-oss/f1/pkg/f1/metrics"
 	"github.com/form3tech-oss/f1/pkg/f1/testing"
 )
+
+const NextIterationWindow = 10 * time.Millisecond
 
 func NewRun(options options.RunOptions, t *api.Trigger) (*Run, error) {
 	run := Run{
@@ -81,7 +84,7 @@ var startTemplate = template.Must(template.New("result parse").
 Running {yellow}{{.Options.Scenario}}{-} scenario for {{if .Options.MaxIterations}}up to {{.Options.MaxIterations}} iterations or up to {{end}}{{duration .Options.MaxDuration}} at a rate of {{.RateDescription}}.
 `))
 
-func (r *Run) Do() *RunResult {
+func (r *Run) Do(s *scenarios.Scenarios) *RunResult {
 	fmt.Print(renderTemplate(startTemplate, r))
 	defer r.printSummary()
 	defer r.printLogOnFailure()
@@ -90,7 +93,7 @@ func (r *Run) Do() *RunResult {
 
 	metrics.Instance().Reset()
 	var setupSuccessful bool
-	r.activeScenario, setupSuccessful = testing.NewActiveScenarios(r.Options.Scenario, testing.GetScenario(r.Options.Scenario), 0)
+	r.activeScenario, setupSuccessful = testing.NewActiveScenario(r.Options.Scenario, s.GetScenario(r.Options.Scenario))
 	r.pushMetrics()
 	fmt.Println(r.result.Setup())
 
@@ -112,7 +115,7 @@ func (r *Run) Do() *RunResult {
 	metricsTick.Close()
 	r.gatherMetrics()
 
-	r.teardown()
+	r.activeScenario.Teardown()
 	r.pushMetrics()
 	fmt.Println(r.result.Teardown())
 
@@ -126,21 +129,6 @@ func (r *Run) configureLogging() {
 		welcomeMessage := renderTemplate(startTemplate, r)
 		log.Info(welcomeMessage)
 		fmt.Printf("Saving logs to %s\n\n", r.result.LogFile)
-	}
-}
-
-func (r *Run) teardown() {
-	if r.activeScenario.AutoTeardown() != nil {
-		r.activeScenario.AutoTeardown().Cancel()
-	}
-
-	if r.activeScenario.TeardownFn != nil {
-		successful := r.activeScenario.Run(metrics.TeardownResult, "teardown", "0", "teardown", r.activeScenario.TeardownFn)
-		if !successful {
-			r.fail("teardown failed")
-		}
-	} else {
-		log.Infof("nil teardown function for scenario %s", r.Options.Scenario)
 	}
 }
 
@@ -183,7 +171,7 @@ func (r *Run) run() {
 	}
 
 	// Cancel work slightly before end of duration to avoid starting a new iteration
-	durationElapsed := testing.NewCancellableTimer(duration - 10*time.Millisecond)
+	durationElapsed := testing.NewCancellableTimer(duration - NextIterationWindow)
 	r.result.RecordStarted()
 	defer r.result.RecordTestFinished()
 
@@ -308,7 +296,7 @@ func (r *Run) runWorker(input <-chan int32, stop <-chan struct{}, wg *sync.WaitG
 			trace.Event("Received work (%v) from Channel 'doWork' iteration (%v)", worker, iteration)
 			atomic.AddInt32(&r.busyWorkers, 1)
 			for _, stage := range r.activeScenario.Stages {
-				successful := r.activeScenario.Run(metrics.IterationResult, stage.Name, worker, fmt.Sprint(iteration), stage.RunFn)
+				successful := r.activeScenario.Run(metrics.IterationResult, stage.Name, fmt.Sprintf("iteration %d", iteration), stage.RunFn)
 				if !successful {
 					atomic.AddInt32(&r.failures, 1)
 				}
