@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/form3tech-oss/f1/pkg/f1/trigger/api"
+	"github.com/form3tech-oss/f1/internal/trigger/api"
 
 	"github.com/stretchr/testify/require"
 

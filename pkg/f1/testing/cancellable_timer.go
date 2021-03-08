@@ -4,7 +4,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/form3tech-oss/f1/pkg/f1/trace"
+	"github.com/form3tech-oss/f1/internal/trace"
 )
 
 type CancellableTimer struct {

@@ -3,7 +3,7 @@ package api
 import (
 	"time"
 
-	"github.com/form3tech-oss/f1/pkg/f1/options"
+	"github.com/form3tech-oss/f1/internal/options"
 
 	"github.com/spf13/pflag"
 )

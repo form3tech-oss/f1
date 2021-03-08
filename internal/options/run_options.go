@@ -3,7 +3,7 @@ package options
 import (
 	"time"
 
-	"github.com/form3tech-oss/f1/pkg/f1/logging"
+	"github.com/form3tech-oss/f1/internal/logging"
 )
 
 type RunOptions struct {

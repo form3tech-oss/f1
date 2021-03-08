@@ -10,23 +10,23 @@ import (
 	"time"
 
 	"github.com/form3tech-oss/f1/pkg/f1"
-	"github.com/form3tech-oss/f1/pkg/f1/run"
+	"github.com/form3tech-oss/f1/internal/run"
 
-	"github.com/form3tech-oss/f1/pkg/f1/trigger/ramp"
+	"github.com/form3tech-oss/f1/internal/trigger/ramp"
 
-	"github.com/form3tech-oss/f1/pkg/f1/trigger/file"
+	"github.com/form3tech-oss/f1/internal/trigger/file"
 
 	io_prometheus_client "github.com/prometheus/client_model/go"
 
-	"github.com/form3tech-oss/f1/pkg/f1/options"
-	"github.com/form3tech-oss/f1/pkg/f1/trigger/users"
+	"github.com/form3tech-oss/f1/internal/options"
+	"github.com/form3tech-oss/f1/internal/trigger/users"
 
 	"github.com/form3tech-oss/f1/pkg/f1/fluentd_hook"
 
-	"github.com/form3tech-oss/f1/pkg/f1/trigger/api"
+	"github.com/form3tech-oss/f1/internal/trigger/api"
 
-	"github.com/form3tech-oss/f1/pkg/f1/trigger/constant"
-	"github.com/form3tech-oss/f1/pkg/f1/trigger/staged"
+	"github.com/form3tech-oss/f1/internal/trigger/constant"
+	"github.com/form3tech-oss/f1/internal/trigger/staged"
 
 	log "github.com/sirupsen/logrus"
 

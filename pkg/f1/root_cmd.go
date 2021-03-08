@@ -8,13 +8,13 @@ import (
 
 	"github.com/form3tech-oss/f1/internal/support/errorh"
 
-	"github.com/form3tech-oss/f1/pkg/f1/fluentd_hook"
+	"github.com/form3tech-oss/f1/internal/fluentd_hook"
 
 	"github.com/form3tech-oss/f1/pkg/f1/scenarios"
 
-	"github.com/form3tech-oss/f1/pkg/f1/chart"
-	"github.com/form3tech-oss/f1/pkg/f1/run"
-	"github.com/form3tech-oss/f1/pkg/f1/trigger"
+	"github.com/form3tech-oss/f1/internal/chart"
+	"github.com/form3tech-oss/f1/internal/trigger"
+	"github.com/form3tech-oss/f1/internal/run"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"

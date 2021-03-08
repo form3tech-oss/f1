@@ -4,14 +4,14 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/form3tech-oss/f1/pkg/f1/options"
+	"github.com/form3tech-oss/f1/internal/options"
 	"github.com/form3tech-oss/f1/pkg/f1/scenarios"
 
 	"github.com/pkg/errors"
 
-	"github.com/form3tech-oss/f1/pkg/f1/logging"
+	"github.com/form3tech-oss/f1/internal/logging"
 
-	"github.com/form3tech-oss/f1/pkg/f1/trigger/api"
+	"github.com/form3tech-oss/f1/internal/trigger/api"
 
 	"github.com/spf13/cobra"
 )
