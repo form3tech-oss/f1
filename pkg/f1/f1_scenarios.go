@@ -26,13 +26,16 @@ func Scenarios() *F1 {
 }
 
 func (f *F1) Add(name string, scenarioFn testing.ScenarioFn, options ...scenarios.ScenarioOption) *F1 {
-	info := &scenarios.ScenarioInfo{Name: name}
+	info := &scenarios.Scenario{
+		Name:       name,
+		ScenarioFn: scenarioFn,
+	}
 
 	for _, opt := range options {
 		opt(info)
 	}
 
-	f.scenarios.Add(*info, scenarioFn)
+	f.scenarios.Add(info)
 	return f
 }
 

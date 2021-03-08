@@ -29,7 +29,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus/push"
 
 	"github.com/form3tech-oss/f1/internal/metrics"
-	"github.com/form3tech-oss/f1/pkg/f1/testing"
 )
 
 const NextIterationWindow = 10 * time.Millisecond
@@ -69,7 +68,7 @@ type Run struct {
 	iteration       int32
 	failures        int32
 	result          RunResult
-	activeScenario  *testing.ActiveScenario
+	activeScenario  *ActiveScenario
 	interrupt       chan os.Signal
 	trigger         *api.Trigger
 	RateDescription string
@@ -93,7 +92,7 @@ func (r *Run) Do(s *scenarios.Scenarios) *RunResult {
 
 	metrics.Instance().Reset()
 	var setupSuccessful bool
-	r.activeScenario, setupSuccessful = testing.NewActiveScenario(r.Options.Scenario, s.GetScenario(r.Options.Scenario))
+	r.activeScenario, setupSuccessful = NewActiveScenario(s.GetScenario(r.Options.Scenario))
 	r.pushMetrics()
 	fmt.Println(r.result.Setup())
 
@@ -171,7 +170,7 @@ func (r *Run) run() {
 	}
 
 	// Cancel work slightly before end of duration to avoid starting a new iteration
-	durationElapsed := testing.NewCancellableTimer(duration - NextIterationWindow)
+	durationElapsed := NewCancellableTimer(duration - NextIterationWindow)
 	r.result.RecordStarted()
 	defer r.result.RecordTestFinished()
 
@@ -213,7 +212,7 @@ func (r *Run) run() {
 	}
 }
 
-func (r *Run) doWork(doWorkChannel chan<- int32, durationElapsed *testing.CancellableTimer) {
+func (r *Run) doWork(doWorkChannel chan<- int32, durationElapsed *CancellableTimer) {
 	if atomic.LoadInt32(&r.busyWorkers) >= int32(r.Options.Concurrency) {
 		r.activeScenario.RecordDroppedIteration()
 		r.notifyDropped.Do(func() {
@@ -295,11 +294,11 @@ func (r *Run) runWorker(input <-chan int32, stop <-chan struct{}, wg *sync.WaitG
 		case iteration := <-input:
 			trace.Event("Received work (%v) from Channel 'doWork' iteration (%v)", worker, iteration)
 			atomic.AddInt32(&r.busyWorkers, 1)
-			for _, stage := range r.activeScenario.Stages {
-				successful := r.activeScenario.Run(metrics.IterationResult, stage.Name, fmt.Sprintf("iteration %d", iteration), stage.RunFn)
-				if !successful {
-					atomic.AddInt32(&r.failures, 1)
-				}
+
+			scenario := r.activeScenario.scenario
+			successful := r.activeScenario.Run(metrics.IterationResult, scenario.Name, fmt.Sprintf("iteration %d", iteration), scenario.RunFn)
+			if !successful {
+				atomic.AddInt32(&r.failures, 1)
 			}
 			atomic.AddInt32(&r.busyWorkers, -1)
 

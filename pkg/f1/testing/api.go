@@ -7,10 +7,3 @@ type ScenarioFn func(t *T) RunFn
 // RunFn performs a single iteration of the test. It may be used for asserting
 // results or failing the test.
 type RunFn func(t *T)
-
-type MultiStageSetupFn func(t *T) []Stage
-
-type Stage struct {
-	Name  string
-	RunFn RunFn
-}

@@ -4,18 +4,18 @@ import (
 	"sort"
 
 	"github.com/form3tech-oss/f1/pkg/f1/testing"
-	log "github.com/sirupsen/logrus"
 )
 
 type Scenarios struct {
-	scenarios            map[string]testing.MultiStageSetupFn
-	scenarioDescriptions []ScenarioInfo
+	scenarios map[string]*Scenario
 }
 
-type ScenarioInfo struct {
+type Scenario struct {
 	Name        string
 	Description string
 	Parameters  []ScenarioParameter
+	ScenarioFn  testing.ScenarioFn
+	RunFn       testing.RunFn
 }
 
 type ScenarioParameter struct {
@@ -24,47 +24,32 @@ type ScenarioParameter struct {
 	Default     string
 }
 
-type ScenarioOption func(info *ScenarioInfo)
+type ScenarioOption func(info *Scenario)
 
 func Description(d string) ScenarioOption {
-	return func(i *ScenarioInfo) {
+	return func(i *Scenario) {
 		i.Description = d
 	}
 }
 
 func Parameter(parameter ScenarioParameter) ScenarioOption {
-	return func(i *ScenarioInfo) {
+	return func(i *Scenario) {
 		i.Parameters = append(i.Parameters, parameter)
 	}
 }
+
 func New() *Scenarios {
 	return &Scenarios{
-		scenarios: make(map[string]testing.MultiStageSetupFn),
+		scenarios: make(map[string]*Scenario),
 	}
 }
 
-func (s *Scenarios) Add(scenario ScenarioInfo, testSetup testing.ScenarioFn) *Scenarios {
-	s.scenarioDescriptions = append(s.scenarioDescriptions, scenario)
-
-	multiStageSetup := func(t *testing.T) []testing.Stage {
-		run := testSetup(t)
-		return []testing.Stage{{Name: "single", RunFn: run}}
-	}
-
-	return s.AddMultiStage(scenario.Name, multiStageSetup)
-}
-
-func (s *Scenarios) AddByName(name string, testSetup testing.ScenarioFn) *Scenarios {
-	return s.Add(ScenarioInfo{Name: name}, testSetup)
-}
-
-func (s *Scenarios) AddMultiStage(name string, testSetup testing.MultiStageSetupFn) *Scenarios {
-	log.Debugf("Registering test %s\n", name)
-	s.scenarios[name] = testSetup
+func (s *Scenarios) Add(scenario *Scenario) *Scenarios {
+	s.scenarios[scenario.Name] = scenario
 	return s
 }
 
-func (s *Scenarios) GetScenario(scenarioName string) testing.MultiStageSetupFn {
+func (s *Scenarios) GetScenario(scenarioName string) *Scenario {
 	return s.scenarios[scenarioName]
 }
 
@@ -77,10 +62,4 @@ func (s *Scenarios) GetScenarioNames() []string {
 	}
 	sort.Strings(names)
 	return names
-}
-
-func WithNoSetup(fn func(t *testing.T)) testing.ScenarioFn {
-	return func(t *testing.T) testing.RunFn {
-		return fn
-	}
 }
