@@ -30,7 +30,7 @@ type RunResult struct {
 func (r *RunResult) SetMetrics(result string, stage string, count uint64, quantiles []*io_prometheus_client.Quantile) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	if stage != "single" {
+	if stage != IterationStage {
 		return
 	}
 	r.RecentDuration = 1 * time.Second
@@ -62,7 +62,7 @@ func (r *RunResult) ClearProgressMetrics() {
 func (r *RunResult) IncrementMetrics(duration time.Duration, result string, stage string, count uint64, quantiles []*io_prometheus_client.Quantile) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	if stage != "single" {
+	if stage != IterationStage {
 		return
 	}
 	r.RecentDuration = duration

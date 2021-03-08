@@ -77,5 +77,5 @@ func checkResults(t *testing.T, done chan<- struct{}) {
 }
 
 func (s *ActiveScenario) RecordDroppedIteration() {
-	s.m.Record(metrics.IterationResult, s.scenario.Name, "single", "dropped", 0)
+	s.m.Record(metrics.IterationResult, s.scenario.Name, IterationStage, "dropped", 0)
 }
