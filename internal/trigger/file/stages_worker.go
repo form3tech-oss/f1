@@ -5,10 +5,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/form3tech-oss/f1/pkg/f1/trigger/users"
+	"github.com/form3tech-oss/f1/internal/trigger/users"
 
-	"github.com/form3tech-oss/f1/pkg/f1/options"
-	"github.com/form3tech-oss/f1/pkg/f1/trigger/api"
+	"github.com/form3tech-oss/f1/internal/options"
+	"github.com/form3tech-oss/f1/internal/trigger/api"
 	log "github.com/sirupsen/logrus"
 )
 

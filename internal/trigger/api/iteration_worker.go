@@ -3,9 +3,9 @@ package api
 import (
 	"time"
 
-	"github.com/form3tech-oss/f1/pkg/f1/trace"
+	"github.com/form3tech-oss/f1/internal/trace"
 
-	"github.com/form3tech-oss/f1/pkg/f1/options"
+	"github.com/form3tech-oss/f1/internal/options"
 )
 
 // NewIterationWorker produces a WorkTriggerer which triggers work at fixed intervals.

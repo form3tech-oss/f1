@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/form3tech-oss/f1/pkg/f1/trigger/api"
+	"github.com/form3tech-oss/f1/internal/trigger/api"
 
 	"github.com/chobie/go-gaussian"
 	"github.com/spf13/pflag"

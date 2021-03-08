@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/form3tech-oss/f1/pkg/f1/trigger/api"
+	"github.com/form3tech-oss/f1/internal/trigger/api"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
 )

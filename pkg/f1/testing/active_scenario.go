@@ -4,7 +4,7 @@ import (
 	"runtime/debug"
 	"time"
 
-	"github.com/form3tech-oss/f1/pkg/f1/metrics"
+	"github.com/form3tech-oss/f1/internal/metrics"
 	"github.com/google/uuid"
 )
 
