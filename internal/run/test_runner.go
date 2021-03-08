@@ -32,6 +32,7 @@ import (
 )
 
 const NextIterationWindow = 10 * time.Millisecond
+const IterationStage = "iteration"
 
 func NewRun(options options.RunOptions, t *api.Trigger) (*Run, error) {
 	run := Run{
@@ -243,7 +244,7 @@ func (r *Run) gatherMetrics() {
 		if *metric.Name == "form3_loadtest_iteration" {
 			for _, m := range metric.Metric {
 				result := "unknown"
-				stage := "single"
+				stage := IterationStage
 				for _, label := range m.Label {
 					if *label.Name == "result" {
 						result = *label.Value
@@ -268,7 +269,7 @@ func (r *Run) gatherProgressMetrics(duration time.Duration) {
 		if *metric.Name == "form3_loadtest_iteration" {
 			for _, m := range metric.Metric {
 				result := "unknown"
-				stage := "single"
+				stage := IterationStage
 				for _, label := range m.Label {
 					if *label.Name == "result" {
 						result = *label.Value
@@ -283,10 +284,6 @@ func (r *Run) gatherProgressMetrics(duration time.Duration) {
 	}
 }
 
-// TODO the concept of "single" stages is now redundant as we do not offer MultiStage scenarios which
-//      are better handled by labeling stage steps with the testing.T::Time method.
-const SingleStageName = "single"
-
 func (r *Run) runWorker(input <-chan int32, stop <-chan struct{}, wg *sync.WaitGroup, worker string, workDone chan<- bool) {
 	defer wg.Done()
 	trace.Event("Started worker (%v)", worker)
@@ -300,7 +297,7 @@ func (r *Run) runWorker(input <-chan int32, stop <-chan struct{}, wg *sync.WaitG
 			atomic.AddInt32(&r.busyWorkers, 1)
 
 			scenario := r.activeScenario.scenario
-			successful := r.activeScenario.Run(metrics.IterationResult, SingleStageName, fmt.Sprintf("iteration %d", iteration), scenario.RunFn)
+			successful := r.activeScenario.Run(metrics.IterationResult, IterationStage, fmt.Sprintf("iteration %d", iteration), scenario.RunFn)
 			if !successful {
 				atomic.AddInt32(&r.failures, 1)
 			}
