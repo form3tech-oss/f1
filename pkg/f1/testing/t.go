@@ -2,12 +2,13 @@ package testing
 
 import (
 	"runtime"
+	"runtime/debug"
 	"sync/atomic"
 	"time"
 
 	log "github.com/sirupsen/logrus"
 
-	"github.com/form3tech-oss/f1/pkg/f1/metrics"
+	"github.com/form3tech-oss/f1/internal/metrics"
 
 	"github.com/stretchr/testify/require"
 )
@@ -23,7 +24,7 @@ type T struct {
 	teardownStack []func()
 }
 
-func NewT(iter, scenarioName string) *T {
+func NewT(iter, scenarioName string) (*T, func()) {
 	t := &T{
 		Iteration:     iter,
 		Log:           log.WithField("i", iter).WithField("scenario", scenarioName).Logger,
@@ -31,7 +32,7 @@ func NewT(iter, scenarioName string) *T {
 		teardownStack: []func(){},
 	}
 	t.Require = require.New(t)
-	return t
+	return t, t.teardown
 }
 
 func (t *T) Errorf(format string, args ...interface{}) {
@@ -84,4 +85,18 @@ func (t *T) teardown() {
 		}()
 		<-done
 	}
+}
+
+func checkResults(t *T, done chan<- struct{}) {
+	r := recover()
+	if r != nil {
+		err, isError := r.(error)
+		if isError {
+			t.FailWithError(err)
+			debug.PrintStack()
+		} else {
+			t.Errorf("panic in %s: %v", t.Iteration, err)
+		}
+	}
+	close(done)
 }
