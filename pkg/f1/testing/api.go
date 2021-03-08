@@ -4,6 +4,6 @@ package testing
 // of the tests.
 type ScenarioFn func(t *T) RunFn
 
-// RunFn performs a single iteration of the test. It may be used for asserting
-// results or failing the test.
+// RunFn performs a single iteration of the scenario. 't' may be used for asserting
+// results or failing the scenario.
 type RunFn func(t *T)

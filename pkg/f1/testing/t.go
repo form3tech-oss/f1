@@ -14,7 +14,7 @@ import (
 )
 
 // T is a type passed to Scenario functions to manage test state and support formatted test logs.
-// A test ends when its Scenario function returns or calls any of the methods FailNow, Fatal, Fatalf. 
+// A test ends when its Scenario function returns or calls any of the methods FailNow, Fatal, Fatalf.
 // Those methods must be called only from the goroutine running the Scenario function.
 // The other reporting methods, such as the variations of Log and Error, may be called simultaneously from multiple goroutines.
 type T struct {
