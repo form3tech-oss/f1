@@ -283,6 +283,10 @@ func (r *Run) gatherProgressMetrics(duration time.Duration) {
 	}
 }
 
+// TODO the concept of "single" stages is now redundant as we do not offer MultiStage scenarios which
+//      are better handled by labeling stage steps with the testing.T::Time method.
+const SingleStageName = "single"
+
 func (r *Run) runWorker(input <-chan int32, stop <-chan struct{}, wg *sync.WaitGroup, worker string, workDone chan<- bool) {
 	defer wg.Done()
 	trace.Event("Started worker (%v)", worker)
@@ -296,7 +300,7 @@ func (r *Run) runWorker(input <-chan int32, stop <-chan struct{}, wg *sync.WaitG
 			atomic.AddInt32(&r.busyWorkers, 1)
 
 			scenario := r.activeScenario.scenario
-			successful := r.activeScenario.Run(metrics.IterationResult, scenario.Name, fmt.Sprintf("iteration %d", iteration), scenario.RunFn)
+			successful := r.activeScenario.Run(metrics.IterationResult, SingleStageName, fmt.Sprintf("iteration %d", iteration), scenario.RunFn)
 			if !successful {
 				atomic.AddInt32(&r.failures, 1)
 			}

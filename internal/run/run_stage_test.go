@@ -175,15 +175,11 @@ func (s *RunTestStage) the_command_should_fail() *RunTestStage {
 func (s *RunTestStage) a_test_scenario_that_always_fails() *RunTestStage {
 	s.scenario = uuid.New().String()
 	s.f1.Add(s.scenario, func(t *f1_testing.T) (fn f1_testing.RunFn) {
-		fmt.Println("**** TEST SETUP ****")
 		t.Cleanup(func() {
-			fmt.Println("**** TEST SETUP CLEANUP ****")
 			atomic.AddInt32(s.setupTeardownCount, 1)
 		})
 		return func(t *f1_testing.T) {
-			fmt.Println("**** TEST ITERATION ****")
 			t.Cleanup(func() {
-				fmt.Println("**** TEST ITERATION CLEANUP ****")
 				atomic.AddInt32(s.iterationTeardownCount, 1)
 			})
 			t.FailNow()
