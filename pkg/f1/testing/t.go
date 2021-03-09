@@ -73,7 +73,7 @@ func (t *T) Errorf(format string, args ...interface{}) {
 
 // Error is equivalent to Log followed by Fail.
 func (t *T) Error(err error) {
-	t.Logf("%s failed due to %s", t.Iteration, err.Error())
+	t.Logf("%s failed due to: %s", t.Iteration, err.Error())
 	t.Fail()
 }
 
@@ -85,7 +85,7 @@ func (t *T) Fatalf(format string, args ...interface{}) {
 
 // Fatal is equivalent to Log followed by FailNow.
 func (t *T) Fatal(err error) {
-	t.Logf("%s failed due to %s", t.Iteration, err.Error())
+	t.Logf("%s failed due to: %s", t.Iteration, err.Error())
 	t.FailNow()
 }
 
