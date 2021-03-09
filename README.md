@@ -11,7 +11,7 @@ The `pkg/f1` package can be imported into a `main.go` file to create an `f1`-pow
 package main
 
 import (
-    "github.com/form3tech-oss/f1/pkg/f1"
+    "github.com/form3tech-oss/f1/v2/pkg/f1"
 )
 
 func main() {
@@ -44,8 +44,8 @@ Writing tests is simply a case of implementing the types and registering them wi
 package main
 
 import (
-    "github.com/form3tech-oss/f1/pkg/f1"
-    "github.com/form3tech-oss/f1/pkg/f1/testing"
+    "github.com/form3tech-oss/f1/v2/pkg/f1"
+    "github.com/form3tech-oss/f1/v2/pkg/f1/testing"
     "fmt"
 )
 
@@ -70,7 +70,7 @@ func setupMySuperFastLoadTest(t *testing.T) (testing.RunFn, testing.TeardownFn) 
 `testing.Add()` registers a new scenario that can be run with `go run main.go run constant mySuperFastLoadTest` (where `constant` is the running mode). The `setupMySuperFastLoadTest` function performs any setup steps and returns a function to run on every "iteration" of the test and a function to run at the end of every test.
 
 ### Running load tests
-Once you have written a load test and compiled a binary test runner, you can use the various ["trigger modes"](https://github.com/form3tech-oss/f1/tree/master/pkg/f1/trigger) that `f1` supports. These are available as subcommands to the `run` command, so try running `f1 run --help` for more information). The trigger modes currently implemented are as follows:
+Once you have written a load test and compiled a binary test runner, you can use the various ["trigger modes"](https://github.com/form3tech-oss/f1/v2/tree/master/pkg/f1/trigger) that `f1` supports. These are available as subcommands to the `run` command, so try running `f1 run --help` for more information). The trigger modes currently implemented are as follows:
 
 * `constant` - applies load at a constant rate (e.g. one request per second, irrespective of request duration).
 * `staged` - applies load at various stages (e.g. one request per second for 10s, then two per second for 10s).

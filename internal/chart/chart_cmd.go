@@ -7,9 +7,9 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/form3tech-oss/f1/internal/support/errorh"
+	"github.com/form3tech-oss/f1/v2/internal/support/errorh"
 
-	"github.com/form3tech-oss/f1/internal/trigger/api"
+	"github.com/form3tech-oss/f1/v2/internal/trigger/api"
 
 	"github.com/wcharczuk/go-chart"
 

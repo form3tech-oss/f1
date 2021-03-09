@@ -8,7 +8,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"github.com/form3tech-oss/f1/internal/metrics"
+	"github.com/form3tech-oss/f1/v2/internal/metrics"
 
 	"github.com/stretchr/testify/require"
 )

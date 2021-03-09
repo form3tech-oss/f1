@@ -3,8 +3,8 @@ package users
 import (
 	"time"
 
-	"github.com/form3tech-oss/f1/internal/options"
-	"github.com/form3tech-oss/f1/internal/trigger/api"
+	"github.com/form3tech-oss/f1/v2/internal/options"
+	"github.com/form3tech-oss/f1/v2/internal/trigger/api"
 	"github.com/spf13/pflag"
 )
 

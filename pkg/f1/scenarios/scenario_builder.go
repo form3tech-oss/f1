@@ -3,7 +3,7 @@ package scenarios
 import (
 	"sort"
 
-	"github.com/form3tech-oss/f1/pkg/f1/testing"
+	"github.com/form3tech-oss/f1/v2/pkg/f1/testing"
 )
 
 type Scenarios struct {

@@ -1,4 +1,4 @@
-module github.com/form3tech-oss/f1
+module github.com/form3tech-oss/f1/v2
 
 //test
 go 1.14

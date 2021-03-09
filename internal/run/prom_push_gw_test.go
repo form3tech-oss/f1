@@ -11,7 +11,7 @@ import (
 
 	"github.com/prometheus/common/expfmt"
 
-	"github.com/form3tech-oss/f1/internal/support/errorh"
+	"github.com/form3tech-oss/f1/v2/internal/support/errorh"
 
 	log "github.com/sirupsen/logrus"
 )
