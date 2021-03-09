@@ -142,7 +142,7 @@ func checkResults(t *T, done chan<- struct{}) {
 			t.Error(err)
 			debug.PrintStack()
 		} else {
-			t.Errorf("panic in %s: %v", t.Iteration, err)
+			t.Errorf("panic in %s: %v", t.Iteration, r)
 		}
 	}
 	close(done)
