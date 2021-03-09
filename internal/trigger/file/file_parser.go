@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/form3tech-oss/f1/internal/trigger/staged"
+	"github.com/form3tech-oss/f1/v2/internal/trigger/staged"
 
-	"github.com/form3tech-oss/f1/internal/trigger/ramp"
+	"github.com/form3tech-oss/f1/v2/internal/trigger/ramp"
 
-	"github.com/form3tech-oss/f1/internal/trigger/constant"
-	"github.com/form3tech-oss/f1/internal/trigger/gaussian"
+	"github.com/form3tech-oss/f1/v2/internal/trigger/constant"
+	"github.com/form3tech-oss/f1/v2/internal/trigger/gaussian"
 	"gopkg.in/yaml.v2"
 )
 

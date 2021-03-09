@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/form3tech-oss/f1/internal/trigger"
+	"github.com/form3tech-oss/f1/v2/internal/trigger"
 
 	"github.com/stretchr/testify/assert"
 )

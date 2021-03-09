@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/asaskevich/govalidator"
-	"github.com/form3tech-oss/f1/internal/trigger/api"
+	"github.com/form3tech-oss/f1/v2/internal/trigger/api"
 	"github.com/spf13/pflag"
 )
 

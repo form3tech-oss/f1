@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/form3tech-oss/f1/pkg/f1/scenarios"
-	"github.com/form3tech-oss/f1/pkg/f1/testing"
+	"github.com/form3tech-oss/f1/v2/pkg/f1/scenarios"
+	"github.com/form3tech-oss/f1/v2/pkg/f1/testing"
 )
 
 type F1 struct {

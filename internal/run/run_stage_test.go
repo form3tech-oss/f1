@@ -9,28 +9,28 @@ import (
 	"testing"
 	"time"
 
-	"github.com/form3tech-oss/f1/internal/run"
-	"github.com/form3tech-oss/f1/pkg/f1"
+	"github.com/form3tech-oss/f1/v2/internal/run"
+	"github.com/form3tech-oss/f1/v2/pkg/f1"
 
-	"github.com/form3tech-oss/f1/internal/trigger/ramp"
+	"github.com/form3tech-oss/f1/v2/internal/trigger/ramp"
 
-	"github.com/form3tech-oss/f1/internal/trigger/file"
+	"github.com/form3tech-oss/f1/v2/internal/trigger/file"
 
 	io_prometheus_client "github.com/prometheus/client_model/go"
 
-	"github.com/form3tech-oss/f1/internal/options"
-	"github.com/form3tech-oss/f1/internal/trigger/users"
+	"github.com/form3tech-oss/f1/v2/internal/options"
+	"github.com/form3tech-oss/f1/v2/internal/trigger/users"
 
-	"github.com/form3tech-oss/f1/internal/fluentd_hook"
+	"github.com/form3tech-oss/f1/v2/internal/fluentd_hook"
 
-	"github.com/form3tech-oss/f1/internal/trigger/api"
+	"github.com/form3tech-oss/f1/v2/internal/trigger/api"
 
-	"github.com/form3tech-oss/f1/internal/trigger/constant"
-	"github.com/form3tech-oss/f1/internal/trigger/staged"
+	"github.com/form3tech-oss/f1/v2/internal/trigger/constant"
+	"github.com/form3tech-oss/f1/v2/internal/trigger/staged"
 
 	log "github.com/sirupsen/logrus"
 
-	f1_testing "github.com/form3tech-oss/f1/pkg/f1/testing"
+	f1_testing "github.com/form3tech-oss/f1/v2/pkg/f1/testing"
 	"github.com/giantswarm/retry-go"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
