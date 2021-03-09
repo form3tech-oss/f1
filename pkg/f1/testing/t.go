@@ -20,10 +20,10 @@ import (
 type T struct {
 	// "iteration " + iteration number or "setup"
 	Iteration string
-	// Logger with user and iteration tags
-	Logger        *log.Logger
+	// logger with user and iteration tags
+	logger        *log.Logger
 	failed        int64
-	Require       *require.Assertions
+	require       *require.Assertions
 	Scenario      string
 	teardownStack []func()
 }
@@ -31,12 +31,20 @@ type T struct {
 func NewT(iter, scenarioName string) (*T, func()) {
 	t := &T{
 		Iteration:     iter,
-		Logger:        log.WithField("i", iter).WithField("scenario", scenarioName).Logger,
+		logger:        log.WithField("i", iter).WithField("scenario", scenarioName).Logger,
 		Scenario:      scenarioName,
 		teardownStack: []func(){},
 	}
-	t.Require = require.New(t)
+	t.require = require.New(t)
 	return t, t.teardown
+}
+
+func (t *T) Logger() *log.Logger {
+	return t.logger
+}
+
+func (t *T) Require() *require.Assertions {
+	return t.require
 }
 
 // Name returns the name of the running Scenario.
@@ -84,13 +92,13 @@ func (t *T) Fatal(err error) {
 // Log formats its arguments using default formatting, analogous to Println, and records the text in the error log.
 // The text will be printed only if f1 is running in verbose mode.
 func (t *T) Log(args ...interface{}) {
-	t.Logger.Error(args...)
+	t.logger.Error(args...)
 }
 
 // Logf formats its arguments according to the format, analogous to Printf, and records the text in the error log.
 // A final newline is added if not provided. The text will be printed only if f1 is running in verbose mode.
 func (t *T) Logf(format string, args ...interface{}) {
-	t.Logger.Errorf(format, args...)
+	t.logger.Errorf(format, args...)
 }
 
 // Failed reports whether the function has failed.
