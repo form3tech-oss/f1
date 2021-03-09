@@ -273,7 +273,7 @@ func (s *RunTestStage) a_test_scenario_that_fails_intermittently() *RunTestStage
 				atomic.AddInt32(s.iterationTeardownCount, 1)
 			})
 			count := atomic.AddInt32(&s.runCount, 1)
-			t.Require.True(count%2 == 0)
+			t.Require().True(count%2 == 0)
 		}
 	})
 	return s
