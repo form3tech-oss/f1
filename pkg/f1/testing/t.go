@@ -128,9 +128,9 @@ func CheckResults(t *T, done chan<- struct{}) {
 			t.logger.
 				WithField("stack_trace", stack).
 				WithError(err).
-				Errorf("panic in %s", t.Iteration)
+				Errorf("panic in '%s' scenario on %s", t.Scenario, t.Iteration)
 		} else {
-			t.Errorf("panic in %s: %v", t.Iteration, r)
+			t.Errorf("panic in '%s' scenario on %s: %v", t.Scenario, t.Iteration, r)
 		}
 	}
 	close(done)
