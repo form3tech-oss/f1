@@ -73,7 +73,7 @@ func (t *T) Errorf(format string, args ...interface{}) {
 
 // Error is equivalent to Log followed by Fail.
 func (t *T) Error(err error) {
-	t.Logf("%s failed due to %s", t.Iteration, err.Error())
+	t.Logf("%s failed due to: %s", t.Iteration, err.Error())
 	t.Fail()
 }
 
@@ -85,7 +85,7 @@ func (t *T) Fatalf(format string, args ...interface{}) {
 
 // Fatal is equivalent to Log followed by FailNow.
 func (t *T) Fatal(err error) {
-	t.Logf("%s failed due to %s", t.Iteration, err.Error())
+	t.Logf("%s failed due to: %s", t.Iteration, err.Error())
 	t.FailNow()
 }
 
@@ -113,37 +113,40 @@ func (t *T) Time(stageName string, f func()) {
 	f()
 }
 
-func recordTime(t *T, stageName string, start time.Time) {
-	metrics.Instance().Record(metrics.IterationResult, t.Scenario, stageName, metrics.Result(t.Failed()), time.Since(start).Nanoseconds())
-}
-
 // Cleanup registers a function to be called when the scenario or the iteration completes.
 // Cleanup functions will be called in last added, first called order.
 func (t *T) Cleanup(f func()) {
 	t.teardownStack = append(t.teardownStack, f)
 }
 
+func CheckResults(t *T, done chan<- struct{}) {
+	r := recover()
+	if r != nil {
+		err, isError := r.(error)
+		if isError {
+			stack := string(debug.Stack())
+			t.logger.
+				WithField("stack_trace", stack).
+				WithError(err).
+				Errorf("panic in '%s' scenario on %s", t.Scenario, t.Iteration)
+		} else {
+			t.Errorf("panic in '%s' scenario on %s: %v", t.Scenario, t.Iteration, r)
+		}
+	}
+	close(done)
+}
+
 func (t *T) teardown() {
 	for i := len(t.teardownStack) - 1; i >= 0; i-- {
 		done := make(chan struct{})
 		go func() {
-			defer checkResults(t, done)
+			defer CheckResults(t, done)
 			t.teardownStack[i]()
 		}()
 		<-done
 	}
 }
 
-func checkResults(t *T, done chan<- struct{}) {
-	r := recover()
-	if r != nil {
-		err, isError := r.(error)
-		if isError {
-			t.Error(err)
-			debug.PrintStack()
-		} else {
-			t.Errorf("panic in %s: %v", t.Iteration, err)
-		}
-	}
-	close(done)
+func recordTime(t *T, stageName string, start time.Time) {
+	metrics.Instance().Record(metrics.IterationResult, t.Scenario, stageName, metrics.Result(t.Failed()), time.Since(start).Nanoseconds())
 }
