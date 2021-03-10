@@ -50,10 +50,6 @@ github.com/inconshreveable/mousetrap
 # github.com/juju/errgo v0.0.0-20140925100237-08cceb5d0b53
 ## explicit
 github.com/juju/errgo
-# github.com/magefile/mage v1.11.0
-## explicit
-github.com/magefile/mage/mg
-github.com/magefile/mage/sh
 # github.com/matttproud/golang_protobuf_extensions v1.0.1
 github.com/matttproud/golang_protobuf_extensions/pbutil
 # github.com/phayes/freeport v0.0.0-20180830031419-95f893ade6f2
@@ -84,7 +80,7 @@ github.com/prometheus/common/model
 github.com/prometheus/procfs
 github.com/prometheus/procfs/internal/fs
 github.com/prometheus/procfs/internal/util
-# github.com/sirupsen/logrus v1.8.0
+# github.com/sirupsen/logrus v1.8.1
 ## explicit
 github.com/sirupsen/logrus
 # github.com/spf13/cobra v1.1.3
