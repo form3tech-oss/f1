@@ -30,7 +30,7 @@ func TestReportsPanicReasonWhenCleanupFails(t *go_testing.T) {
 	})
 
 	teardown()
-	require.Regexp(t, regexp.MustCompile("panic in iteration 0: boom"), buf.String())
+	require.Regexp(t, regexp.MustCompile("panic in iteration 0"), buf.String())
 }
 
 func TestReportsErrorMessageWhenCleanupFails(t *go_testing.T) {
@@ -47,7 +47,9 @@ func TestReportsErrorMessageWhenCleanupFails(t *go_testing.T) {
 	})
 
 	teardown()
-	require.Regexp(t, regexp.MustCompile("iteration 0 failed due to: boom"), buf.String())
+	logs := buf.String()
+	require.Contains(t, logs, "panic in iteration 0")
+	require.Regexp(t, regexp.MustCompile("stack_trace=\"goroutine"), logs)
 }
 
 func TestCleanupCalledInReverseOrder(t *go_testing.T) {

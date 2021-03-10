@@ -1,7 +1,6 @@
 package run
 
 import (
-	"runtime/debug"
 	"time"
 
 	"github.com/form3tech-oss/f1/v2/pkg/f1/scenarios"
@@ -34,7 +33,7 @@ func NewActiveScenario(scenario *scenarios.Scenario) (*ActiveScenario, bool) {
 	start := time.Now()
 	done := make(chan struct{})
 	go func() {
-		defer checkResults(t, done)
+		defer testing.CheckResults(t, done)
 		s.scenario.RunFn = s.scenario.ScenarioFn(t)
 	}()
 
@@ -52,7 +51,7 @@ func (s *ActiveScenario) Run(metric metrics.MetricType, stage, iter string, f fu
 	start := time.Now()
 	done := make(chan struct{})
 	go func() {
-		defer checkResults(t, done)
+		defer testing.CheckResults(t, done)
 		f(t)
 	}()
 
@@ -60,20 +59,6 @@ func (s *ActiveScenario) Run(metric metrics.MetricType, stage, iter string, f fu
 	<-done
 	s.m.Record(metric, s.scenario.Name, stage, metrics.Result(t.Failed()), time.Since(start).Nanoseconds())
 	return !t.Failed()
-}
-
-func checkResults(t *testing.T, done chan<- struct{}) {
-	r := recover()
-	if r != nil {
-		err, isError := r.(error)
-		if isError {
-			t.Error(err)
-			debug.PrintStack()
-		} else {
-			t.Errorf("panic in %s: %v", t.Iteration, r)
-		}
-	}
-	close(done)
 }
 
 func (s *ActiveScenario) RecordDroppedIteration() {
