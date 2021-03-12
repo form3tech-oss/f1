@@ -15,27 +15,23 @@ import (
 )
 
 func main() {
-    f1.Execute()
+    f1.Scenarios().Execute()
 }
 ``` 
 
 This will give you a basic `f1` command line runner with the various running modes (see below) that are bundled with it. You can get more information about the various options available by simply running `go run main.go --help`
 
 ### Writing load tests
-Test scenarios consist of three stages: `Setup`, `Run` and `Teardown`. Setup is called once at the start of a test; this may be useful for generating resources needed for all tests, or subscribing to message queues. Run is called for every iteration of the test, often in parallel with multiple goroutines. Teardown is called once after all iterations complete. These Setup, Run and Teardown functions are defined as types in `f1`:
+Test scenarios consist of two stages: `Setup` and `Run`. Setup is called once at the start of a test; this may be useful for generating resources needed for all tests, or subscribing to message queues. Run is called for every iteration of the test, often in parallel with multiple goroutines. Teardown can be called once after all iterations complete. These Setup and Run functions are defined as types in `f1`:
 
 ```golang
-// SetupFn performs any setup required to run a scenario.
-// It returns a RunFn to be invoked for every iteration of the tests
-// and a TeardownFn to clear down any resources after all iterations complete
-type SetupFn func(t *T) (RunFn, TeardownFn)
+// ScenarioFn initialises a scenario and returns the iteration function (RunFn) to be invoked for every iteration
+// of the tests.
+type ScenarioFn func(t *T) RunFn
 
-// RunFn performs a single iteration of the test. It my be used for asserting
-// results or failing the test.
+// RunFn performs a single iteration of the scenario. 't' may be used for asserting
+// results or failing the scenario.
 type RunFn func(t *T)
-
-// TeardownFn clears down any resources from a test run after all iterations complete.
-type TeardownFn RunFn
 ```
 
 Writing tests is simply a case of implementing the types and registering them with `f1`:
@@ -44,30 +40,31 @@ Writing tests is simply a case of implementing the types and registering them wi
 package main
 
 import (
-    "github.com/form3tech-oss/f1/v2/pkg/f1"
-    "github.com/form3tech-oss/f1/v2/pkg/f1/testing"
-    "fmt"
+	"fmt"
+	
+	"github.com/form3tech-oss/f1/v2/pkg/f1"
+	"github.com/form3tech-oss/f1/v2/pkg/f1/testing"
 )
 
 func main() {
-    testing.Add("mySuperFastLoadTest", setupMySuperFastLoadTest)
-    f1.Execute()
+	f1.Scenarios().Add("mySuperFastLoadTest", setupMySuperFastLoadTest).Execute()
 }
 
-func setupMySuperFastLoadTest(t *testing.T) (testing.RunFn, testing.TeardownFn) {
-    runFn := func(t *testing.T) {
-        fmt.Println("Wow, super fast!")
-    }
+func setupMySuperFastLoadTest(t *testing.T) testing.RunFn {
+	teardownFn := func() {
+		fmt.Println("Wow, that was fast!")
+	}
+	
+	runFn := func(t *testing.T) {
+		fmt.Println("Wow, super fast!")
+	    t.Cleanup(teardownFn)
+	}
 
-    teardownFn := func(t *testing.T) {
-        fmt.Println("Wow, that was fast!")
-    }
-
-    return runFn, teardownFn
+	return runFn
 }
 ```
 
-`testing.Add()` registers a new scenario that can be run with `go run main.go run constant mySuperFastLoadTest` (where `constant` is the running mode). The `setupMySuperFastLoadTest` function performs any setup steps and returns a function to run on every "iteration" of the test and a function to run at the end of every test.
+`Add()` registers a new scenario that can be run with `go run main.go run constant mySuperFastLoadTest` (where `constant` is the running mode). The `setupMySuperFastLoadTest` function performs any setup steps and returns a function to run on every "iteration" of the test.
 
 ### Running load tests
 Once you have written a load test and compiled a binary test runner, you can use the various ["trigger modes"](https://github.com/form3tech-oss/f1/v2/tree/master/pkg/f1/trigger) that `f1` supports. These are available as subcommands to the `run` command, so try running `f1 run --help` for more information). The trigger modes currently implemented are as follows:
