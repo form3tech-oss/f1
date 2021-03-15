@@ -73,7 +73,7 @@ func NewRunTestStage(t *testing.T) (*RunTestStage, *RunTestStage, *RunTestStage)
 		require:                require.New(t),
 		setupTeardownCount:     &setupTeardownCount,
 		iterationTeardownCount: &iterationTeardownCount,
-		f1:                     f1.Scenarios(),
+		f1:                     f1.New(),
 	}
 	fakePrometheus.ClearMetrics()
 	return stage, stage, stage
