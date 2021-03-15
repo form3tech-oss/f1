@@ -6,9 +6,10 @@ At Form3, many of our test scenarios using this framework combine REST API calls
 ## Usage
 ### Writing load tests
 Test scenarios consist of two stages: 
-- Setup - represented by `ScenarioFn` which is called once at the start of a test; this may be useful for generating resources needed for all tests, or subscribing to message queues.
-- Run - represented by `RunFn` which is called for every iteration of the test, often in parallel with multiple goroutines.
+* Setup - represented by `ScenarioFn` which is called once at the start of a test; this may be useful for generating resources needed for all tests, or subscribing to message queues.
+* Run - represented by `RunFn` which is called for every iteration of the test, often in parallel with multiple goroutines.
 
+Cleanup functions can be provided for both stages: `Setup` and `Run`. They are executed in LIFO order.
 These `ScenarioFn` and `RunFn` functions are defined as types in `f1`:
 
 ```golang
@@ -21,7 +22,6 @@ type ScenarioFn func(t *T) RunFn
 type RunFn func(t *T)
 ```
 
-Cleanup functions can be provided for both stages: `Setup` and `Run`. They are executed in LIFO order.
 Writing tests is simply a case of implementing the types and registering them with `f1`:
 
 ```golang
