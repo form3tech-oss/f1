@@ -18,7 +18,7 @@ type profiling struct {
 	memProfile string
 }
 
-func Scenarios() *F1 {
+func New() *F1 {
 	return &F1{
 		scenarios: scenarios.New(),
 		profiling: &profiling{},
