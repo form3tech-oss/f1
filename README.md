@@ -4,23 +4,6 @@
 At Form3, many of our test scenarios using this framework combine REST API calls with asynchronous notifications from message queues. To achieve this, we need to have a worker pool listening to messages on the queue and distribute them to the appropriate instance of an active test run. We use this with thousands of concurrent test iterations in tests covering millions of iterations and running for multiple days.
 
 ## Usage
-### Building an executable binary
-The `pkg/f1` package can be imported into a `main.go` file to create an `f1`-powered command line interface to run your load tests:
-
-```golang
-package main
-
-import (
-    "github.com/form3tech-oss/f1/v2/pkg/f1"
-)
-
-func main() {
-    f1.Scenarios().Execute()
-}
-``` 
-
-This will give you a basic `f1` command line runner with the various running modes (see below) that are bundled with it. You can get more information about the various options available by simply running `go run main.go --help`
-
 ### Writing load tests
 Test scenarios consist of two stages: `Setup` and `Run`. Setup is called once at the start of a test; this may be useful for generating resources needed for all tests, or subscribing to message queues. Run is called for every iteration of the test, often in parallel with multiple goroutines. Teardown can be called once after all iterations complete to clean up the setup or/and after each iteration to clean up the run in LIFO order. These Setup and Run functions are defined as types in `f1`:
 
@@ -47,15 +30,15 @@ import (
 )
 
 func main() {
-	f1.Scenarios().Add("mySuperFastLoadTest", setupMySuperFastLoadTest).Execute()
+	f1.New().Add("mySuperFastLoadTest", setupMySuperFastLoadTest).Execute()
 }
 
 func setupMySuperFastLoadTest(t *testing.T) testing.RunFn {
 	teardownScenarioFn := func() {
 		fmt.Println("Wow, that was fast! Now let's clean up the scenario")
 	}
-	// Register clean up function which will run at the end of the scenario execution
-    t.Cleanup(teardownScenarioFn)
+	// Register clean up function which will run at the end of the scenario execution 
+	t.Cleanup(teardownScenarioFn)
 
 	teardownIterationFn := func() {
 		fmt.Println("Wow, that was fast! Now let's clean up the iteration")
@@ -64,8 +47,8 @@ func setupMySuperFastLoadTest(t *testing.T) testing.RunFn {
 	runFn := func(t *testing.T) {
 		fmt.Println("Wow, super fast!")
 
-		// Register clean up functions which will run in LIFO order after each iteration
-	    t.Cleanup(teardownIterationFn)
+		// Register clean up functions which will run in LIFO order after each iteration 
+		t.Cleanup(teardownIterationFn)
 	}
 
 	return runFn
