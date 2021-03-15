@@ -22,7 +22,7 @@ func main() {
 This will give you a basic `f1` command line runner with the various running modes (see below) that are bundled with it. You can get more information about the various options available by simply running `go run main.go --help`
 
 ### Writing load tests
-Test scenarios consist of two stages: `Setup` and `Run`. Setup is called once at the start of a test; this may be useful for generating resources needed for all tests, or subscribing to message queues. Run is called for every iteration of the test, often in parallel with multiple goroutines. Teardown can be called once after all iterations complete. These Setup and Run functions are defined as types in `f1`:
+Test scenarios consist of two stages: `Setup` and `Run`. Setup is called once at the start of a test; this may be useful for generating resources needed for all tests, or subscribing to message queues. Run is called for every iteration of the test, often in parallel with multiple goroutines. Teardown can be called once after all iterations complete to clean up the setup or/and after each iteration to clean up the run in LIFO order. These Setup and Run functions are defined as types in `f1`:
 
 ```golang
 // ScenarioFn initialises a scenario and returns the iteration function (RunFn) to be invoked for every iteration
@@ -51,13 +51,21 @@ func main() {
 }
 
 func setupMySuperFastLoadTest(t *testing.T) testing.RunFn {
-	teardownFn := func() {
-		fmt.Println("Wow, that was fast!")
+	teardownScenarioFn := func() {
+		fmt.Println("Wow, that was fast! Now let's clean up the scenario")
+	}
+	// Register clean up function which will run at the end of the scenario execution
+    t.Cleanup(teardownScenarioFn)
+
+	teardownIterationFn := func() {
+		fmt.Println("Wow, that was fast! Now let's clean up the iteration")
 	}
 	
 	runFn := func(t *testing.T) {
 		fmt.Println("Wow, super fast!")
-	    t.Cleanup(teardownFn)
+
+		// Register clean up functions which will run in LIFO order after each iteration
+	    t.Cleanup(teardownIterationFn)
 	}
 
 	return runFn
