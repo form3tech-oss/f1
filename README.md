@@ -9,7 +9,7 @@ Test scenarios consist of two stages:
 * Setup - represented by `ScenarioFn` which is called once at the start of a test; this may be useful for generating resources needed for all tests, or subscribing to message queues.
 * Run - represented by `RunFn` which is called for every iteration of the test, often in parallel with multiple goroutines.
 
-Cleanup functions can be provided for both stages: `Setup` and `Run`. They are executed in LIFO order.
+Cleanup functions can be provided for both stages: `Setup` and `Run` which will be executed in LIFO order.
 These `ScenarioFn` and `RunFn` functions are defined as types in `f1`:
 
 ```golang
@@ -35,10 +35,12 @@ import (
 )
 
 func main() {
-	// After creating a new f1 instance, add all the scenarios and execute the f1 tool
+	// Create a new f1 instance, add all the scenarios and execute the f1 tool.
+	// Any scenario that is added here, it can be run like: `go run main.go run constant mySuperFastLoadTest`
 	f1.New().Add("mySuperFastLoadTest", setupMySuperFastLoadTest).Execute()
 }
 
+// Performs any setup steps and returns a function to run on every iteration of the scenario
 func setupMySuperFastLoadTest(t *testing.T) testing.RunFn {
 	fmt.Println("Setup the scenario")
 	
@@ -59,8 +61,6 @@ func setupMySuperFastLoadTest(t *testing.T) testing.RunFn {
 	return runFn
 }
 ```
-
-`Add()` registers a new scenario that can be run with `go run main.go run constant mySuperFastLoadTest` (where `constant` is the running mode). The `setupMySuperFastLoadTest` function performs any setup steps and returns a function to run on every "iteration" of the test.
 
 ### Running load tests
 Once you have written a load test and compiled a binary test runner, you can use the various ["trigger modes"](https://github.com/form3tech-oss/f1/v2/tree/master/pkg/f1/trigger) that `f1` supports. These are available as subcommands to the `run` command, so try running `f1 run --help` for more information). The trigger modes currently implemented are as follows:
