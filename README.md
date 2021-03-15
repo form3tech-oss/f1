@@ -5,7 +5,11 @@ At Form3, many of our test scenarios using this framework combine REST API calls
 
 ## Usage
 ### Writing load tests
-Test scenarios consist of two stages: `Setup` and `Run`. Setup is called once at the start of a test; this may be useful for generating resources needed for all tests, or subscribing to message queues. Run is called for every iteration of the test, often in parallel with multiple goroutines. Teardown can be called once after all iterations complete to clean up the setup or/and after each iteration to clean up the run in LIFO order. These Setup and Run functions are defined as types in `f1`:
+Test scenarios consist of two stages: 
+- Setup - represented by `ScenarioFn` which is called once at the start of a test; this may be useful for generating resources needed for all tests, or subscribing to message queues.
+- Run - represented by `RunFn` which is called for every iteration of the test, often in parallel with multiple goroutines.
+
+These `ScenarioFn` and `RunFn` functions are defined as types in `f1`:
 
 ```golang
 // ScenarioFn initialises a scenario and returns the iteration function (RunFn) to be invoked for every iteration
@@ -17,6 +21,7 @@ type ScenarioFn func(t *T) RunFn
 type RunFn func(t *T)
 ```
 
+Cleanup functions can be provided for both stages: `Setup` and `Run`. They are executed in LIFO order.
 Writing tests is simply a case of implementing the types and registering them with `f1`:
 
 ```golang
@@ -24,31 +29,31 @@ package main
 
 import (
 	"fmt"
-	
+
 	"github.com/form3tech-oss/f1/v2/pkg/f1"
 	"github.com/form3tech-oss/f1/v2/pkg/f1/testing"
 )
 
 func main() {
+	// After creating a new f1 instance, add all the scenarios and execute the f1 tool
 	f1.New().Add("mySuperFastLoadTest", setupMySuperFastLoadTest).Execute()
 }
 
 func setupMySuperFastLoadTest(t *testing.T) testing.RunFn {
-	teardownScenarioFn := func() {
-		fmt.Println("Wow, that was fast! Now let's clean up the scenario")
-	}
-	// Register clean up function which will run at the end of the scenario execution 
-	t.Cleanup(teardownScenarioFn)
-
-	teardownIterationFn := func() {
-		fmt.Println("Wow, that was fast! Now let's clean up the iteration")
-	}
+	fmt.Println("Setup the scenario")
+	
+	// Register clean up function which will be invoked at the end of the scenario execution to clean up the setup
+	t.Cleanup(func() {
+		fmt.Println("Clean up the setup of the scenario")
+	})
 	
 	runFn := func(t *testing.T) {
-		fmt.Println("Wow, super fast!")
+	    fmt.Println("Run the test")
 
-		// Register clean up functions which will run in LIFO order after each iteration 
-		t.Cleanup(teardownIterationFn)
+		// Register clean up function for each test which will be invoked in LIFO order after each iteration 
+		t.Cleanup(func() {
+			fmt.Println("Clean up the test execution")
+		})
 	}
 
 	return runFn
