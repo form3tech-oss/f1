@@ -140,6 +140,7 @@ func CheckResults(t *T, done chan<- struct{}) {
 		err, isError := r.(error)
 		if isError {
 			stack := string(debug.Stack())
+			t.Fail()
 			t.logger.
 				WithField("stack_trace", stack).
 				WithError(err).
