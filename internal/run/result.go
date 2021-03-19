@@ -107,7 +107,7 @@ func (r *RunResult) Error() error {
 		errorStrings[i] = fmt.Sprintf("Error %d: %s", i, r.errors[i].Error())
 	}
 
-	return fmt.Errorf(strings.Join(errorStrings, " ;"))
+	return fmt.Errorf(strings.Join(errorStrings, "; "))
 }
 
 func parseQuantiles(quantiles []*io_prometheus_client.Quantile) DurationPercentileMap {
