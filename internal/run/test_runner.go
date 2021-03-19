@@ -94,6 +94,7 @@ func (r *Run) Do(s *scenarios.Scenarios) *RunResult {
 	metrics.Instance().Reset()
 	var setupSuccessful bool
 	r.activeScenario, setupSuccessful = NewActiveScenario(s.GetScenario(r.Options.Scenario))
+	defer r.activeScenario.Teardown()
 	r.pushMetrics()
 	fmt.Println(r.result.Setup())
 
@@ -115,7 +116,6 @@ func (r *Run) Do(s *scenarios.Scenarios) *RunResult {
 	metricsTick.Close()
 	r.gatherMetrics()
 
-	r.activeScenario.Teardown()
 	r.pushMetrics()
 	fmt.Println(r.result.Teardown())
 
