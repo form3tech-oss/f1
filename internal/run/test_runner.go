@@ -94,6 +94,7 @@ func (r *Run) Do(s *scenarios.Scenarios) *RunResult {
 	metrics.Instance().Reset()
 
 	r.activeScenario = NewActiveScenario(s.GetScenario(r.Options.Scenario))
+	r.pushMetrics()
 	defer r.teardownActiveScenario()
 
 	if r.activeScenario.t.Failed() {

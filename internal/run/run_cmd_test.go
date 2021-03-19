@@ -536,7 +536,6 @@ func TestRunScenarioThatFailsOccasionally(t *testing.T) {
 }
 
 func TestInterruptedRun(t *testing.T) {
-
 	given, when, then := NewRunTestStage(t)
 	given.
 		a_rate_of("5/10ms").and().
@@ -544,13 +543,13 @@ func TestInterruptedRun(t *testing.T) {
 		a_scenario_where_each_iteration_takes(0 * time.Second).and().
 		a_distribution_type("none")
 
-	when.the_test_run_is_started().and().
+	when.
+		the_test_run_is_started().and().
 		the_test_run_is_interrupted()
 
 	then.
 		setup_teardown_is_called_within_50ms().and().
 		metrics_are_pushed_to_prometheus()
-
 }
 
 func TestFinalRunMetrics(t *testing.T) {
