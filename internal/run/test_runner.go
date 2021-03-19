@@ -92,18 +92,17 @@ func (r *Run) Do(s *scenarios.Scenarios) *RunResult {
 	r.configureLogging()
 
 	metrics.Instance().Reset()
-	var setupSuccessful bool
-	r.activeScenario, setupSuccessful = NewActiveScenario(s.GetScenario(r.Options.Scenario))
-	r.pushMetrics()
-	fmt.Println(r.result.Setup())
 
-	if !setupSuccessful {
-		return r.fail("setup failed")
+	r.activeScenario = NewActiveScenario(s.GetScenario(r.Options.Scenario))
+	r.pushMetrics()
+	defer r.teardownActiveScenario()
+
+	if r.activeScenario.t.Failed() {
+		return r.reportSetupFailure()
 	}
 
 	// set initial started timestamp so that the progress trackers work
 	r.result.RecordStarted()
-
 	r.progressRunner.Run()
 	metricsTick := ggtimer.NewTicker(5*time.Second, func(t time.Time) {
 		r.pushMetrics()
@@ -115,11 +114,23 @@ func (r *Run) Do(s *scenarios.Scenarios) *RunResult {
 	metricsTick.Close()
 	r.gatherMetrics()
 
+	return &r.result
+}
+
+func (r *Run) reportSetupFailure() *RunResult {
+	r.fail("setup failed")
+	r.pushMetrics()
+	fmt.Println(r.result.Setup())
+	return &r.result
+}
+
+func (r *Run) teardownActiveScenario() {
 	r.activeScenario.Teardown()
+	if r.activeScenario.t.TeardownFailed() {
+		r.fail("teardown failed")
+	}
 	r.pushMetrics()
 	fmt.Println(r.result.Teardown())
-
-	return &r.result
 }
 
 func (r *Run) configureLogging() {

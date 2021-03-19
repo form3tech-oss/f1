@@ -19,7 +19,7 @@ type ActiveScenario struct {
 	Teardown func()
 }
 
-func NewActiveScenario(scenario *scenarios.Scenario) (*ActiveScenario, bool) {
+func NewActiveScenario(scenario *scenarios.Scenario) *ActiveScenario {
 	t, teardown := testing.NewT("setup", scenario.Name)
 
 	s := &ActiveScenario{
@@ -40,7 +40,7 @@ func NewActiveScenario(scenario *scenarios.Scenario) (*ActiveScenario, bool) {
 	// wait for completion
 	<-done
 	s.m.Record(metrics.SetupResult, scenario.Name, "setup", metrics.Result(t.Failed()), time.Since(start).Nanoseconds())
-	return s, !t.Failed()
+	return s
 }
 
 // Run performs a single iteration of the test. It returns `true` if the test was successful, `false` otherwise.
