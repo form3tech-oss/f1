@@ -21,11 +21,13 @@ type T struct {
 	// "iteration " + iteration number or "setup"
 	Iteration string
 	// logger with user and iteration tags
-	logger        *log.Logger
-	failed        int64
-	require       *require.Assertions
-	Scenario      string
-	teardownStack []func()
+	logger         *log.Logger
+	failed         int64
+	teardownFailed int64
+	require        *require.Assertions
+	Scenario       string
+	teardownStack  []func()
+	tearingDown    bool
 }
 
 func NewT(iter, scenarioName string) (*T, func()) {
@@ -56,13 +58,22 @@ func (t *T) Name() string {
 // Execution will continue at the next Scenario iteration. FailNow must be called from the goroutine running the Scenario,
 // not from other goroutines created during the Scenario. Calling FailNow does not stop those other goroutines.
 func (t *T) FailNow() {
-	atomic.StoreInt64(&t.failed, int64(1))
+	if t.tearingDown {
+		atomic.StoreInt64(&t.teardownFailed, int64(1))
+	} else {
+		atomic.StoreInt64(&t.failed, int64(1))
+	}
+
 	runtime.Goexit()
 }
 
 // Fail marks the function as having failed but continues execution.
 func (t *T) Fail() {
-	atomic.StoreInt64(&t.failed, int64(1))
+	if t.tearingDown {
+		atomic.StoreInt64(&t.teardownFailed, int64(1))
+	} else {
+		atomic.StoreInt64(&t.failed, int64(1))
+	}
 }
 
 // Errorf is equivalent to Logf followed by Fail.
@@ -106,6 +117,10 @@ func (t *T) Failed() bool {
 	return atomic.LoadInt64(&t.failed) == int64(1)
 }
 
+func (t *T) TeardownFailed() bool {
+	return atomic.LoadInt64(&t.teardownFailed) == int64(1)
+}
+
 // Time records a metric for the duration of the given function
 func (t *T) Time(stageName string, f func()) {
 	start := time.Now()
@@ -137,6 +152,8 @@ func CheckResults(t *T, done chan<- struct{}) {
 }
 
 func (t *T) teardown() {
+	t.tearingDown = true
+
 	for i := len(t.teardownStack) - 1; i >= 0; i-- {
 		done := make(chan struct{})
 		go func() {
