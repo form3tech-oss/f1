@@ -183,6 +183,10 @@ func (r *RunResult) Progress() string {
 }
 
 func (r *RunResult) Duration() time.Duration {
+	if r.StartTime().IsZero() {
+		return 0
+	}
+
 	return time.Since(r.StartTime())
 }
 
