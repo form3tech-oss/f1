@@ -3,13 +3,11 @@ updates:
 - package-ecosystem: gomod
   directory: "/"
   schedule:
-    interval: daily
+    interval: weekly
+    time: "08:00"
     timezone: Europe/London
   pull-request-branch-name:
     separator: "-"
   open-pull-requests-limit: 10
   reviewers:
-  - nicholasham
-  - andykuszyk
-  - markhowardform3
-  - martinreus-form3
+  - "form3tech/scaling-codeowners"
