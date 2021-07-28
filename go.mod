@@ -13,7 +13,7 @@ require (
 	github.com/fluent/fluent-logger-golang v1.5.0 // indirect
 	github.com/giantswarm/retry-go v0.0.0-20151203102909-d78cea247d5e
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0 // indirect
-	github.com/google/uuid v1.2.0
+	github.com/google/uuid v1.3.0
 	github.com/guptarohit/asciigraph v0.5.2
 	github.com/hako/durafmt v0.0.0-20200710122514-c0fb7b4da026
 	github.com/juju/errgo v0.0.0-20140925100237-08cceb5d0b53 // indirect
