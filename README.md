@@ -63,7 +63,7 @@ func setupMySuperFastLoadTest(t *testing.T) testing.RunFn {
 ```
 
 ### Running load tests
-Once you have written a load test and compiled a binary test runner, you can use the various ["trigger modes"](https://github.com/form3tech-oss/f1/v2/tree/master/pkg/f1/trigger) that `f1` supports. These are available as subcommands to the `run` command, so try running `f1 run --help` for more information). The trigger modes currently implemented are as follows:
+Once you have written a load test and compiled a binary test runner, you can use the various ["trigger modes"](https://github.com/form3tech-oss/f1/tree/master/internal/trigger) that `f1` supports. These are available as subcommands to the `run` command, so try running `f1 run --help` for more information). The trigger modes currently implemented are as follows:
 
 * `constant` - applies load at a constant rate (e.g. one request per second, irrespective of request duration).
 * `staged` - applies load at various stages (e.g. one request per second for 10s, then two per second for 10s).
