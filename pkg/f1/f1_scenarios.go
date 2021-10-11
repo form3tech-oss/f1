@@ -8,6 +8,8 @@ import (
 	"github.com/form3tech-oss/f1/v2/pkg/f1/testing"
 )
 
+// Represents an F1 CLI instance. Instantiate this struct to create an instance
+// of the F1 CLI and to register new test scenarios.
 type F1 struct {
 	scenarios *scenarios.Scenarios
 	profiling *profiling
@@ -18,6 +20,7 @@ type profiling struct {
 	memProfile string
 }
 
+// Instantiates a new instance of an F1 CLI.
 func New() *F1 {
 	return &F1{
 		scenarios: scenarios.New(),
@@ -25,6 +28,11 @@ func New() *F1 {
 	}
 }
 
+// Registers a new test scenario with the given name. This is the name used when running
+// load test scenarios. For example, calling the function with the following arguments:
+//     f.Add("myTest", myScenario)
+// will result in the test "myTest" being runnable from the command line:
+//     f1 run constant -r 1/s -d 10s myTest
 func (f *F1) Add(name string, scenarioFn testing.ScenarioFn, options ...scenarios.ScenarioOption) *F1 {
 	info := &scenarios.Scenario{
 		Name:       name,
@@ -39,6 +47,9 @@ func (f *F1) Add(name string, scenarioFn testing.ScenarioFn, options ...scenario
 	return f
 }
 
+// Syncronously runs the F1 CLI. This function is the blocking entrypoint to the CLI,
+// so you should register your test scenarios with the Add function prior to calling this
+// function.
 func (f *F1) Execute() {
 	if err := buildRootCmd(f.scenarios, f.profiling).Execute(); err != nil {
 		writeProfiles(f.profiling)
@@ -47,6 +58,8 @@ func (f *F1) Execute() {
 	}
 }
 
+// Similar to Execute, but takes command line arguments from the args array. Useful
+// for testing F1 test scenarios.
 func (f *F1) ExecuteWithArgs(args []string) error {
 	rootCmd := buildRootCmd(f.scenarios, f.profiling)
 	rootCmd.SetArgs(args)
@@ -55,6 +68,7 @@ func (f *F1) ExecuteWithArgs(args []string) error {
 	return err
 }
 
+// Returns the list of registered scenarios.
 func (f *F1) GetScenarios() *scenarios.Scenarios {
 	return f.scenarios
 }
