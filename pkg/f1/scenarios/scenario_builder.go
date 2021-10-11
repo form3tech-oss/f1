@@ -6,16 +6,20 @@ import (
 	"github.com/form3tech-oss/f1/v2/pkg/f1/testing"
 )
 
+// Represents a list of test scenarios.
 type Scenarios struct {
 	scenarios map[string]*Scenario
 }
 
+// Represents a test scenario.
 type Scenario struct {
+	// The name of the test scenario, which can be used to invoke it via the CLI.
 	Name        string
 	Description string
 	Parameters  []ScenarioParameter
 	ScenarioFn  testing.ScenarioFn
-	RunFn       testing.RunFn
+	// The function that is invoked on each iteration of the test scenario.
+	RunFn testing.RunFn
 }
 
 type ScenarioParameter struct {
