@@ -1,3 +1,4 @@
+<a href="https://pkg.go.dev/github.com/form3tech-oss/f1/v2/pkg/f1"><img align="right" src="https://pkg.go.dev/badge/github.com/form3tech-oss/f1/v2/pkg/f1.svg" alt="Go Reference"></a>
 # f1
 `f1` is a flexible load testing framework using the `go` language for test scenarios. This allows test scenarios to be developed as code, utilising full development principles such as test driven development. Test scenarios with multiple stages and multiple modes are ideally suited to this environment.
 
