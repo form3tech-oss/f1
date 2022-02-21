@@ -104,7 +104,7 @@ github.com/wcharczuk/go-chart/roboto
 # github.com/workanator/go-ataman v0.0.0-20201223053433-503c6ff9de7d
 ## explicit
 github.com/workanator/go-ataman
-# go.uber.org/goleak v1.1.10
+# go.uber.org/goleak v1.1.12
 ## explicit
 go.uber.org/goleak
 go.uber.org/goleak/internal/stack
@@ -114,17 +114,10 @@ golang.org/x/image/draw
 golang.org/x/image/font
 golang.org/x/image/math/f64
 golang.org/x/image/math/fixed
-# golang.org/x/lint v0.0.0-20210508222113-6edffad5e616
-golang.org/x/lint
-golang.org/x/lint/golint
 # golang.org/x/sys v0.0.0-20210603081109-ebe580a85c40
 golang.org/x/sys/internal/unsafeheader
 golang.org/x/sys/unix
 golang.org/x/sys/windows
-# golang.org/x/tools v0.1.2
-golang.org/x/tools/go/ast/astutil
-golang.org/x/tools/go/gcexportdata
-golang.org/x/tools/go/internal/gcimporter
 # google.golang.org/protobuf v1.26.0
 google.golang.org/protobuf/encoding/prototext
 google.golang.org/protobuf/encoding/protowire

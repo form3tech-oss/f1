@@ -29,7 +29,7 @@ require (
 	github.com/tinylib/msgp v1.1.5 // indirect
 	github.com/wcharczuk/go-chart v2.0.2-0.20191206192251-962b9abdec2b+incompatible
 	github.com/workanator/go-ataman v0.0.0-20201223053433-503c6ff9de7d
-	go.uber.org/goleak v1.1.10
+	go.uber.org/goleak v1.1.12
 	golang.org/x/image v0.0.0-20210220032944-ac19c3e999fb // indirect
 	gopkg.in/workanator/go-ataman.v1 v1.0.0-20201223053604-e3b73d2e8108 // indirect
 	gopkg.in/yaml.v2 v2.4.0
