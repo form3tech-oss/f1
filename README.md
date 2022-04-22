@@ -5,6 +5,13 @@
 At Form3, many of our test scenarios using this framework combine REST API calls with asynchronous notifications from message queues. To achieve this, we need to have a worker pool listening to messages on the queue and distribute them to the appropriate instance of an active test run. We use this with thousands of concurrent test iterations in tests covering millions of iterations and running for multiple days.
 
 ## Usage
+
+### Get f1
+
+```sh
+go get github.com/form3tech-oss/f1/v2
+```
+
 ### Writing load tests
 Test scenarios consist of two stages: 
 * Setup - represented by `ScenarioFn` which is called once at the start of a test; this may be useful for generating resources needed for all tests, or subscribing to message queues.
