@@ -50,8 +50,8 @@ type RunTestStage struct {
 	assert                 *assert.Assertions
 	rate                   string
 	maxIterations          int32
-	maxFailures            int32
-	maxFailuresRate        int32
+	maxFailures            int
+	maxFailuresRate        int
 	triggerType            TriggerType
 	stages                 string
 	frequency              string
@@ -100,6 +100,16 @@ func (s *RunTestStage) a_concurrency_of(concurrency int) *RunTestStage {
 	return s
 }
 
+func (s *RunTestStage) a_max_failures_of(maxFailures int) *RunTestStage {
+	s.maxFailures = maxFailures
+	return s
+}
+
+func (s *RunTestStage) a_max_failures_rate_of(maxFailuresRate int) *RunTestStage {
+	s.maxFailuresRate = maxFailuresRate
+	return s
+}
+
 func (s *RunTestStage) a_config_file_location_of(commandsFile string) *RunTestStage {
 	s.configFile = commandsFile
 	return s
@@ -127,6 +137,8 @@ func (s *RunTestStage) i_execute_the_run_command() *RunTestStage {
 			MaxDuration:         s.duration,
 			Concurrency:         s.concurrency,
 			MaxIterations:       s.maxIterations,
+			MaxFailures:         s.maxFailures,
+			MaxFailuresRate:     s.maxFailuresRate,
 			RegisterLogHookFunc: fluentd_hook.AddFluentdLoggingHook,
 		},
 		s.build_trigger())
@@ -171,6 +183,12 @@ func (s *RunTestStage) the_number_of_started_iterations_should_be(expected int32
 func (s *RunTestStage) the_command_should_fail() *RunTestStage {
 	s.assert.NotNil(s.runResult)
 	s.assert.Equal(true, s.runResult.Failed())
+	return s
+}
+
+func (s *RunTestStage) the_command_should_succeeded() *RunTestStage {
+	s.assert.NotNil(s.runResult)
+	s.assert.Equal(false, s.runResult.Failed())
 	return s
 }
 

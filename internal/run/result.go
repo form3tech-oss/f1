@@ -18,6 +18,8 @@ type RunResult struct {
 	SuccessfulIterationDurations DurationPercentileMap
 	FailedIterationCount         uint64
 	FailedIterationDurations     DurationPercentileMap
+	MaxFailedIterations          int
+	MaxFailedIterationsRate      int
 	startTime                    time.Time
 	TestDuration                 time.Duration
 	LogFile                      string
@@ -173,7 +175,12 @@ func (r *RunResult) String() string {
 func (r *RunResult) Failed() bool {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
-	return r.Error() != nil || r.FailedIterationCount > 0 || (!r.IgnoreDropped && r.DroppedIterationCount > 0)
+
+	return r.Error() != nil ||
+		(!r.IgnoreDropped && r.DroppedIterationCount > 0) ||
+		(r.MaxFailedIterations == 0 && r.MaxFailedIterationsRate == 0 && r.FailedIterationCount > 0) ||
+		(r.MaxFailedIterations > 0 && r.FailedIterationCount > uint64(r.MaxFailedIterations)) ||
+		(r.MaxFailedIterationsRate > 0 && (r.FailedIterationCount*100/r.Iterations() > uint64(r.MaxFailedIterationsRate)))
 }
 
 func (r *RunResult) Progress() string {
