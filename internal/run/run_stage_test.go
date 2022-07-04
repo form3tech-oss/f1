@@ -50,6 +50,8 @@ type RunTestStage struct {
 	assert                 *assert.Assertions
 	rate                   string
 	maxIterations          int32
+	maxFailures            int32
+	maxFailuresRate        int32
 	triggerType            TriggerType
 	stages                 string
 	frequency              string

@@ -67,6 +67,8 @@ type TestParam struct {
 	expectedDroppedIterations uint64
 	expectedFailure           bool
 	maxIterations             int32
+	maxFailures               int
+	maxFailuresRate           int
 	stages                    string
 	iterationFrequency        string
 	distributionType          string

@@ -13,6 +13,8 @@ type RunOptions struct {
 	Verbose             bool
 	VerboseFail         bool
 	MaxIterations       int32
+	MaxFailures         int
+	MaxFailuresRate     int
 	RegisterLogHookFunc logging.RegisterLogHookFunc
 	IgnoreDropped       bool
 }

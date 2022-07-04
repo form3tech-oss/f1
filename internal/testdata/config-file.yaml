@@ -6,6 +6,8 @@ limits:
   max-duration: 5s
   concurrency: 50
   max-iterations: 1000
+  max-failures: 0
+  max-failures-rate: 0
   ignore-dropped: true
 stages:
   - duration: 500ms

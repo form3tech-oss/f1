@@ -26,10 +26,12 @@ type Schedule struct {
 }
 
 type Limits struct {
-	MaxDuration   *time.Duration `yaml:"max-duration"`
-	Concurrency   *int           `yaml:"concurrency"`
-	MaxIterations *int32         `yaml:"max-iterations"`
-	IgnoreDropped *bool          `yaml:"ignore-dropped"`
+	MaxDuration     *time.Duration `yaml:"max-duration"`
+	Concurrency     *int           `yaml:"concurrency"`
+	MaxIterations   *int32         `yaml:"max-iterations"`
+	MaxFailures     *int           `yaml:"max-failures"`
+	MaxFailuresRate *int           `yaml:"max-failures-rate"`
+	IgnoreDropped   *bool          `yaml:"ignore-dropped"`
 }
 
 type Stage struct {
@@ -87,6 +89,8 @@ func parseConfigFile(fileContent []byte, now time.Time) (*runnableStages, error)
 		maxDuration:         *validatedConfigFile.Limits.MaxDuration,
 		concurrency:         *validatedConfigFile.Limits.Concurrency,
 		maxIterations:       *validatedConfigFile.Limits.MaxIterations,
+		maxFailures:         *validatedConfigFile.Limits.MaxFailures,
+		maxFailuresRate:     *validatedConfigFile.Limits.MaxFailuresRate,
 		ignoreDropped:       *validatedConfigFile.Limits.IgnoreDropped,
 	}, nil
 }
@@ -196,6 +200,14 @@ func (c *ConfigFile) validateCommonFields() (*ConfigFile, error) {
 		return nil, fmt.Errorf("missing stages")
 	}
 
+	if c.Limits.MaxFailures == nil {
+		var maxFailures = 0
+		c.Limits.MaxFailures = &maxFailures
+	}
+	if c.Limits.MaxFailuresRate == nil {
+		var maxFailuresRate = 0
+		c.Limits.MaxFailuresRate = &maxFailuresRate
+	}
 	if c.Default.Concurrency == nil {
 		c.Default.Concurrency = c.Limits.Concurrency
 	}

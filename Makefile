@@ -1,6 +1,6 @@
 GO_FILES?=$$(find ./ -name '*.go' | grep -v /vendor | grep -v /template/ | grep -v /build/ | grep -v swagger-client)
 
-test: goimportscheck
+test:
 	GOFLAGS='-mod=vendor' go test ./... -v -race -failfast -p 1
 
 require-travis-env:
