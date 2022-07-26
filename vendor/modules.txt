@@ -88,7 +88,7 @@ github.com/spf13/cobra
 # github.com/spf13/pflag v1.0.5
 ## explicit
 github.com/spf13/pflag
-# github.com/stretchr/testify v1.7.1
+# github.com/stretchr/testify v1.8.0
 ## explicit
 github.com/stretchr/testify/assert
 github.com/stretchr/testify/require
@@ -157,7 +157,7 @@ gopkg.in/workanator/go-ataman.v1/decorate/basic
 gopkg.in/workanator/go-ataman.v1/decorate/curly
 gopkg.in/workanator/go-ataman.v1/generic
 gopkg.in/workanator/go-ataman.v1/prepared
-# gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
+# gopkg.in/yaml.v3 v3.0.1
 ## explicit
 gopkg.in/yaml.v3
 # github.com/Sirupsen/logrus => github.com/sirupsen/logrus v1.6.0
