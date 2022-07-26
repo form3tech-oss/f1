@@ -4,13 +4,11 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/form3tech-oss/f1/v2/internal/trigger/staged"
-
-	"github.com/form3tech-oss/f1/v2/internal/trigger/ramp"
-
 	"github.com/form3tech-oss/f1/v2/internal/trigger/constant"
 	"github.com/form3tech-oss/f1/v2/internal/trigger/gaussian"
-	"gopkg.in/yaml.v2"
+	"github.com/form3tech-oss/f1/v2/internal/trigger/ramp"
+	"github.com/form3tech-oss/f1/v2/internal/trigger/staged"
+	"gopkg.in/yaml.v3"
 )
 
 type ConfigFile struct {
