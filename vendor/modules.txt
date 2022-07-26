@@ -39,7 +39,7 @@ github.com/golang/protobuf/ptypes/timestamp
 # github.com/google/uuid v1.3.0
 ## explicit
 github.com/google/uuid
-# github.com/guptarohit/asciigraph v0.5.3
+# github.com/guptarohit/asciigraph v0.5.5
 ## explicit
 github.com/guptarohit/asciigraph
 # github.com/hako/durafmt v0.0.0-20200710122514-c0fb7b4da026
