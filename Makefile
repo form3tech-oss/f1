@@ -8,8 +8,8 @@ ifndef TRAVIS
 	$(error TRAVIS is undefined)
 endif
 
-install-goimports: 
-	GO111MODULE=off go get golang.org/x/tools/cmd/goimports
+install-goimports:
+	go get golang.org/x/tools/cmd/goimports
 
 goimports:
 	@goimports -w $(GO_FILES)
