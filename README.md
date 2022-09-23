@@ -80,6 +80,22 @@ Once you have written a load test and compiled a binary test runner, you can use
 * `ramp` - applies load constantly increasing or decreasing an initial load during a given ramp duration (e.g. from 0/s requests to 100/s requests during 10s).
 * `file` - applies load based on a yaml config file - the file can contain any of the previous load modes (e.g. ["config-file-example.yaml"](config-file-example.yaml)).
 
+#### Output description
+
+Currently, output from running f1 load tests looks like that:
+```bash
+[   1s]  ✔    20  ✘     0 (20/s)   p(50): 16.899154ms,  p(95): 19.1134ms, p(100): 21.435088ms
+```
+
+It provides the following information:
+- `[   1s]` how long the test has been running for,
+- `✔    20` number of successful iterations,
+- `✘     0` number of failed iterations,
+- `(20/s)` (attempted) rate,
+- `p(50): 16.899154ms p(95): 19.1134ms p(100): 21.435088ms` average time per iteration, for a given percentile.
+
+
+
 ## Design decisions
 ### Why did we decide to write our own load testing tool?
 At Form3, we invest a lot of engineering time into load and performance testing of our platform. We initially used [`k6`](https://github.com/loadimpact/k6) to develop and run these tests, but this was problematic for us for a couple of reasons:
