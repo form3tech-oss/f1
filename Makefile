@@ -9,7 +9,9 @@ ifndef TRAVIS
 endif
 
 install-goimports:
-	go get golang.org/x/tools/cmd/goimports
+	@if [ -z "$$(command -v goimports)" ]; then \
+    	go get golang.org/x/tools/cmd/goimports; \
+      fi
 
 goimports:
 	@goimports -w $(GO_FILES)
