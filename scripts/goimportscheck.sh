@@ -2,7 +2,7 @@
 
 # Check goimports
 echo "==> Checking that code complies with goimports requirements..."
-goimports_files=$(goimports -l `find . -name '*.go' | grep -v vendor`)
+goimports_files=$("$GOPATH"/bin/goimports -l `find . -name '*.go' | grep -v vendor`)
 if [[ -n ${goimports_files} ]]; then
     echo 'goimports needs running on the following files:'
     echo "${goimports_files}"
