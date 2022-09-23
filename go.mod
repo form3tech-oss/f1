@@ -14,25 +14,25 @@ require (
 	github.com/giantswarm/retry-go v0.0.0-20151203102909-d78cea247d5e
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0 // indirect
 	github.com/google/uuid v1.3.0
-	github.com/guptarohit/asciigraph v0.5.2
+	github.com/guptarohit/asciigraph v0.5.3
 	github.com/hako/durafmt v0.0.0-20200710122514-c0fb7b4da026
 	github.com/juju/errgo v0.0.0-20140925100237-08cceb5d0b53 // indirect
 	github.com/phayes/freeport v0.0.0-20180830031419-95f893ade6f2
 	github.com/pkg/errors v0.9.1
-	github.com/prometheus/client_golang v1.11.0
+	github.com/prometheus/client_golang v1.12.1
 	github.com/prometheus/client_model v0.2.0
-	github.com/prometheus/common v0.31.0
+	github.com/prometheus/common v0.32.1
 	github.com/sirupsen/logrus v1.8.1
-	github.com/spf13/cobra v1.2.1
+	github.com/spf13/cobra v1.3.0
 	github.com/spf13/pflag v1.0.5
-	github.com/stretchr/testify v1.7.0
+	github.com/stretchr/testify v1.7.1
 	github.com/tinylib/msgp v1.1.5 // indirect
 	github.com/wcharczuk/go-chart v2.0.2-0.20191206192251-962b9abdec2b+incompatible
 	github.com/workanator/go-ataman v0.0.0-20201223053433-503c6ff9de7d
-	go.uber.org/goleak v1.1.10
+	go.uber.org/goleak v1.1.12
 	golang.org/x/image v0.0.0-20210220032944-ac19c3e999fb // indirect
 	gopkg.in/workanator/go-ataman.v1 v1.0.0-20201223053604-e3b73d2e8108 // indirect
-	gopkg.in/yaml.v2 v2.4.0
+	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
 )
 
 replace github.com/Sirupsen/logrus => github.com/sirupsen/logrus v1.6.0
