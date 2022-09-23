@@ -32,7 +32,7 @@ require (
 	go.uber.org/goleak v1.1.12
 	golang.org/x/image v0.0.0-20210220032944-ac19c3e999fb // indirect
 	gopkg.in/workanator/go-ataman.v1 v1.0.0-20201223053604-e3b73d2e8108 // indirect
-	gopkg.in/yaml.v2 v2.4.0
+	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
 )
 
 replace github.com/Sirupsen/logrus => github.com/sirupsen/logrus v1.6.0
