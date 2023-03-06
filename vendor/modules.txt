@@ -112,7 +112,7 @@ github.com/wcharczuk/go-chart/roboto
 # github.com/workanator/go-ataman v0.0.0-20201223053433-503c6ff9de7d
 ## explicit
 github.com/workanator/go-ataman
-# go.uber.org/goleak v1.2.0
+# go.uber.org/goleak v1.2.1
 ## explicit; go 1.18
 go.uber.org/goleak
 go.uber.org/goleak/internal/stack
