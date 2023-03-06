@@ -1,7 +1,6 @@
-name: f1-ci
 on: [push]
 jobs:
-  ci:
+  Test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
