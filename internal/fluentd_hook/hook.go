@@ -9,6 +9,8 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// TODO: this hook seems to be not used which means that `RegisterLogHookFunc` might be not needed too
+
 func AddFluentdLoggingHook(scenario string) {
 	host := os.Getenv("FLUENTD_HOST")
 	port := os.Getenv("FLUENTD_PORT")

@@ -13,14 +13,13 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// T is a type passed to Scenario functions to manage test state and support formatted test logs.
+// T is a type passed to Scenario functions to manage test state.
 // A test ends when its Scenario function returns or calls any of the methods FailNow, Fatal, Fatalf.
 // Those methods must be called only from the goroutine running the Scenario function.
 // The other reporting methods, such as the variations of Log and Error, may be called simultaneously from multiple goroutines.
 type T struct {
 	// "iteration " + iteration number or "setup"
-	Iteration string
-	// logger with user and iteration tags
+	Iteration      string
 	logger         *log.Logger
 	failed         int64
 	teardownFailed int64
@@ -32,7 +31,8 @@ type T struct {
 
 func NewT(iter, scenarioName string) (*T, func()) {
 	t := &T{
-		Iteration:     iter,
+		Iteration: iter,
+		// TODO: use new logger here?
 		logger:        log.WithField("i", iter).WithField("scenario", scenarioName).Logger,
 		Scenario:      scenarioName,
 		teardownStack: []func(){},

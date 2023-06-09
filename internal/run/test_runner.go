@@ -3,7 +3,6 @@ package run
 import (
 	"fmt"
 	"io"
-	stdlog "log"
 	"os"
 	"os/signal"
 	"sync"
@@ -12,23 +11,19 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/form3tech-oss/f1/v2/internal/logging"
-	"github.com/form3tech-oss/f1/v2/internal/options"
-	"github.com/form3tech-oss/f1/v2/pkg/f1/scenarios"
-	"github.com/pkg/errors"
-	log "github.com/sirupsen/logrus"
-
-	"github.com/form3tech-oss/f1/v2/internal/trace"
-
-	"github.com/form3tech-oss/f1/v2/internal/raterun"
-
-	"github.com/form3tech-oss/f1/v2/internal/trigger/api"
-
 	"github.com/aholic/ggtimer"
+	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/push"
+	log "github.com/sirupsen/logrus"
 
+	"github.com/form3tech-oss/f1/v2/internal/logging"
 	"github.com/form3tech-oss/f1/v2/internal/metrics"
+	"github.com/form3tech-oss/f1/v2/internal/options"
+	"github.com/form3tech-oss/f1/v2/internal/raterun"
+	"github.com/form3tech-oss/f1/v2/internal/trace"
+	"github.com/form3tech-oss/f1/v2/internal/trigger/api"
+	"github.com/form3tech-oss/f1/v2/pkg/f1/scenarios"
 )
 
 const NextIterationWindow = 10 * time.Millisecond
@@ -39,6 +34,7 @@ func NewRun(options options.RunOptions, t *api.Trigger) (*Run, error) {
 		Options:         options,
 		RateDescription: t.Description,
 		trigger:         t,
+		logger:          options.Logger,
 	}
 	prometheusUrl := os.Getenv("PROMETHEUS_PUSH_GATEWAY")
 	if prometheusUrl != "" {
@@ -76,6 +72,7 @@ type Run struct {
 	pusher          *push.Pusher
 	notifyDropped   sync.Once
 	progressRunner  raterun.Runner
+	logger          *log.Logger
 }
 
 var startTemplate = template.Must(template.New("result parse").
@@ -93,6 +90,8 @@ func (r *Run) Do(s *scenarios.Scenarios) *RunResult {
 
 	metrics.Instance().Reset()
 
+	// TODO: move to top and use `r.activeScenario.t` to grab a logger?
+	//  or maybe even add log methods to ActiveScenario type?
 	r.activeScenario = NewActiveScenario(s.GetScenario(r.Options.Scenario))
 	r.pushMetrics()
 	defer r.teardownActiveScenario()
@@ -136,20 +135,16 @@ func (r *Run) teardownActiveScenario() {
 func (r *Run) configureLogging() {
 	r.Options.RegisterLogHookFunc(r.Options.Scenario)
 	if !r.Options.Verbose {
-		r.result.LogFile = redirectLoggingToFile(r.Options.Scenario)
 		welcomeMessage := renderTemplate(startTemplate, r)
-		log.Info(welcomeMessage)
-		fmt.Printf("Saving logs to %s\n\n", r.result.LogFile)
+		r.logger.Info(welcomeMessage)
 	}
 }
 
 func (r *Run) printSummary() {
 	summary := r.result.String()
-	fmt.Println(summary)
+	fmt.Println(summary) // TODO: use logger from f1/testing/t.go?
 	if !r.Options.Verbose {
-		log.Info(summary)
-		log.StandardLogger().SetOutput(os.Stdout)
-		stdlog.SetOutput(os.Stdout)
+		r.logger.Info(summary)
 	}
 }
 

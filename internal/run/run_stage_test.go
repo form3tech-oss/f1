@@ -30,11 +30,12 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	f1_testing "github.com/form3tech-oss/f1/v2/pkg/f1/testing"
 	"github.com/giantswarm/retry-go"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	f1_testing "github.com/form3tech-oss/f1/v2/pkg/f1/testing"
 )
 
 type RunTestStage struct {
@@ -125,6 +126,7 @@ func (s *RunTestStage) i_execute_the_run_command() *RunTestStage {
 			MaxDuration:         s.duration,
 			Concurrency:         s.concurrency,
 			MaxIterations:       s.maxIterations,
+			Verbose:             true,
 			RegisterLogHookFunc: fluentd_hook.AddFluentdLoggingHook,
 		},
 		s.build_trigger())

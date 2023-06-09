@@ -20,7 +20,6 @@ type RunResult struct {
 	FailedIterationDurations     DurationPercentileMap
 	startTime                    time.Time
 	TestDuration                 time.Duration
-	LogFile                      string
 	IgnoreDropped                bool
 	DroppedIterationCount        uint64
 	RecentSuccessfulIterations   uint64
