@@ -60,7 +60,6 @@ func newStagesWorker(stages []runnableStage) api.WorkTriggerer {
 					unsetEnvs(stage.params)
 					time.Sleep(safeThresholdBeforeNextIteration)
 					isListening = false
-				default:
 				}
 			}
 		}
