@@ -8,7 +8,7 @@ require (
 	github.com/chobie/go-gaussian v0.0.0-20150107165016-53c09d90eeaf
 	github.com/evalphobia/logrus_fluent v0.5.4
 	github.com/giantswarm/retry-go v0.0.0-20151203102909-d78cea247d5e
-	github.com/google/uuid v1.3.0
+	github.com/google/uuid v1.3.1
 	github.com/guptarohit/asciigraph v0.5.5
 	github.com/hako/durafmt v0.0.0-20210608085754-5c1018a4e16b
 	github.com/phayes/freeport v0.0.0-20220201140144-74d24b5ae9f5
