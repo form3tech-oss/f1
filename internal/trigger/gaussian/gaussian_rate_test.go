@@ -7,11 +7,9 @@ import (
 	"time"
 
 	"github.com/form3tech-oss/f1/v2/internal/trigger/api"
-
-	"github.com/stretchr/testify/require"
-
 	"github.com/guptarohit/asciigraph"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestTotalVolumes(t *testing.T) {
@@ -222,6 +220,70 @@ func TestWeightedVolumes(t *testing.T) {
 				assert.True(t, diff < float64(test.expectedTotals[i])*acceptableErrorPercent/100.0, "volumes differ by > %f%%", acceptableErrorPercent*100.0)
 			}
 			require.Equal(t, expectedTotal, test.volume*len(test.weights))
+		})
+	}
+}
+
+func Test_calculateVolume(t *testing.T) {
+	tests := []struct {
+		name     string
+		peakTps  string
+		peakTime time.Duration
+		stddev   time.Duration
+		want     float64
+		wantErr  bool
+	}{
+		{
+			name:     "50TPS",
+			peakTps:  "50/s",
+			stddev:   4 * time.Hour,
+			peakTime: 14 * time.Hour,
+			want:     1793144,
+			wantErr:  false,
+		},
+		{
+			name:     "10TPS",
+			peakTps:  "10/s",
+			stddev:   4 * time.Hour,
+			peakTime: 14 * time.Hour,
+			want:     358629,
+			wantErr:  false,
+		},
+		{
+			name:     "10TPS no unit",
+			peakTps:  "10",
+			stddev:   4 * time.Hour,
+			peakTime: 14 * time.Hour,
+			want:     358629,
+			wantErr:  false,
+		},
+		{
+			name:     "1000TPms",
+			peakTps:  "1000/ms",
+			stddev:   4 * time.Hour,
+			peakTime: 14 * time.Hour,
+			want:     35863,
+			wantErr:  false,
+		},
+		{
+			name:     "error",
+			peakTps:  "ms",
+			stddev:   4 * time.Hour,
+			peakTime: 14 * time.Hour,
+			want:     -1,
+			wantErr:  true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := calculateVolume(tt.peakTps, tt.peakTime, tt.stddev)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("calculateVolume() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("calculateVolume() = %v, want %v", got, tt.want)
+			}
 		})
 	}
 }
