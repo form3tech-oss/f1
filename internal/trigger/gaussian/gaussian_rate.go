@@ -21,7 +21,7 @@ func GaussianRate() api.Builder {
 	flags.Duration("iteration-frequency", 1*time.Second, "How frequently iterations should be started")
 	flags.String("weights", "", "Optional scaling factor to apply per repetition. This can be used for example with daily repetitions to set different weights per day of the week")
 	flags.Duration("peak", 14*time.Hour, "The offset within the repetition window when the load should reach its maximum. Default 14 hours (with 24 hour default repeat)")
-	flags.StringP("peak-rate", "r", "", "number of peak iterations per interval, in the form <request>/<duration>")
+	flags.StringP("peak-rate", "r", "", "number of iterations per interval in peak time, in the form <request>/<duration>")
 	flags.Duration("standard-deviation", 150*time.Minute, "The standard deviation to use for the distribution of load")
 	flags.Float64P("jitter", "j", 0.0, "vary the rate randomly by up to jitter percent")
 	flags.String("distribution", "regular", "optional parameter to distribute the rate over steps of 100ms, which can be none|regular|random")
@@ -29,6 +29,7 @@ func GaussianRate() api.Builder {
 	return api.Builder{
 		Name:        "gaussian <scenario>",
 		Description: "distributes load to match a desired monthly volume",
+		Flags:       flags,
 		New: func(flags *pflag.FlagSet) (*api.Trigger, error) {
 			volume, err := flags.GetFloat64("volume")
 			if err != nil {
@@ -62,7 +63,7 @@ func GaussianRate() api.Builder {
 			if err != nil {
 				return nil, err
 			}
-			peakrRateArg, err := flags.GetString("peak-rate")
+			peakRate, err := flags.GetString("peak-rate")
 			if err != nil {
 				return nil, err
 			}
@@ -70,8 +71,8 @@ func GaussianRate() api.Builder {
 			if jitter != 0 {
 				jitterDesc = fmt.Sprintf(" with jitter of %.2f%%", jitter)
 			}
-			if volume == 0 && peakrRateArg != "" {
-				volume, err = calculateVolume(peakrRateArg, peak, stddev)
+			if volume == 0 && peakRate != "" {
+				volume, err = calculateVolume(peakRate, peak, stddev)
 				if err != nil {
 					return nil, err
 				}
@@ -194,7 +195,7 @@ func NewGaussianRateCalculator(peak time.Duration, stddev time.Duration, frequen
 }
 
 func calculateVolume(peakTps string, peakTime, stddev time.Duration) (float64, error) {
-	a, err := parseRateToRatePerSec(peakTps) // the desired peak TPS
+	a, err := parseRateToTPS(peakTps) // the desired peak TPS
 	if err != nil {
 		return -1, err
 	}
@@ -213,7 +214,7 @@ func gauss(a, b, c, x float64) float64 {
 	return a * math.Exp(-(math.Pow(x-b, 2) / (2 * c * c)))
 }
 
-func parseRateToRatePerSec(rateArg string) (float64, error) {
+func parseRateToTPS(rateArg string) (float64, error) {
 	var rate int
 	var unit time.Duration
 	var err error
