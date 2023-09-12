@@ -250,6 +250,14 @@ func Test_calculateVolume(t *testing.T) {
 			wantErr:  false,
 		},
 		{
+			name:     "10TPS 2",
+			peakTps:  "100/10s",
+			stddev:   4 * time.Hour,
+			peakTime: 14 * time.Hour,
+			want:     358629,
+			wantErr:  false,
+		},
+		{
 			name:     "10TPS no unit",
 			peakTps:  "10",
 			stddev:   4 * time.Hour,
@@ -258,11 +266,27 @@ func Test_calculateVolume(t *testing.T) {
 			wantErr:  false,
 		},
 		{
+			name:     "1TPms",
+			peakTps:  "1/ms",
+			stddev:   4 * time.Hour,
+			peakTime: 14 * time.Hour,
+			want:     35862889,
+			wantErr:  false,
+		},
+		{
 			name:     "1000TPms",
 			peakTps:  "1000/ms",
 			stddev:   4 * time.Hour,
 			peakTime: 14 * time.Hour,
-			want:     35863,
+			want:     35862888782,
+			wantErr:  false,
+		},
+		{
+			name:     "1TPH",
+			peakTps:  "1/h",
+			stddev:   4 * time.Hour,
+			peakTime: 14 * time.Hour,
+			want:     10,
 			wantErr:  false,
 		},
 		{
