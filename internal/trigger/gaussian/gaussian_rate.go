@@ -7,19 +7,24 @@ import (
 	"strings"
 	"time"
 
-	"github.com/form3tech-oss/f1/v2/internal/trigger/api"
-
 	"github.com/chobie/go-gaussian"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
+
+	"github.com/form3tech-oss/f1/v2/internal/trigger/api"
+	"github.com/form3tech-oss/f1/v2/internal/trigger/rate"
 )
+
+const defaultVolume = 24 * 60 * 60
 
 func GaussianRate() api.Builder {
 	flags := pflag.NewFlagSet("gaussian", pflag.ContinueOnError)
-	flags.Float64("volume", 24*60*60, "The desired volume to be achieved with the calculated load profile.")
+	flags.Float64("volume", defaultVolume, "The desired volume to be achieved with the calculated load profile. Will be ignored if --peak-rate is also provided.")
 	flags.Duration("repeat", 24*time.Hour, "How often the cycle should repeat")
 	flags.Duration("iteration-frequency", 1*time.Second, "How frequently iterations should be started")
 	flags.String("weights", "", "Optional scaling factor to apply per repetition. This can be used for example with daily repetitions to set different weights per day of the week")
 	flags.Duration("peak", 14*time.Hour, "The offset within the repetition window when the load should reach its maximum. Default 14 hours (with 24 hour default repeat)")
+	flags.StringP("peak-rate", "r", "", "number of iterations per interval in peak time, in the form <request>/<duration> (e.g. 1/s). If --peak-rate is provided, the value given for --volume will be ignored.")
 	flags.Duration("standard-deviation", 150*time.Minute, "The standard deviation to use for the distribution of load")
 	flags.Float64P("jitter", "j", 0.0, "vary the rate randomly by up to jitter percent")
 	flags.String("distribution", "regular", "optional parameter to distribute the rate over steps of 100ms, which can be none|regular|random")
@@ -61,12 +66,23 @@ func GaussianRate() api.Builder {
 			if err != nil {
 				return nil, err
 			}
-
+			peakRate, err := flags.GetString("peak-rate")
+			if err != nil {
+				return nil, err
+			}
 			jitterDesc := ""
 			if jitter != 0 {
 				jitterDesc = fmt.Sprintf(" with jitter of %.2f%%", jitter)
 			}
-
+			if peakRate != "" {
+				if volume != defaultVolume {
+					log.Warn("--peak-rate is provided, the value given for --volume will be ignored")
+				}
+				volume, err = calculateVolume(peakRate, peak, stddev)
+				if err != nil {
+					return nil, err
+				}
+			}
 			rates, err := CalculateGaussianRate(volume, jitter, repeat, frequency, peak, stddev, weights, distributionTypeArg)
 			if err != nil {
 				return nil, err
@@ -182,4 +198,32 @@ func NewGaussianRateCalculator(peak time.Duration, stddev time.Duration, frequen
 		multiplier:    multiplier,
 		repeatWindow:  repeatWindow,
 	}
+}
+
+func calculateVolume(peakTps string, peakTime, stddev time.Duration) (float64, error) {
+	a, err := parseRateToTPS(peakTps) // the desired peak TPS
+	if err != nil {
+		return -1, err
+	}
+	b := peakTime.Seconds()
+	c := stddev.Seconds()
+
+	var total float64
+	for i := 0; i < 3600*24; i++ {
+		total += gauss(a, b, c, float64(i))
+	}
+
+	return math.Round(total), nil
+}
+
+func gauss(a, b, c, x float64) float64 {
+	return a * math.Exp(-(math.Pow(x-b, 2) / (2 * c * c)))
+}
+
+func parseRateToTPS(rateArg string) (float64, error) {
+	rate, unit, err := rate.ParseRate(rateArg)
+	if err != nil {
+		return -1, fmt.Errorf("parse to tps %s: %w", rateArg, err)
+	}
+	return float64(rate) * unit.Seconds(), nil
 }

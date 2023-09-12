@@ -2,14 +2,12 @@ package constant
 
 import (
 	"fmt"
-	"strconv"
-	"strings"
 	"time"
 
-	"github.com/form3tech-oss/f1/v2/internal/trigger/api"
-
-	"github.com/asaskevich/govalidator"
 	"github.com/spf13/pflag"
+
+	"github.com/form3tech-oss/f1/v2/internal/trigger/api"
+	"github.com/form3tech-oss/f1/v2/internal/trigger/rate"
 )
 
 func ConstantRate() api.Builder {
@@ -52,27 +50,9 @@ func ConstantRate() api.Builder {
 }
 
 func CalculateConstantRate(jitterArg float64, rateArg, distributionTypeArg string) (*api.Rates, error) {
-	rate := 0
-	var err error
-	iterationDuration := 1 * time.Second
-	if strings.Contains(rateArg, "/") {
-		rate, err = strconv.Atoi((rateArg)[0:strings.Index(rateArg, "/")])
-		if err != nil {
-			return nil, fmt.Errorf("unable to parse rate %s", rateArg)
-		}
-		unit := (rateArg)[strings.Index(rateArg, "/")+1:]
-		if !govalidator.IsNumeric(unit[0:1]) {
-			unit = "1" + unit
-		}
-		iterationDuration, err = time.ParseDuration(unit)
-		if err != nil {
-			return nil, fmt.Errorf("unable to parse unit %s", rateArg)
-		}
-	} else {
-		rate, err = strconv.Atoi(rateArg)
-		if err != nil {
-			return nil, fmt.Errorf("unable to parse rate %s", rateArg)
-		}
+	rate, iterationDuration, err := rate.ParseRate(rateArg)
+	if err != nil {
+		return nil, fmt.Errorf("unable to parse rate %s: %w", rateArg, err)
 	}
 
 	rateFn := api.WithJitter(func(time.Time) int { return rate }, jitterArg)
