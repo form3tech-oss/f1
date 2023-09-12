@@ -7,21 +7,24 @@ import (
 	"strings"
 	"time"
 
-	"github.com/asaskevich/govalidator"
-	"github.com/form3tech-oss/f1/v2/internal/trigger/api"
-
 	"github.com/chobie/go-gaussian"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
+
+	"github.com/form3tech-oss/f1/v2/internal/trigger/api"
+	"github.com/form3tech-oss/f1/v2/internal/trigger/rate"
 )
+
+const defaultVolume = 24 * 60 * 60
 
 func GaussianRate() api.Builder {
 	flags := pflag.NewFlagSet("gaussian", pflag.ContinueOnError)
-	flags.Float64("volume", 0, "The desired volume to be achieved with the calculated load profile.")
+	flags.Float64("volume", defaultVolume, "The desired volume to be achieved with the calculated load profile. Will be ignored if --peak-rate is also provided.")
 	flags.Duration("repeat", 24*time.Hour, "How often the cycle should repeat")
 	flags.Duration("iteration-frequency", 1*time.Second, "How frequently iterations should be started")
 	flags.String("weights", "", "Optional scaling factor to apply per repetition. This can be used for example with daily repetitions to set different weights per day of the week")
 	flags.Duration("peak", 14*time.Hour, "The offset within the repetition window when the load should reach its maximum. Default 14 hours (with 24 hour default repeat)")
-	flags.StringP("peak-rate", "r", "", "number of iterations per interval in peak time, in the form <request>/<duration>")
+	flags.StringP("peak-rate", "r", "", "number of iterations per interval in peak time, in the form <request>/<duration> (e.g. 1/s). If --peak-rate is provided, the value given for --volume will be ignored.")
 	flags.Duration("standard-deviation", 150*time.Minute, "The standard deviation to use for the distribution of load")
 	flags.Float64P("jitter", "j", 0.0, "vary the rate randomly by up to jitter percent")
 	flags.String("distribution", "regular", "optional parameter to distribute the rate over steps of 100ms, which can be none|regular|random")
@@ -71,7 +74,10 @@ func GaussianRate() api.Builder {
 			if jitter != 0 {
 				jitterDesc = fmt.Sprintf(" with jitter of %.2f%%", jitter)
 			}
-			if volume == 0 && peakRate != "" {
+			if peakRate != "" {
+				if volume != defaultVolume {
+					log.Warn("--peak-rate is provided, the value given for --volume will be ignored")
+				}
 				volume, err = calculateVolume(peakRate, peak, stddev)
 				if err != nil {
 					return nil, err
@@ -215,28 +221,9 @@ func gauss(a, b, c, x float64) float64 {
 }
 
 func parseRateToTPS(rateArg string) (float64, error) {
-	var rate int
-	var unit time.Duration
-	var err error
-	if strings.Contains(rateArg, "/") {
-		rate, err = strconv.Atoi((rateArg)[0:strings.Index(rateArg, "/")])
-		if err != nil || rate < 0 {
-			return -1, fmt.Errorf("unable to parse rate arg %s", rateArg)
-		}
-		unitArg := (rateArg)[strings.Index(rateArg, "/")+1:]
-		if !govalidator.IsNumeric(unitArg[0:1]) {
-			unitArg = "1" + unitArg
-		}
-		unit, err = time.ParseDuration(unitArg)
-		if err != nil {
-			return -1, fmt.Errorf("unable to parse rate arg %s", rateArg)
-		}
-	} else {
-		rate, err = strconv.Atoi(rateArg)
-		if err != nil || rate < 0 {
-			return -1, fmt.Errorf("unable to parse rate arg %s", rateArg)
-		}
-		unit = 1 * time.Second
+	rate, unit, err := rate.ParseRate(rateArg)
+	if err != nil {
+		return -1, fmt.Errorf("parse to tps %s: %w", rateArg, err)
 	}
 	return float64(rate) * unit.Seconds(), nil
 }

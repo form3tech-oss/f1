@@ -273,6 +273,14 @@ func Test_calculateVolume(t *testing.T) {
 			want:     -1,
 			wantErr:  true,
 		},
+		{
+			name:     "invalid value",
+			peakTps:  "-10/s",
+			stddev:   4 * time.Hour,
+			peakTime: 14 * time.Hour,
+			want:     -1,
+			wantErr:  true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
