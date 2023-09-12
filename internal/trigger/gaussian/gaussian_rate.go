@@ -225,5 +225,5 @@ func parseRateToTPS(rateArg string) (float64, error) {
 	if err != nil {
 		return -1, fmt.Errorf("parse to tps %s: %w", rateArg, err)
 	}
-	return float64(rate) * unit.Seconds(), nil
+	return float64(rate) / unit.Seconds(), nil
 }
