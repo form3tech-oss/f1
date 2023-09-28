@@ -124,7 +124,7 @@ func CalculateGaussianRate(volume, jitter float64, repeat, frequency, peak, stdd
 		if s == "" {
 			continue
 		}
-		weight, err := strconv.ParseFloat(s, 10)
+		weight, err := strconv.ParseFloat(s, 64)
 		if err != nil {
 			return nil, fmt.Errorf("unable to parse weights")
 		}
