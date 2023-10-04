@@ -151,12 +151,19 @@ func TestTotalVolumes(t *testing.T) {
 			volume:    100000,
 			repeat:    2 * time.Hour,
 		},
+		{
+			peak:      5 * time.Minute,
+			stddev:    75 * time.Second,
+			frequency: 1 * time.Second,
+			volume:    23499,
+			repeat:    1 * time.Hour,
+		},
 	} {
 		t.Run(fmt.Sprintf("%d: %f every %s, stddev: %s, peak: %s, jitter %f", i, test.volume, test.frequency.String(), test.stddev, test.peak, test.jitter), func(t *testing.T) {
-			c := NewGaussianRateCalculator(test.peak, test.stddev, test.frequency, test.weights, test.volume, 24*time.Hour)
+			c := NewGaussianRateCalculator(test.peak, test.stddev, test.frequency, test.weights, test.volume, test.repeat)
 			total := 0.0
-			current := time.Now().Truncate(24 * time.Hour)
-			end := current.Add(24 * time.Hour)
+			current := time.Now().Truncate(test.repeat)
+			end := current.Add(test.repeat)
 
 			calculate := api.WithJitter(c.For, test.jitter)
 			var rates []float64
