@@ -50,6 +50,8 @@ func Cmd(s *scenarios.Scenarios, builders []api.Builder, hookFunc logging.Regist
 			triggerCmd.Flags().DurationP("max-duration", "d", time.Second, "--max-duration 1s (stop after 1 second)")
 			triggerCmd.Flags().IntP("concurrency", "c", 100, "--concurrency 2 (allow at most 2 groups of iterations to run concurrently)")
 			triggerCmd.Flags().Int32P("max-iterations", "i", 0, "--max-iterations 100 (stop after 100 iterations, regardless of remaining duration)")
+			triggerCmd.Flags().Int("max-failures", 0, "--max-failures 10 (load test will fail if more than 10 errors occured, default is 0)")
+			triggerCmd.Flags().Int("max-failures-rate", 0, "--max-failures-rate 5 (load test will fail if more than 5\\% requests failed, default is 0)")
 
 			triggerCmd.Flags().AddFlagSet(t.Flags)
 			runCmd.AddCommand(triggerCmd)
@@ -72,12 +74,16 @@ func runCmdExecute(s *scenarios.Scenarios, t api.Builder, hookFunc logging.Regis
 		var duration time.Duration
 		var concurrency int
 		var maxIterations int32
+		var maxFailures int
+		var maxFailuresRate int
 		var ignoreDropped bool
 		if t.IgnoreCommonFlags {
 			scenarioName = trig.Options.Scenario
 			duration = trig.Options.MaxDuration
 			concurrency = trig.Options.Concurrency
 			maxIterations = trig.Options.MaxIterations
+			maxFailures = trig.Options.MaxFailures
+			maxFailures = trig.Options.MaxFailuresRate
 			ignoreDropped = trig.Options.IgnoreDropped
 		} else {
 			scenarioName = args[0]
@@ -92,6 +98,14 @@ func runCmdExecute(s *scenarios.Scenarios, t api.Builder, hookFunc logging.Regis
 			maxIterations, err = cmd.Flags().GetInt32("max-iterations")
 			if err != nil {
 				return errors.New(fmt.Sprintf("Invalid maxIterations value: %s", err))
+			}
+			maxFailures, err = cmd.Flags().GetInt("max-failures")
+			if err != nil {
+				return errors.New(fmt.Sprintf("Invalid maxFailures value: %s", err))
+			}
+			maxFailuresRate, err = cmd.Flags().GetInt("max-failures-rate")
+			if err != nil {
+				return errors.New(fmt.Sprintf("Invalid maxFailuresRate value: %s", err))
 			}
 			ignoreDropped, err = cmd.Flags().GetBool("ignore-dropped")
 			if err != nil {
@@ -116,6 +130,8 @@ func runCmdExecute(s *scenarios.Scenarios, t api.Builder, hookFunc logging.Regis
 			Verbose:             verbose,
 			VerboseFail:         verboseFail,
 			MaxIterations:       maxIterations,
+			MaxFailures:         maxFailures,
+			MaxFailuresRate:     maxFailuresRate,
 			RegisterLogHookFunc: hookFunc,
 			IgnoreDropped:       ignoreDropped,
 		}, trig)
