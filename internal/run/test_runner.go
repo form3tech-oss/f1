@@ -48,6 +48,8 @@ func NewRun(options options.RunOptions, t *api.Trigger) (*Run, error) {
 		run.Options.RegisterLogHookFunc = logging.NoneRegisterLogHookFunc
 	}
 	run.result.IgnoreDropped = options.IgnoreDropped
+	run.result.MaxFailedIterations = options.MaxFailures
+	run.result.MaxFailedIterationsRate = options.MaxFailuresRate
 
 	progressRunner, _ := raterun.New(func(rate time.Duration, t time.Time) {
 		run.gatherProgressMetrics(rate)
