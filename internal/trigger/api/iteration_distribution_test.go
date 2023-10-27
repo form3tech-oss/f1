@@ -124,6 +124,16 @@ func TestRegularRateDistribution(t *testing.T) {
 			rate:                     900,
 			expectedDistributedRates: repeatSlice([]int{0, 1, 1, 1, 1, 1, 1, 1, 1, 1}, 100),
 		},
+		{
+			iterationDuration:        2 * time.Minute,
+			rate:                     1,
+			expectedDistributedRates: append(repeatValue(0, 1199), 1),
+		},
+		{
+			iterationDuration:        4 * time.Minute,
+			rate:                     2,
+			expectedDistributedRates: repeatSlice(append(repeatValue(0, 1199), 1), 2),
+		},
 	} {
 		t.Run(fmt.Sprintf("%d: iteration duration %s, rate %d", i, test.iterationDuration, test.rate), func(t *testing.T) {
 			rateFn := func(time time.Time) int { return test.rate }
