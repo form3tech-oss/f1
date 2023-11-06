@@ -1,4 +1,4 @@
-// Copyright (c) 2021-2023 Uber Technologies, Inc.
+// Copyright (c) 2021 Uber Technologies, Inc.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -23,8 +23,12 @@
 
 package goleak
 
-import "go.uber.org/goleak/internal/stack"
+import (
+	"strings"
+
+	"go.uber.org/goleak/internal/stack"
+)
 
 func isTraceStack(s stack.Stack) bool {
-	return s.HasFunction("runtime.ReadTrace")
+	return strings.Contains(s.Full(), "runtime.ReadTrace")
 }

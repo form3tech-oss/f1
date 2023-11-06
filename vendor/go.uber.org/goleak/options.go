@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2023 Uber Technologies, Inc.
+// Copyright (c) 2017 Uber Technologies, Inc.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -64,22 +64,6 @@ func (f optionFunc) apply(opts *opts) { f(opts) }
 func IgnoreTopFunction(f string) Option {
 	return addFilter(func(s stack.Stack) bool {
 		return s.FirstFunction() == f
-	})
-}
-
-// IgnoreAnyFunction ignores goroutines where the specified function
-// is present anywhere in the stack.
-//
-// The function name must be fully qualified, e.g.,
-//
-//	go.uber.org/goleak.IgnoreAnyFunction
-//
-// For methods, the fully qualified form looks like:
-//
-//	go.uber.org/goleak.(*MyType).MyMethod
-func IgnoreAnyFunction(f string) Option {
-	return addFilter(func(s stack.Stack) bool {
-		return s.HasFunction(f)
 	})
 }
 
@@ -167,12 +151,8 @@ func isTestStack(s stack.Stack) bool {
 	// Since go1.7, a separate goroutine is started to wait for signals.
 	// T.Parallel is for parallel tests, which are blocked until all serial
 	// tests have run with T.Parallel at the top of the stack.
-	// testing.runFuzzTests is for fuzz testing, it's blocked until the test
-	// function with all seed corpus have run.
-	// testing.runFuzzing is for fuzz testing, it's blocked until a failing
-	// input is found.
 	switch s.FirstFunction() {
-	case "testing.RunTests", "testing.(*T).Run", "testing.(*T).Parallel", "testing.runFuzzing", "testing.runFuzzTests":
+	case "testing.RunTests", "testing.(*T).Run", "testing.(*T).Parallel":
 		// In pre1.7 and post-1.7, background goroutines started by the testing
 		// package are blocked waiting on a channel.
 		return strings.HasPrefix(s.State(), "chan receive")
@@ -183,7 +163,7 @@ func isTestStack(s stack.Stack) bool {
 func isSyscallStack(s stack.Stack) bool {
 	// Typically runs in the background when code uses CGo:
 	// https://github.com/golang/go/issues/16714
-	return s.HasFunction("runtime.goexit") && strings.HasPrefix(s.State(), "syscall")
+	return s.FirstFunction() == "runtime.goexit" && strings.HasPrefix(s.State(), "syscall")
 }
 
 func isStdLibStack(s stack.Stack) bool {
@@ -194,5 +174,5 @@ func isStdLibStack(s stack.Stack) bool {
 	}
 
 	// Using signal.Notify will start a runtime goroutine.
-	return s.HasFunction("runtime.ensureSigM")
+	return strings.Contains(s.Full(), "runtime.ensureSigM")
 }
