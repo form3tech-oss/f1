@@ -3,6 +3,7 @@ package run_test
 import (
 	"fmt"
 	"math"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"syscall"
@@ -10,9 +11,9 @@ import (
 	"time"
 
 	"github.com/form3tech-oss/f1/v2/internal/run"
-	"github.com/form3tech-oss/f1/v2/pkg/f1"
-
 	"github.com/form3tech-oss/f1/v2/internal/trigger/ramp"
+	"github.com/form3tech-oss/f1/v2/pkg/f1"
+	"github.com/prometheus/common/expfmt"
 
 	"github.com/form3tech-oss/f1/v2/internal/trigger/file"
 
@@ -550,6 +551,32 @@ func (s *RunTestStage) the_iteration_metric_has_n_results(n int, result string) 
 		return fmt.Errorf("expected %d to equal %d", uint64(n), *resultMetric.GetSummary().SampleCount)
 	})
 	s.require.NoError(err)
+	return s
+}
+
+func (s *RunTestStage) all_exported_metrics_contain_label(labelName string, labelValue string) *RunTestStage {
+	metricNames := fakePrometheus.GetMetricNames()
+
+	for _, name := range metricNames {
+		metricFamily := fakePrometheus.GetMetricFamily(name)
+		s.require.NotNil(metricFamily)
+
+		for _, metric := range metricFamily.Metric {
+			match := false
+			for _, label := range metric.Label {
+				nameMatch := label.GetName() == labelName
+				valueMatch := label.GetValue() == labelValue
+				match = match || (nameMatch && valueMatch)
+			}
+
+			if !match {
+				openMetrics := strings.Builder{}
+				_, _ = expfmt.MetricFamilyToOpenMetrics(&openMetrics, metricFamily)
+				s.require.FailNowf("Label is missing", "Metric %q do not have label %q with value %q:\n%s",
+					metricFamily.GetName(), labelName, labelValue, openMetrics.String())
+			}
+		}
+	}
 	return s
 }
 

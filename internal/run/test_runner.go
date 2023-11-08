@@ -43,6 +43,11 @@ func NewRun(options options.RunOptions, t *api.Trigger) (*Run, error) {
 	prometheusUrl := os.Getenv("PROMETHEUS_PUSH_GATEWAY")
 	if prometheusUrl != "" {
 		run.pusher = push.New(prometheusUrl, "f1-"+options.Scenario).Gatherer(prometheus.DefaultGatherer)
+
+		prometheusNamespace := os.Getenv("PROMETHEUS_NAMESPACE")
+		if prometheusNamespace != "" {
+			run.pusher = run.pusher.Grouping("namespace", prometheusNamespace)
+		}
 	}
 	if run.Options.RegisterLogHookFunc == nil {
 		run.Options.RegisterLogHookFunc = logging.NoneRegisterLogHookFunc
