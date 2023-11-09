@@ -7,7 +7,7 @@ import (
 
 // TestSimpleFlow is equivalent to a single run from TestParameterised. It's useful for debugging individual test runs
 func TestSimpleFlow(t *testing.T) {
-	//t.Skip("Duplicate of Parameterised test. Useful for manual testing when adding new tests or debugging, so leaving in place")
+	// t.Skip("Duplicate of Parameterised test. Useful for manual testing when adding new tests or debugging, so leaving in place")
 	given, when, then := NewRunTestStage(t)
 
 	test := TestParam{
@@ -583,6 +583,20 @@ func TestSetupMetricsAreRecorded(t *testing.T) {
 	then.
 		metrics_are_pushed_to_prometheus().and().
 		there_is_a_metric_called("form3_loadtest_setup")
+}
+
+func TestNamespaceLabel(t *testing.T) {
+	given, when, then := NewRunTestStage(t)
+
+	given.
+		a_rate_of("10/s").and().
+		a_scenario_where_each_iteration_takes(1 * time.Millisecond)
+
+	when.i_execute_the_run_command()
+
+	then.
+		metrics_are_pushed_to_prometheus().and().
+		all_exported_metrics_contain_label("namespace", fakePrometheusNamespace)
 }
 
 func TestFailureCounts(t *testing.T) {
