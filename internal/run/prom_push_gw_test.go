@@ -55,13 +55,15 @@ func (f *FakePrometheus) ServeHTTP(response http.ResponseWriter, request *http.R
 		metricFamily := &io_prometheus_client.MetricFamily{}
 		expfmt.NewDecoder(request.Body, expfmt.ResponseFormat(request.Header)).Decode(metricFamily)
 		mf, ok := f.metricFamilies.Load(*metricFamily.Name)
-		if !ok {
-			if metricFamily.Metric != nil {
-				groupedLabels := parseGroupedLabels()
-				for _, m := range metricFamily.Metric {
-					m.Label = append(m.Label, groupedLabels...)
-				}
+
+		if metricFamily.Metric != nil {
+			groupedLabels := parseGroupedLabels()
+			for _, m := range metricFamily.Metric {
+				m.Label = append(m.Label, groupedLabels...)
 			}
+		}
+
+		if !ok {
 			f.metricFamilies.Store(*metricFamily.Name, metricFamily)
 		} else {
 			value, ok := mf.(*io_prometheus_client.MetricFamily)
