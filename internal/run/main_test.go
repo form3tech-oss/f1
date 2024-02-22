@@ -13,6 +13,7 @@ import (
 var fakePrometheus FakePrometheus
 
 const fakePrometheusNamespace = "test-namespace"
+const fakePrometheusID = "test-run-name"
 
 func TestMain(m *testing.M) {
 
@@ -26,6 +27,10 @@ func TestMain(m *testing.M) {
 		log.Fatal(err)
 	}
 	err = os.Setenv("PROMETHEUS_NAMESPACE", fakePrometheusNamespace)
+	if err != nil {
+		log.Fatal(err)
+	}
+	err = os.Setenv("PROMETHEUS_ID_LABEL", fakePrometheusID)
 	if err != nil {
 		log.Fatal(err)
 	}
