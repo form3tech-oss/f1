@@ -585,7 +585,7 @@ func TestSetupMetricsAreRecorded(t *testing.T) {
 		there_is_a_metric_called("form3_loadtest_setup")
 }
 
-func TestNamespaceLabel(t *testing.T) {
+func TestGroupedLabels(t *testing.T) {
 	given, when, then := NewRunTestStage(t)
 
 	given.
@@ -596,7 +596,8 @@ func TestNamespaceLabel(t *testing.T) {
 
 	then.
 		metrics_are_pushed_to_prometheus().and().
-		all_exported_metrics_contain_label("namespace", fakePrometheusNamespace)
+		all_exported_metrics_contain_label("namespace", fakePrometheusNamespace).and().
+		all_exported_metrics_contain_label("id", fakePrometheusID)
 }
 
 func TestFailureCounts(t *testing.T) {

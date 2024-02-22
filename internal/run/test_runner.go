@@ -44,9 +44,14 @@ func NewRun(options options.RunOptions, t *api.Trigger) (*Run, error) {
 	if prometheusUrl != "" {
 		run.pusher = push.New(prometheusUrl, "f1-"+options.Scenario).Gatherer(prometheus.DefaultGatherer)
 
-		prometheusNamespace := os.Getenv("PROMETHEUS_NAMESPACE")
-		if prometheusNamespace != "" {
-			run.pusher = run.pusher.Grouping("namespace", prometheusNamespace)
+		namespaceLabel := os.Getenv("PROMETHEUS_NAMESPACE")
+		if namespaceLabel != "" {
+			run.pusher = run.pusher.Grouping("namespace", namespaceLabel)
+		}
+
+		idLabel := os.Getenv("PROMETHEUS_LABEL_ID")
+		if idLabel != "" {
+			run.pusher = run.pusher.Grouping("id", idLabel)
 		}
 	}
 	if run.Options.RegisterLogHookFunc == nil {
