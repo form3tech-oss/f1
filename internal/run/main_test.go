@@ -30,7 +30,7 @@ func TestMain(m *testing.M) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	err = os.Setenv("PROMETHEUS_ID_LABEL", fakePrometheusID)
+	err = os.Setenv("PROMETHEUS_LABEL_ID", fakePrometheusID)
 	if err != nil {
 		log.Fatal(err)
 	}

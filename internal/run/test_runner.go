@@ -49,7 +49,7 @@ func NewRun(options options.RunOptions, t *api.Trigger) (*Run, error) {
 			run.pusher = run.pusher.Grouping("namespace", namespaceLabel)
 		}
 
-		idLabel := os.Getenv("PROMETHEUS_ID_LABEL")
+		idLabel := os.Getenv("PROMETHEUS_LABEL_ID")
 		if idLabel != "" {
 			run.pusher = run.pusher.Grouping("id", idLabel)
 		}
