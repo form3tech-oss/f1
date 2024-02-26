@@ -33,7 +33,7 @@ github.com/giantswarm/retry-go
 ## explicit
 github.com/golang/freetype/raster
 github.com/golang/freetype/truetype
-# github.com/google/uuid v1.4.0
+# github.com/google/uuid v1.6.0
 ## explicit
 github.com/google/uuid
 # github.com/guptarohit/asciigraph v0.5.6
