@@ -1,6 +1,6 @@
 module github.com/form3tech-oss/f1/v2
 
-go 1.20
+go 1.21
 
 require (
 	github.com/aholic/ggtimer v0.0.0-20150905131044-5d7b30837a52
@@ -42,7 +42,7 @@ require (
 	github.com/prometheus/procfs v0.12.0 // indirect
 	github.com/tinylib/msgp v1.1.9 // indirect
 	golang.org/x/image v0.13.0 // indirect
-	golang.org/x/sys v0.16.0 // indirect
+	golang.org/x/sys v0.17.0 // indirect
 	google.golang.org/protobuf v1.32.0 // indirect
 	gopkg.in/workanator/go-ataman.v1 v1.0.0-20201223053604-e3b73d2e8108 // indirect
 )
