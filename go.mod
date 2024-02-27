@@ -22,7 +22,7 @@ require (
 	github.com/stretchr/testify v1.8.4
 	github.com/wcharczuk/go-chart/v2 v2.1.1
 	github.com/workanator/go-ataman v0.0.0-20201223053433-503c6ff9de7d
-	go.uber.org/goleak v1.2.1
+	go.uber.org/goleak v1.3.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
