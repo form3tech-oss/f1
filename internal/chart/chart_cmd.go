@@ -11,7 +11,7 @@ import (
 
 	"github.com/form3tech-oss/f1/v2/internal/trigger/api"
 
-	"github.com/wcharczuk/go-chart"
+	"github.com/wcharczuk/go-chart/v2"
 
 	"github.com/guptarohit/asciigraph"
 

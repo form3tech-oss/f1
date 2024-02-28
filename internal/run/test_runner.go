@@ -43,11 +43,23 @@ func NewRun(options options.RunOptions, t *api.Trigger) (*Run, error) {
 	prometheusUrl := os.Getenv("PROMETHEUS_PUSH_GATEWAY")
 	if prometheusUrl != "" {
 		run.pusher = push.New(prometheusUrl, "f1-"+options.Scenario).Gatherer(prometheus.DefaultGatherer)
+
+		namespaceLabel := os.Getenv("PROMETHEUS_NAMESPACE")
+		if namespaceLabel != "" {
+			run.pusher = run.pusher.Grouping("namespace", namespaceLabel)
+		}
+
+		idLabel := os.Getenv("PROMETHEUS_LABEL_ID")
+		if idLabel != "" {
+			run.pusher = run.pusher.Grouping("id", idLabel)
+		}
 	}
 	if run.Options.RegisterLogHookFunc == nil {
 		run.Options.RegisterLogHookFunc = logging.NoneRegisterLogHookFunc
 	}
 	run.result.IgnoreDropped = options.IgnoreDropped
+	run.result.MaxFailedIterations = options.MaxFailures
+	run.result.MaxFailedIterationsRate = options.MaxFailuresRate
 
 	progressRunner, _ := raterun.New(func(rate time.Duration, t time.Time) {
 		run.gatherProgressMetrics(rate)

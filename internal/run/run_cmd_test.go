@@ -7,7 +7,7 @@ import (
 
 // TestSimpleFlow is equivalent to a single run from TestParameterised. It's useful for debugging individual test runs
 func TestSimpleFlow(t *testing.T) {
-	//t.Skip("Duplicate of Parameterised test. Useful for manual testing when adding new tests or debugging, so leaving in place")
+	// t.Skip("Duplicate of Parameterised test. Useful for manual testing when adding new tests or debugging, so leaving in place")
 	given, when, then := NewRunTestStage(t)
 
 	test := TestParam{
@@ -67,6 +67,8 @@ type TestParam struct {
 	expectedDroppedIterations uint64
 	expectedFailure           bool
 	maxIterations             int32
+	maxFailures               int
+	maxFailuresRate           int
 	stages                    string
 	iterationFrequency        string
 	distributionType          string
@@ -583,6 +585,21 @@ func TestSetupMetricsAreRecorded(t *testing.T) {
 		there_is_a_metric_called("form3_loadtest_setup")
 }
 
+func TestGroupedLabels(t *testing.T) {
+	given, when, then := NewRunTestStage(t)
+
+	given.
+		a_rate_of("10/s").and().
+		a_scenario_where_each_iteration_takes(1 * time.Millisecond)
+
+	when.i_execute_the_run_command()
+
+	then.
+		metrics_are_pushed_to_prometheus().and().
+		all_exported_metrics_contain_label("namespace", fakePrometheusNamespace).and().
+		all_exported_metrics_contain_label("id", fakePrometheusID)
+}
+
 func TestFailureCounts(t *testing.T) {
 	given, when, then := NewRunTestStage(t)
 
@@ -599,4 +616,76 @@ func TestFailureCounts(t *testing.T) {
 		there_is_a_metric_called("form3_loadtest_iteration").and().
 		the_iteration_metric_has_n_results(5, "success").and().
 		the_iteration_metric_has_n_results(5, "fail")
+}
+
+func TestParameterisedMaxFailures(t *testing.T) {
+	for _, test := range []TestParam{
+		{
+			name:            "pass with 5 max failures",
+			maxFailures:     5,
+			expectedFailure: false,
+		},
+		{
+			name:            "pass with superior max failures",
+			maxFailures:     6,
+			expectedFailure: false,
+		},
+		{
+			name:            "fails with inferior max failures",
+			maxFailures:     3,
+			expectedFailure: true,
+		},
+		{
+			name:            "pass with 50% max failures rate",
+			maxFailuresRate: 50,
+			expectedFailure: false,
+		},
+		{
+			name:            "pass with superior max failures rate",
+			maxFailuresRate: 60,
+			expectedFailure: false,
+		},
+		{
+			name:            "fails with inferior max failures rate",
+			maxFailuresRate: 30,
+			expectedFailure: true,
+		},
+		{
+			name:            "pass with inferior max failures and max failures rate",
+			maxFailures:     3,
+			maxFailuresRate: 30,
+			expectedFailure: true,
+		},
+		{
+			name:            "fails with inferior max failures rate and superior max failures",
+			maxFailures:     6,
+			maxFailuresRate: 30,
+			expectedFailure: true,
+		},
+		{
+			name:            "fails with inferior max failures and superior max failures rate",
+			maxFailures:     3,
+			maxFailuresRate: 60,
+			expectedFailure: true,
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			given, when, then := NewRunTestStage(t)
+
+			given.
+				a_rate_of("10/100ms").and().
+				a_max_failures_of(test.maxFailures).and().
+				a_max_failures_rate_of(test.maxFailuresRate).and().
+				a_duration_of(100 * time.Millisecond).and().
+				a_test_scenario_that_fails_intermittently().and().
+				a_distribution_type("none")
+
+			when.i_execute_the_run_command()
+
+			then.
+				the_iteration_metric_has_n_results(5, "success").and().
+				the_iteration_metric_has_n_results(5, "fail").and().
+				the_command_finished_with_failure_of(test.expectedFailure)
+		})
+	}
 }

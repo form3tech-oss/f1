@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strings"
 	"sync"
 	"sync/atomic"
 
@@ -24,11 +25,44 @@ type FakePrometheus struct {
 }
 
 func (f *FakePrometheus) ServeHTTP(response http.ResponseWriter, request *http.Request) {
+	parseGroupedLabels := func() []*io_prometheus_client.LabelPair {
+		// labels added via push.Grouping are passed through URI
+		// example: /metrics/job/f1-f94b1fd3-1a08-4829-896e-792397ccdbfd/namespace/test-namespace/abc/cde
+
+		var labels []*io_prometheus_client.LabelPair
+		parts := strings.Split(request.RequestURI, "/")[4:]
+
+		var labelName string
+		for i, part := range parts {
+			if i%2 == 0 {
+				labelName = part
+				continue
+			}
+
+			name := labelName
+			value := part
+			labels = append(labels, &io_prometheus_client.LabelPair{
+				Name:  &name,
+				Value: &value,
+			})
+		}
+
+		return labels
+	}
+
 	if request != nil && request.Body != nil {
 		defer errorh.SafeClose(request.Body)
 		metricFamily := &io_prometheus_client.MetricFamily{}
 		expfmt.NewDecoder(request.Body, expfmt.ResponseFormat(request.Header)).Decode(metricFamily)
 		mf, ok := f.metricFamilies.Load(*metricFamily.Name)
+
+		if metricFamily.Metric != nil {
+			groupedLabels := parseGroupedLabels()
+			for _, m := range metricFamily.Metric {
+				m.Label = append(m.Label, groupedLabels...)
+			}
+		}
+
 		if !ok {
 			f.metricFamilies.Store(*metricFamily.Name, metricFamily)
 		} else {
