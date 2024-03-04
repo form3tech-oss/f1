@@ -7,9 +7,10 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/form3tech-oss/f1/v2/internal/trigger/api"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
+
+	"github.com/form3tech-oss/f1/v2/internal/trigger/api"
 )
 
 type runnableStages struct {
@@ -73,7 +74,7 @@ func FileRate() api.Builder {
 func readFile(filename string) (*[]byte, error) {
 	file, err := os.Open(filepath.Clean(filename))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("opening file: %w", err)
 	}
 	defer func() {
 		if err = file.Close(); err != nil {
@@ -83,7 +84,7 @@ func readFile(filename string) (*[]byte, error) {
 
 	fileContent, err := io.ReadAll(file)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("reading file: %w", err)
 	}
 
 	return &fileContent, nil

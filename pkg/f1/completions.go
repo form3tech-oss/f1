@@ -3,10 +3,10 @@ package f1
 import (
 	"os"
 
+	"github.com/spf13/cobra"
+
 	"github.com/form3tech-oss/f1/v2/internal/support/errorh"
 	"github.com/form3tech-oss/f1/v2/pkg/f1/scenarios"
-
-	"github.com/spf13/cobra"
 )
 
 func completionsCmd(s *scenarios.Scenarios, p *profiling) *cobra.Command {
@@ -38,6 +38,7 @@ To configure your bash shell to load completions for each session add to your ba
 		},
 	}
 }
+
 func zshCmd(s *scenarios.Scenarios, p *profiling) *cobra.Command {
 	return &cobra.Command{
 		Use:   "zsh",

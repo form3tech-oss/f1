@@ -4,16 +4,13 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/form3tech-oss/f1/v2/internal/options"
-	"github.com/form3tech-oss/f1/v2/pkg/f1/scenarios"
-
 	"github.com/pkg/errors"
+	"github.com/spf13/cobra"
 
 	"github.com/form3tech-oss/f1/v2/internal/logging"
-
+	"github.com/form3tech-oss/f1/v2/internal/options"
 	"github.com/form3tech-oss/f1/v2/internal/trigger/api"
-
-	"github.com/spf13/cobra"
+	"github.com/form3tech-oss/f1/v2/pkg/f1/scenarios"
 )
 
 func Cmd(s *scenarios.Scenarios, builders []api.Builder, hookFunc logging.RegisterLogHookFunc) *cobra.Command {
@@ -50,7 +47,7 @@ func Cmd(s *scenarios.Scenarios, builders []api.Builder, hookFunc logging.Regist
 			triggerCmd.Flags().DurationP("max-duration", "d", time.Second, "--max-duration 1s (stop after 1 second)")
 			triggerCmd.Flags().IntP("concurrency", "c", 100, "--concurrency 2 (allow at most 2 groups of iterations to run concurrently)")
 			triggerCmd.Flags().Int32P("max-iterations", "i", 0, "--max-iterations 100 (stop after 100 iterations, regardless of remaining duration)")
-			triggerCmd.Flags().Int("max-failures", 0, "--max-failures 10 (load test will fail if more than 10 errors occured, default is 0)")
+			triggerCmd.Flags().Int("max-failures", 0, "--max-failures 10 (load test will fail if more than 10 errors occurred, default is 0)")
 			triggerCmd.Flags().Int("max-failures-rate", 0, "--max-failures-rate 5 (load test will fail if more than 5\\% requests failed, default is 0)")
 
 			triggerCmd.Flags().AddFlagSet(t.Flags)

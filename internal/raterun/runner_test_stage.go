@@ -5,9 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"go.uber.org/goleak"
-
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/goleak"
 )
 
 type RatedRunnerStage struct {
@@ -19,6 +18,8 @@ type RatedRunnerStage struct {
 }
 
 func NewRatedRunnerStage(t *testing.T) (*RatedRunnerStage, *RatedRunnerStage, *RatedRunnerStage) {
+	t.Helper()
+
 	stage := RatedRunnerStage{
 		t:        t,
 		funcRuns: make(map[time.Duration]int),
@@ -69,7 +70,7 @@ func (s *RatedRunnerStage) function_ran_times(expectedRuns int) *RatedRunnerStag
 		totalRuns += timesRunForRate
 	}
 
-	assert.Equal(s.t, totalRuns, expectedRuns)
+	assert.Equal(s.t, expectedRuns, totalRuns)
 	return s
 }
 

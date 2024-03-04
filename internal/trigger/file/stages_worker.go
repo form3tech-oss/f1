@@ -5,11 +5,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/form3tech-oss/f1/v2/internal/trigger/users"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/form3tech-oss/f1/v2/internal/options"
 	"github.com/form3tech-oss/f1/v2/internal/trigger/api"
-	log "github.com/sirupsen/logrus"
+	"github.com/form3tech-oss/f1/v2/internal/trigger/users"
 )
 
 func newStagesWorker(stages []runnableStage) api.WorkTriggerer {

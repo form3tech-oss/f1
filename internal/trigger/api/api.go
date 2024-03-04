@@ -3,13 +3,15 @@ package api
 import (
 	"time"
 
-	"github.com/form3tech-oss/f1/v2/internal/options"
-
 	"github.com/spf13/pflag"
+
+	"github.com/form3tech-oss/f1/v2/internal/options"
 )
 
-type WorkTriggerer func(doWork chan<- bool, stop <-chan bool, workDone <-chan bool, options options.RunOptions)
-type RateFunction func(time.Time) int
+type (
+	WorkTriggerer func(doWork chan<- bool, stop <-chan bool, workDone <-chan bool, options options.RunOptions)
+	RateFunction  func(time.Time) int
+)
 
 type Parameter struct {
 	Name        string

@@ -30,9 +30,12 @@ func New() *F1 {
 
 // Registers a new test scenario with the given name. This is the name used when running
 // load test scenarios. For example, calling the function with the following arguments:
-//     f.Add("myTest", myScenario)
+//
+//	f.Add("myTest", myScenario)
+//
 // will result in the test "myTest" being runnable from the command line:
-//     f1 run constant -r 1/s -d 10s myTest
+//
+//	f1 run constant -r 1/s -d 10s myTest
 func (f *F1) Add(name string, scenarioFn testing.ScenarioFn, options ...scenarios.ScenarioOption) *F1 {
 	info := &scenarios.Scenario{
 		Name:       name,
@@ -47,7 +50,7 @@ func (f *F1) Add(name string, scenarioFn testing.ScenarioFn, options ...scenario
 	return f
 }
 
-// Syncronously runs the F1 CLI. This function is the blocking entrypoint to the CLI,
+// Synchronously runs the F1 CLI. This function is the blocking entrypoint to the CLI,
 // so you should register your test scenarios with the Add function prior to calling this
 // function.
 func (f *F1) Execute() {

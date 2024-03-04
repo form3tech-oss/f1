@@ -7,8 +7,9 @@ import (
 	"regexp"
 	go_testing "testing"
 
-	"github.com/form3tech-oss/f1/v2/pkg/f1/testing"
 	"github.com/stretchr/testify/require"
+
+	"github.com/form3tech-oss/f1/v2/pkg/f1/testing"
 )
 
 func TestNewTIsNotFailed(t *go_testing.T) {

@@ -3,9 +3,10 @@ package users
 import (
 	"time"
 
+	"github.com/spf13/pflag"
+
 	"github.com/form3tech-oss/f1/v2/internal/options"
 	"github.com/form3tech-oss/f1/v2/internal/trigger/api"
-	"github.com/spf13/pflag"
 )
 
 func UsersRate() api.Builder {

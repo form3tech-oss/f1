@@ -14,13 +14,11 @@ type stage struct {
 }
 
 func parseStages(value string) ([]stage, error) {
-
 	var stages []stage
 
 	stageElements := strings.Split(value, ",")
 
 	for i, stageElements := range stageElements {
-
 		stageElement := strings.Split(strings.TrimSpace(stageElements), ":")
 		if len(stageElement) != 2 {
 			return nil, fmt.Errorf("unable to parse stage %d: `%s` from `%s`", i, stageElements, value)

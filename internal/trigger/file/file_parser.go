@@ -4,11 +4,12 @@ import (
 	"fmt"
 	"time"
 
+	"gopkg.in/yaml.v3"
+
 	"github.com/form3tech-oss/f1/v2/internal/trigger/constant"
 	"github.com/form3tech-oss/f1/v2/internal/trigger/gaussian"
 	"github.com/form3tech-oss/f1/v2/internal/trigger/ramp"
 	"github.com/form3tech-oss/f1/v2/internal/trigger/staged"
-	"gopkg.in/yaml.v3"
 )
 
 type ConfigFile struct {
@@ -55,7 +56,7 @@ func parseConfigFile(fileContent []byte, now time.Time) (*runnableStages, error)
 	configFile := ConfigFile{}
 	err := yaml.Unmarshal(fileContent, &configFile)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("parsing config file as yaml: %w", err)
 	}
 	validatedConfigFile, err := configFile.validateCommonFields()
 	if err != nil {
@@ -98,11 +99,11 @@ func (s *Stage) parseStage(stageIdx int, defaults Stage) (*runnableStage, error)
 	case "constant":
 		validatedConstantStage, err := s.validateConstantStage(stageIdx, defaults)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("validating constant stage: %w", err)
 		}
 		rates, err := constant.CalculateConstantRate(*validatedConstantStage.Jitter, *validatedConstantStage.Rate, *validatedConstantStage.Distribution)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("calculating constant rate: %w", err)
 		}
 
 		return &runnableStage{
@@ -114,11 +115,11 @@ func (s *Stage) parseStage(stageIdx int, defaults Stage) (*runnableStage, error)
 	case "ramp":
 		validatedRampStage, err := s.validateRampStage(stageIdx, defaults)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("validating ramp stage: %w", err)
 		}
 		rates, err := ramp.CalculateRampRate(*validatedRampStage.StartRate, *validatedRampStage.EndRate, *validatedRampStage.Distribution, *validatedRampStage.Duration, *validatedRampStage.Jitter)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("calculating ramp rate: %w", err)
 		}
 
 		return &runnableStage{
@@ -130,11 +131,11 @@ func (s *Stage) parseStage(stageIdx int, defaults Stage) (*runnableStage, error)
 	case "staged":
 		validatedStagedStage, err := s.validateStagedStage(stageIdx, defaults)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("validating staged stage: %w", err)
 		}
 		rates, err := staged.CalculateStagedRate(*validatedStagedStage.Jitter, *validatedStagedStage.IterationFrequency, *validatedStagedStage.Stages, *validatedStagedStage.Distribution)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("calculating staged rate: %w", err)
 		}
 
 		return &runnableStage{
@@ -146,7 +147,7 @@ func (s *Stage) parseStage(stageIdx int, defaults Stage) (*runnableStage, error)
 	case "gaussian":
 		validatedGaussianStage, err := s.validateGaussianStage(stageIdx, defaults)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("validating gaussian stage: %w", err)
 		}
 		rates, err := gaussian.CalculateGaussianRate(
 			*validatedGaussianStage.Volume, *validatedGaussianStage.Jitter, *validatedGaussianStage.Repeat,
@@ -154,7 +155,7 @@ func (s *Stage) parseStage(stageIdx int, defaults Stage) (*runnableStage, error)
 			*validatedGaussianStage.Weights, *validatedGaussianStage.Distribution,
 		)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("calculating gaussian rate: %w", err)
 		}
 
 		return &runnableStage{
@@ -199,11 +200,11 @@ func (c *ConfigFile) validateCommonFields() (*ConfigFile, error) {
 	}
 
 	if c.Limits.MaxFailures == nil {
-		var maxFailures = 0
+		maxFailures := 0
 		c.Limits.MaxFailures = &maxFailures
 	}
 	if c.Limits.MaxFailuresRate == nil {
-		var maxFailuresRate = 0
+		maxFailuresRate := 0
 		c.Limits.MaxFailuresRate = &maxFailuresRate
 	}
 	if c.Default.Concurrency == nil {

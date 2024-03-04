@@ -42,7 +42,6 @@ func TestSimpleFlow(t *testing.T) {
 		the_command_should_have_run_for_approx(test.expectedRunTime).and().
 		the_number_of_started_iterations_should_be(test.expectedCompletedTests).and().
 		the_number_of_dropped_iterations_should_be(test.expectedDroppedIterations)
-
 }
 
 type TriggerType int
@@ -555,7 +554,6 @@ func TestInterruptedRun(t *testing.T) {
 }
 
 func TestFinalRunMetrics(t *testing.T) {
-
 	given, when, then := NewRunTestStage(t)
 	given.
 		a_rate_of("100/100ms").and().
@@ -568,7 +566,6 @@ func TestFinalRunMetrics(t *testing.T) {
 		metrics_are_pushed_to_prometheus().and().
 		the_100th_percentile_is_slow().and().
 		all_other_percentiles_are_fast()
-
 }
 
 func TestSetupMetricsAreRecorded(t *testing.T) {

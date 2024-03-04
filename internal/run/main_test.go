@@ -12,11 +12,12 @@ import (
 
 var fakePrometheus FakePrometheus
 
-const fakePrometheusNamespace = "test-namespace"
-const fakePrometheusID = "test-run-name"
+const (
+	fakePrometheusNamespace = "test-namespace"
+	fakePrometheusID        = "test-run-name"
+)
 
 func TestMain(m *testing.M) {
-
 	var err error
 	fakePrometheus.Port, err = freeport.GetFreePort()
 	if err != nil {
