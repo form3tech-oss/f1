@@ -68,7 +68,7 @@ func (f *F1) ExecuteWithArgs(args []string) error {
 	rootCmd.SetArgs(args)
 	err := rootCmd.Execute()
 	writeProfiles(f.profiling)
-	return err
+	return fmt.Errorf("command execute: %w", err)
 }
 
 // Returns the list of registered scenarios.

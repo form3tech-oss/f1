@@ -39,8 +39,6 @@ linters:
   # Requires too many changes
   - testpackage
 
-  - wrapcheck
-
   # TODO
   - usestdlibvars
   - paralleltest
