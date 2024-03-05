@@ -60,8 +60,6 @@ linters:
   - dupl
   - errcheck
   - gosec
-  - ineffassign
-  - wastedassign
 
 linters-settings:
   tagliatelle:
