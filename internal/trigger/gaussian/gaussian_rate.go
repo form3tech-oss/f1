@@ -36,39 +36,39 @@ func GaussianRate() api.Builder {
 		New: func(flags *pflag.FlagSet) (*api.Trigger, error) {
 			volume, err := flags.GetFloat64("volume")
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("getting flag: %w", err)
 			}
 			repeat, err := flags.GetDuration("repeat")
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("getting flag: %w", err)
 			}
 			frequency, err := flags.GetDuration("iteration-frequency")
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("getting flag: %w", err)
 			}
 			weights, err := flags.GetString("weights")
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("getting flag: %w", err)
 			}
 			peak, err := flags.GetDuration("peak")
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("getting flag: %w", err)
 			}
 			stddev, err := flags.GetDuration("standard-deviation")
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("getting flag: %w", err)
 			}
 			jitter, err := flags.GetFloat64("jitter")
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("getting flag: %w", err)
 			}
 			distributionTypeArg, err := flags.GetString("distribution")
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("getting flag: %w", err)
 			}
 			peakRate, err := flags.GetString("peak-rate")
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("getting flag: %w", err)
 			}
 			jitterDesc := ""
 			if jitter != 0 {
@@ -136,7 +136,7 @@ func CalculateGaussianRate(volume, jitter float64, repeat, frequency, peak, stdd
 	rateFn := api.WithJitter(calculator.For, jitter)
 	distributedIterationDuration, distributedRateFn, err := api.NewDistribution(distributionTypeArg, frequency, rateFn)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("new distribution: %w", err)
 	}
 
 	return &api.Rates{

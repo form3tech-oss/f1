@@ -16,7 +16,6 @@ func TestChartConstant(t *testing.T) {
 
 	then.
 		the_command_is_successful()
-
 }
 
 func TestChartConstantNoJitter(t *testing.T) {
@@ -30,7 +29,6 @@ func TestChartConstantNoJitter(t *testing.T) {
 
 	then.
 		the_command_is_successful()
-
 }
 
 func TestChartStaged(t *testing.T) {
@@ -44,7 +42,6 @@ func TestChartStaged(t *testing.T) {
 
 	then.
 		the_command_is_successful()
-
 }
 
 func TestChartGaussian(t *testing.T) {
@@ -59,7 +56,6 @@ func TestChartGaussian(t *testing.T) {
 
 	then.
 		the_command_is_successful()
-
 }
 
 func TestChartGaussianWithJitter(t *testing.T) {
@@ -75,7 +71,6 @@ func TestChartGaussianWithJitter(t *testing.T) {
 
 	then.
 		the_command_is_successful()
-
 }
 
 func TestChartRamp(t *testing.T) {
@@ -89,7 +84,6 @@ func TestChartRamp(t *testing.T) {
 
 	then.
 		the_command_is_successful()
-
 }
 
 func TestChartFileConfig(t *testing.T) {
@@ -103,5 +97,4 @@ func TestChartFileConfig(t *testing.T) {
 
 	then.
 		the_command_is_successful()
-
 }

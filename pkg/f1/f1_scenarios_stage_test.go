@@ -4,10 +4,11 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"github.com/form3tech-oss/f1/v2/pkg/f1"
-	f1_testing "github.com/form3tech-oss/f1/v2/pkg/f1/testing"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/form3tech-oss/f1/v2/pkg/f1"
+	f1_testing "github.com/form3tech-oss/f1/v2/pkg/f1/testing"
 )
 
 type f1ScenariosStage struct {

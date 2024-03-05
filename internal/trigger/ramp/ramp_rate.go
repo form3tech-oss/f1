@@ -25,34 +25,34 @@ func RampRate() api.Builder {
 		New: func(flags *pflag.FlagSet) (*api.Trigger, error) {
 			startRateArg, err := flags.GetString("start-rate")
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("getting flag: %w", err)
 			}
 			endRateArg, err := flags.GetString("end-rate")
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("getting flag: %w", err)
 			}
 			duration, err := flags.GetDuration("ramp-duration")
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("getting flag: %w", err)
 			}
 			if duration == 0 {
 				duration, err = flags.GetDuration("max-duration")
 				if err != nil {
-					return nil, err
+					return nil, fmt.Errorf("getting flag: %w", err)
 				}
 			}
 			jitterArg, err := flags.GetFloat64("jitter")
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("getting flag: %w", err)
 			}
 			distributionTypeArg, err := flags.GetString("distribution")
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("getting flag: %w", err)
 			}
 
 			rates, err := CalculateRampRate(startRateArg, endRateArg, distributionTypeArg, duration, jitterArg)
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("calculating ramp rate: %w", err)
 			}
 
 			return &api.Trigger{
@@ -69,11 +69,11 @@ func CalculateRampRate(startRateArg, endRateArg, distributionTypeArg string, dur
 
 	startRate, startUnit, err := rate.ParseRate(startRateArg)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("parsing start rate: %w", err)
 	}
 	endRate, endUnit, err := rate.ParseRate(endRateArg)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("parsing end rate: %w", err)
 	}
 
 	if startRate == endRate {
@@ -105,7 +105,7 @@ func CalculateRampRate(startRateArg, endRateArg, distributionTypeArg string, dur
 	jitterRateFn := api.WithJitter(rateFn, jitterArg)
 	distributedIterationDuration, distributedRateFn, err := api.NewDistribution(distributionTypeArg, startUnit, jitterRateFn)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("new distribution: %w", err)
 	}
 
 	return &api.Rates{

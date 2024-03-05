@@ -153,7 +153,7 @@ func TestRegularRateDistributionWithSmallIterationDuration(t *testing.T) {
 func TestRegularRateDistributionWithVariableRate(t *testing.T) {
 	iterationDuration := 1 * time.Second
 	rates := []int{5, 15, 12, 8}
-	var idx = -1
+	idx := -1
 	rateFn := func(time time.Time) int { idx++; return rates[idx] }
 	expectedDistributedRates := []int{
 		0, 1, 0, 1, 0, 1, 0, 1, 0, 1,
@@ -224,7 +224,7 @@ func TestRandomRateDistribution(t *testing.T) {
 	} {
 		t.Run(fmt.Sprintf("%d: iteration duration %s, rate %d", i, test.iterationDuration, test.rate), func(t *testing.T) {
 			rateFn := func(time time.Time) int { return test.rate }
-			var idx = -1
+			idx := -1
 			randFn := func(limit int) int { idx++; return test.randomValues[idx] }
 
 			distributedIterationDuration, distributedRate := withRandomDistribution(test.iterationDuration, rateFn, randFn)
@@ -242,7 +242,7 @@ func TestRandomRateDistribution(t *testing.T) {
 func TestRandomRateDistributionWithVariableRate(t *testing.T) {
 	iterationDuration := 1 * time.Second
 	rates := []int{5, 15, 12, 8}
-	var idx = -1
+	idx := -1
 	rateFn := func(time time.Time) int { idx++; return rates[idx] }
 	randValues := []int{
 		0, 1, 0, 1, 0, 1, 0, 1, 0,
@@ -250,7 +250,7 @@ func TestRandomRateDistributionWithVariableRate(t *testing.T) {
 		1, 1, 1, 1, 2, 1, 1, 1, 1,
 		0, 1, 1, 1, 1, 0, 1, 1, 1,
 	}
-	var randIdx = -1
+	randIdx := -1
 	randFn := func(limit int) int { randIdx++; return randValues[randIdx] }
 	expectedDistributedRates := []int{
 		0, 1, 0, 1, 0, 1, 0, 1, 0, 1,

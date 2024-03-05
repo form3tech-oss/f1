@@ -12,27 +12,25 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/form3tech-oss/f1/v2/internal/logging"
-	"github.com/form3tech-oss/f1/v2/internal/options"
-	"github.com/form3tech-oss/f1/v2/pkg/f1/scenarios"
-	"github.com/pkg/errors"
-	log "github.com/sirupsen/logrus"
-
-	"github.com/form3tech-oss/f1/v2/internal/trace"
-
-	"github.com/form3tech-oss/f1/v2/internal/raterun"
-
-	"github.com/form3tech-oss/f1/v2/internal/trigger/api"
-
 	"github.com/aholic/ggtimer"
+	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/push"
+	log "github.com/sirupsen/logrus"
 
+	"github.com/form3tech-oss/f1/v2/internal/logging"
 	"github.com/form3tech-oss/f1/v2/internal/metrics"
+	"github.com/form3tech-oss/f1/v2/internal/options"
+	"github.com/form3tech-oss/f1/v2/internal/raterun"
+	"github.com/form3tech-oss/f1/v2/internal/trace"
+	"github.com/form3tech-oss/f1/v2/internal/trigger/api"
+	"github.com/form3tech-oss/f1/v2/pkg/f1/scenarios"
 )
 
-const NextIterationWindow = 10 * time.Millisecond
-const IterationStage = "iteration"
+const (
+	NextIterationWindow = 10 * time.Millisecond
+	IterationStage      = "iteration"
+)
 
 func NewRun(options options.RunOptions, t *api.Trigger) (*Run, error) {
 	run := Run{
@@ -281,6 +279,7 @@ func (r *Run) gatherMetrics() {
 		}
 	}
 }
+
 func (r *Run) gatherProgressMetrics(duration time.Duration) {
 	m, err := metrics.Instance().ProgressRegistry.Gather()
 	if err != nil {
@@ -335,7 +334,6 @@ func (r *Run) runWorker(input <-chan int32, stop <-chan struct{}, wg *sync.WaitG
 			}
 
 			trace.Event("Completed iteration (%v).", iteration)
-
 		}
 	}
 }

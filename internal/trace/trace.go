@@ -8,11 +8,13 @@ import (
 	"time"
 )
 
-var reset = "\033[0m"
-var gray = "\033[37m"
-var yellow = "\033[33m"
-var blue = "\033[34m"
-var red = "\033[31m"
+var (
+	reset  = "\033[0m"
+	gray   = "\033[37m"
+	yellow = "\033[33m"
+	blue   = "\033[34m"
+	red    = "\033[31m"
+)
 
 func colorString(s string, c string) string {
 	return c + s + reset

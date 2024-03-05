@@ -7,9 +7,7 @@ However, it can also be used to write more complex scenarios which might trigger
 action and then await asynchronous feedback (e.g. making an HTTP request, and then waiting for
 a message to arrive via a message broker).
 
-
-Writing load tests
-
+# Writing load tests
 
 Test scenarios consist of two stages:
 
@@ -67,9 +65,7 @@ Writing tests is simply a case of implementing the types and registering them wi
 		return runFn
 	}
 
-
-Running load tests
-
+# Running load tests
 
 Once you have written a load test and compiled a binary test runner, you can use the various "trigger modes" (See here for more details: https://github.com/form3tech-oss/f1/tree/master/internal/trigger) that F1 supports. These are available as subcommands to the "f1 run" command, so trying "f1 run --help" will provide more information. The trigger modes currently implemented are as follows:
 
@@ -94,6 +90,5 @@ You can of course also compile an "F1" binary, as follows:
 	go build -o f1 main.go
 	./f1 --help
 	./f1 run constant -r 1/s -d 10s mySuperFastLoadTest
-
 */
 package f1

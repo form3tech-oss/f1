@@ -23,20 +23,20 @@ func ConstantRate() api.Builder {
 		New: func(params *pflag.FlagSet) (*api.Trigger, error) {
 			rateArg, err := params.GetString("rate")
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("getting flag: %w", err)
 			}
 			jitterArg, err := params.GetFloat64("jitter")
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("getting flag: %w", err)
 			}
 			distributionTypeArg, err := params.GetString("distribution")
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("getting flag: %w", err)
 			}
 
 			rates, err := CalculateConstantRate(jitterArg, rateArg, distributionTypeArg)
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("calculating constant rate: %w", err)
 			}
 
 			return &api.Trigger{
@@ -58,7 +58,7 @@ func CalculateConstantRate(jitterArg float64, rateArg, distributionTypeArg strin
 	rateFn := api.WithJitter(func(time.Time) int { return rate }, jitterArg)
 	distributedIterationDuration, distributedRateFn, err := api.NewDistribution(distributionTypeArg, iterationDuration, rateFn)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("new distribution: %w", err)
 	}
 
 	return &api.Rates{

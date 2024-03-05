@@ -9,12 +9,10 @@ import (
 	"sync/atomic"
 
 	io_prometheus_client "github.com/prometheus/client_model/go"
-
 	"github.com/prometheus/common/expfmt"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/form3tech-oss/f1/v2/internal/support/errorh"
-
-	log "github.com/sirupsen/logrus"
 )
 
 type FakePrometheus struct {

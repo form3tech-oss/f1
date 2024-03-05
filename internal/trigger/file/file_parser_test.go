@@ -385,7 +385,7 @@ stages:
 			stagesToRun, err := parseConfigFile([]byte(test.fileContent), now)
 
 			require.NoError(t, err)
-			require.Equal(t, 1, len(stagesToRun.stages))
+			require.Len(t, stagesToRun.stages, 1)
 			require.Equal(t, test.expectedScenario, stagesToRun.scenario)
 			require.Equal(t, test.expectedMaxDuration, stagesToRun.maxDuration)
 			require.Equal(t, test.expectedConcurrency, stagesToRun.concurrency)
@@ -648,7 +648,7 @@ invalid file content
 			runnableStages, err := parseConfigFile([]byte(test.fileContent), now)
 
 			require.Nil(t, runnableStages)
-			require.EqualError(t, err, test.expectedError)
+			require.ErrorContains(t, err, test.expectedError)
 		})
 	}
 }

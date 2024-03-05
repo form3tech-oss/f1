@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/form3tech-oss/f1/v2/internal/trigger"
-
 	"github.com/stretchr/testify/assert"
+
+	"github.com/form3tech-oss/f1/v2/internal/trigger"
 )
 
 type ChartTestStage struct {
@@ -28,6 +28,7 @@ func NewChartTestStage(t *testing.T) (*ChartTestStage, *ChartTestStage, *ChartTe
 func (s *ChartTestStage) and() *ChartTestStage {
 	return s
 }
+
 func (s *ChartTestStage) i_execute_the_chart_command() *ChartTestStage {
 	cmd := Cmd(trigger.GetBuilders())
 	cmd.SetArgs(s.args)

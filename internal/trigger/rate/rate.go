@@ -12,8 +12,9 @@ import (
 func ParseRate(rateArg string) (int, time.Duration, error) {
 	var rate int
 	var unit time.Duration
-	var err error
+
 	if strings.Contains(rateArg, "/") {
+		var err error
 		rate, err = strconv.Atoi((rateArg)[0:strings.Index(rateArg, "/")])
 		if err != nil {
 			return rate, unit, fmt.Errorf("unable to parse rate %s: %w", rateArg, err)
@@ -30,6 +31,7 @@ func ParseRate(rateArg string) (int, time.Duration, error) {
 			return rate, unit, fmt.Errorf("unable to parse unit %s: %w", rateArg, err)
 		}
 	} else {
+		var err error
 		rate, err = strconv.Atoi(rateArg)
 		if err != nil {
 			return rate, unit, fmt.Errorf("unable to parse rate %s: %w", rateArg, err)
@@ -39,5 +41,6 @@ func ParseRate(rateArg string) (int, time.Duration, error) {
 		}
 		unit = 1 * time.Second
 	}
-	return rate, unit, err
+
+	return rate, unit, nil
 }

@@ -5,17 +5,12 @@ import (
 	"os"
 	"time"
 
-	"github.com/pkg/errors"
-
-	"github.com/form3tech-oss/f1/v2/internal/support/errorh"
-
-	"github.com/form3tech-oss/f1/v2/internal/trigger/api"
-
+	"github.com/guptarohit/asciigraph"
+	"github.com/spf13/cobra"
 	"github.com/wcharczuk/go-chart/v2"
 
-	"github.com/guptarohit/asciigraph"
-
-	"github.com/spf13/cobra"
+	"github.com/form3tech-oss/f1/v2/internal/support/errorh"
+	"github.com/form3tech-oss/f1/v2/internal/trigger/api"
 )
 
 func Cmd(builders []api.Builder) *cobra.Command {
@@ -46,24 +41,24 @@ func chartCmdExecute(t api.Builder) func(cmd *cobra.Command, args []string) erro
 
 		startString, err := cmd.Flags().GetString("chart-start")
 		if err != nil {
-			return errors.Wrap(err, "Invalid chart-start value")
+			return fmt.Errorf("getting flag: %w", err)
 		}
 		start, err := time.Parse(time.RFC3339, startString)
 		if err != nil {
-			return err
+			return fmt.Errorf("parsing start time: %w", err)
 		}
 		duration, err := cmd.Flags().GetDuration("chart-duration")
 		if err != nil {
-			return err
+			return fmt.Errorf("getting flag: %w", err)
 		}
 		filename, err := cmd.Flags().GetString("filename")
 		if err != nil {
-			return err
+			return fmt.Errorf("getting flag: %w", err)
 		}
 
 		trig, err := t.New(cmd.Flags())
 		if err != nil {
-			return err
+			return fmt.Errorf("creating builder: %w", err)
 		}
 
 		if trig.DryRun == nil {
@@ -119,13 +114,13 @@ func chartCmdExecute(t api.Builder) func(cmd *cobra.Command, args []string) erro
 
 		f, err := os.Create(filename)
 		if err != nil {
-			return err
+			return fmt.Errorf("creting file: %w", err)
 		}
 		defer errorh.SafeClose(f)
 
 		err = graph.Render(chart.PNG, f)
 		if err != nil {
-			return err
+			return fmt.Errorf("rendering graph: %w", err)
 		}
 		fmt.Printf("Detailed chart written to %s\n", filename)
 		return nil

@@ -6,10 +6,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/form3tech-oss/f1/v2/internal/trigger/api"
 	"github.com/guptarohit/asciigraph"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/form3tech-oss/f1/v2/internal/trigger/api"
 )
 
 func TestTotalVolumes(t *testing.T) {
@@ -177,7 +178,7 @@ func TestTotalVolumes(t *testing.T) {
 			diff := math.Abs(total - test.volume)
 			fmt.Printf("Configured for volume %f, triggered %f. Difference of %f (%f%%)\n", test.volume, total, diff, 100*diff/test.volume)
 			acceptableErrorPercent := 0.1
-			assert.True(t, diff < test.volume*acceptableErrorPercent/100, "volumes differ by > %f%%", acceptableErrorPercent*100)
+			assert.Less(t, diff, test.volume*acceptableErrorPercent/100, "volumes differ by > %f%%", acceptableErrorPercent*100)
 		})
 	}
 }

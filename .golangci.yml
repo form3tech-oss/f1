@@ -1,0 +1,108 @@
+# Using golangci-lint@v1.56.2
+run:
+  timeout: 5m
+  tests: true
+  skip-dirs:
+    - vendor$
+output:
+  print-linter-name: true
+linters:
+  enable-all: true
+  fast: false
+  disable:
+  # Deprecated (see https://golangci-lint.run/usage/linters/)
+  - deadcode
+  - golint
+  - ifshort
+  - interfacer
+  - maligned
+  - nosnakecase
+  - scopelint
+  - structcheck
+  - varcheck
+  - exhaustivestruct
+
+  # Annoying style guides that are very subjective
+  - funlen
+  - nlreturn
+  - wsl
+  - cyclop
+  - varnamelen
+  - maintidx
+  - gocognit
+  - godot
+  - gocyclo
+  - nestif
+  - nilnil
+  - exhaustruct
+
+  # Requires too many changes
+  - testpackage
+
+  - thelper
+  - wrapcheck
+  - testifylint
+
+  # TODO
+  - usestdlibvars
+  - paralleltest
+  - perfsprint
+  - staticcheck
+  - gomnd
+  - nonamedreturns
+  - goerr113
+  - gochecknoglobals
+  - dupword
+  - depguard
+  - unparam
+  - revive
+  - stylecheck
+  - unused
+  - protogetter
+  - lll
+  - prealloc
+  - forcetypeassert
+  - gocritic
+  - forbidigo
+  - dupl
+  - errcheck
+  - gosec
+  - ineffassign
+  - wastedassign
+
+linters-settings:
+  tagliatelle:
+    case:
+      rules:
+        json: snake
+        yaml: kebab
+  depguard:
+    rules:
+      main:
+        deny:
+          - pkg: "github.com/pkg/errors"
+            desc: "Please use go built-in error wrapping and handling via `fmt` and `errors` packages"
+  gci:
+    sections:
+      - standard
+      - default
+      - prefix(github.com/form3tech-oss/f1)
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
+  exclude-rules:
+    # exclude long lines with URLs
+    - path: \.go
+      source: https://
+      linters:
+        - lll
+    # Don't wrap check RoundTrip
+    - path: \.go
+      source: RoundTrip
+      linters:
+        - wrapcheck
+    - path: _test\.go
+      linters:
+        # unwrapped errors are ok in tests
+        - wrapcheck
+

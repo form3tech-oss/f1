@@ -5,10 +5,10 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestParseStages_With_Valid_String(t *testing.T) {
-
 	value := "0s:1,10s:1,20s:20,1m:50,1h:200"
 	expected := []stage{
 		{
@@ -39,27 +39,27 @@ func TestParseStages_With_Valid_String(t *testing.T) {
 	}
 	actual, err := parseStages(value)
 
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.ElementsMatch(t, actual, expected)
 }
 
 func TestParseStages_Error_Too_Many_Elements(t *testing.T) {
 	value := "0s:1:2"
 	stages, err := parseStages(value)
-	assert.NotNil(t, err)
+	require.Error(t, err)
 	assert.Nil(t, stages)
 }
 
 func TestParseStages_Error_Bad_Duration(t *testing.T) {
 	value := "0BB:1"
 	stages, err := parseStages(value)
-	assert.NotNil(t, err)
+	require.Error(t, err)
 	assert.Nil(t, stages)
 }
 
 func TestParseStages_Error_Bad_Target(t *testing.T) {
 	value := "1s:BB"
 	stages, err := parseStages(value)
-	assert.NotNil(t, err)
+	require.Error(t, err)
 	assert.Nil(t, stages)
 }
