@@ -39,9 +39,9 @@ func NewRun(options options.RunOptions, t *api.Trigger) (*Run, error) {
 		RateDescription: t.Description,
 		trigger:         t,
 	}
-	prometheusUrl := os.Getenv("PROMETHEUS_PUSH_GATEWAY")
-	if prometheusUrl != "" {
-		run.pusher = push.New(prometheusUrl, "f1-"+options.Scenario).Gatherer(prometheus.DefaultGatherer)
+	prometheusURL := os.Getenv("PROMETHEUS_PUSH_GATEWAY")
+	if prometheusURL != "" {
+		run.pusher = push.New(prometheusURL, "f1-"+options.Scenario).Gatherer(prometheus.DefaultGatherer)
 
 		namespaceLabel := os.Getenv("PROMETHEUS_NAMESPACE")
 		if namespaceLabel != "" {

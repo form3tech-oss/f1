@@ -48,7 +48,6 @@ linters:
   - depguard
   - unparam
   - revive
-  - stylecheck
   - lll
   - prealloc
   - forcetypeassert
@@ -79,18 +78,19 @@ issues:
   max-issues-per-linter: 0
   max-same-issues: 0
   exclude-rules:
-    # exclude long lines with URLs
-    - path: \.go
-      source: https://
-      linters:
-        - lll
-    # Don't wrap check RoundTrip
-    - path: \.go
-      source: RoundTrip
-      linters:
-        - wrapcheck
     - path: _test\.go
       linters:
         # unwrapped errors are ok in tests
         - wrapcheck
+    - path: _test\.go
+      # ST1003: Poorly chosen identifiers (https://staticcheck.io/docs/checks/#ST1003)
+      # This is to allow identifiers to be snake_cased in favor of BDD integration tests
+      text: "ST1003"
+      linters:
+        - stylecheck
+    - path: _test\.go
+      # This is to allow identifiers to be snake_cased in favor of BDD integration tests
+      text: "var-naming: don't use underscores in Go names;"
+      linters:
+        - revive
 
