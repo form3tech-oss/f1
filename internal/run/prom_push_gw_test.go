@@ -73,7 +73,7 @@ func (f *FakePrometheus) ServeHTTP(response http.ResponseWriter, request *http.R
 		}
 	}
 	f.setHasMetrics()
-	response.WriteHeader(202)
+	response.WriteHeader(http.StatusAccepted)
 }
 
 func (f *FakePrometheus) StartServer() {

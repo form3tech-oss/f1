@@ -40,7 +40,6 @@ linters:
   - testpackage
 
   # TODO
-  - usestdlibvars
   - paralleltest
   - perfsprint
   - staticcheck
