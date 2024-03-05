@@ -41,7 +41,6 @@ linters:
 
   - thelper
   - wrapcheck
-  - testifylint
 
   # TODO
   - usestdlibvars

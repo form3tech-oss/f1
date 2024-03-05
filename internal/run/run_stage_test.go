@@ -176,13 +176,13 @@ func (s *RunTestStage) the_number_of_started_iterations_should_be(expected int32
 
 func (s *RunTestStage) the_command_should_fail() *RunTestStage {
 	s.assert.NotNil(s.runResult)
-	s.assert.Equal(true, s.runResult.Failed())
+	s.assert.True(s.runResult.Failed())
 	return s
 }
 
 func (s *RunTestStage) the_command_should_succeeded() *RunTestStage {
 	s.assert.NotNil(s.runResult)
-	s.assert.Equal(false, s.runResult.Failed())
+	s.assert.False(s.runResult.Failed())
 	return s
 }
 
@@ -287,7 +287,7 @@ func (s *RunTestStage) a_test_scenario_that_fails_intermittently() *RunTestStage
 				atomic.AddInt32(s.iterationTeardownCount, 1)
 			})
 			count := atomic.AddInt32(&s.runCount, 1)
-			t.Require().True(count%2 == 0)
+			t.Require().Equal(0, count%2)
 		}
 	})
 	return s
@@ -363,7 +363,7 @@ func (s *RunTestStage) the_test_run_is_started() *RunTestStage {
 			RegisterLogHookFunc: fluentd_hook.AddFluentdLoggingHook,
 		},
 			s.build_trigger())
-		require.Nil(s.t, err)
+		require.NoError(s.t, err)
 		s.runResult = r.Do(s.f1.GetScenarios())
 	}()
 	return s
@@ -400,11 +400,11 @@ func (s *RunTestStage) build_trigger() *api.Trigger {
 		}
 
 		t, err = staged.StagedRate().New(flags)
-		require.Nil(s.t, err)
+		require.NoError(s.t, err)
 	} else if s.triggerType == Users {
 		flags := users.UsersRate().Flags
 		t, err = users.UsersRate().New(flags)
-		require.Nil(s.t, err)
+		require.NoError(s.t, err)
 	} else if s.triggerType == Ramp {
 		flags := ramp.RampRate().Flags
 
@@ -429,7 +429,7 @@ func (s *RunTestStage) build_trigger() *api.Trigger {
 		}
 
 		t, err = ramp.RampRate().New(flags)
-		require.Nil(s.t, err)
+		require.NoError(s.t, err)
 	} else if s.triggerType == File {
 		flags := file.FileRate().Flags
 
@@ -437,7 +437,7 @@ func (s *RunTestStage) build_trigger() *api.Trigger {
 		require.NoError(s.t, err)
 
 		t, err = file.FileRate().New(flags)
-		require.Nil(s.t, err)
+		require.NoError(s.t, err)
 	}
 	return t
 }
@@ -455,8 +455,8 @@ func (s *RunTestStage) setup_teardown_is_called_within_50ms() *RunTestStage {
 		}
 		return nil
 	}, retry.Sleep(10*time.Millisecond), retry.MaxTries(5))
-	s.assert.NoError(err)
-	s.assert.True(atomic.LoadInt32(s.setupTeardownCount) >= 1)
+	s.require.NoError(err)
+	s.assert.GreaterOrEqual(atomic.LoadInt32(s.setupTeardownCount), 1)
 	return s
 }
 

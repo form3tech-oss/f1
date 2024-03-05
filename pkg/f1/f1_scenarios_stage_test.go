@@ -71,7 +71,7 @@ func (s *f1ScenariosStage) the_f1_scenario_is_executed() {
 
 func (s *f1ScenariosStage) each_scenarios_setup_and_iteration_functions_are_called() {
 	for _, scn := range s.scenarios {
-		assert.Equal(s.t, *scn.setups, int32(1))
+		assert.Equal(s.t, int32(1), *scn.setups)
 		assert.GreaterOrEqual(s.t, *scn.iterations, int32(5))
 	}
 }

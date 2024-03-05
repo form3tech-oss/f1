@@ -225,7 +225,7 @@ func TestWeightedVolumes(t *testing.T) {
 				diff := math.Abs(repetitionTotal - float64(test.expectedTotals[i]))
 				fmt.Printf("Configured for volume %d, triggered %f. Difference of %f (%f%%)\n", test.expectedTotals[i], repetitionTotal, diff, 100*diff/float64(test.expectedTotals[i]))
 				acceptableErrorPercent := 0.1
-				assert.True(t, diff < float64(test.expectedTotals[i])*acceptableErrorPercent/100.0, "volumes differ by > %f%%", acceptableErrorPercent*100.0)
+				assert.Less(t, diff, float64(test.expectedTotals[i])*acceptableErrorPercent/100.0, "volumes differ by > %f%%", acceptableErrorPercent*100.0)
 			}
 			require.Equal(t, expectedTotal, test.volume*len(test.weights))
 		})
