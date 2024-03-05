@@ -41,7 +41,6 @@ linters:
 
   # TODO
   - paralleltest
-  - staticcheck
   - gomnd
   - nonamedreturns
   - goerr113

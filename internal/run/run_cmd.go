@@ -25,7 +25,7 @@ func Cmd(s *scenarios.Scenarios, builders []api.Builder, hookFunc logging.Regist
 				Use:   t.Name,
 				Short: t.Description,
 				RunE:  runCmdExecute(s, t, hookFunc),
-				Args:  cobra.ExactValidArgs(1),
+				Args:  cobra.MatchAll(cobra.ExactArgs(1)),
 			}
 			triggerCmd.Flags().BoolP("verbose", "v", false, "enables log output to stdout")
 			triggerCmd.Flags().Bool("verbose-fail", false, "log output to stdout on failure")
@@ -37,7 +37,7 @@ func Cmd(s *scenarios.Scenarios, builders []api.Builder, hookFunc logging.Regist
 				Use:       t.Name,
 				Short:     t.Description,
 				RunE:      runCmdExecute(s, t, hookFunc),
-				Args:      cobra.ExactValidArgs(1),
+				Args:      cobra.MatchAll(cobra.ExactArgs(1)),
 				ValidArgs: s.GetScenarioNames(),
 			}
 			triggerCmd.Flags().BoolP("verbose", "v", false, "enables log output to stdout")
@@ -80,7 +80,7 @@ func runCmdExecute(s *scenarios.Scenarios, t api.Builder, hookFunc logging.Regis
 			concurrency = trig.Options.Concurrency
 			maxIterations = trig.Options.MaxIterations
 			maxFailures = trig.Options.MaxFailures
-			maxFailures = trig.Options.MaxFailuresRate
+			maxFailuresRate = trig.Options.MaxFailuresRate
 			ignoreDropped = trig.Options.IgnoreDropped
 		} else {
 			scenarioName = args[0]
