@@ -3,6 +3,7 @@ package gaussian
 import (
 	"fmt"
 	"math"
+	"strconv"
 	"testing"
 	"time"
 
@@ -174,7 +175,14 @@ func TestTotalVolumes(t *testing.T) {
 				total += float64(rate)
 			}
 
-			fmt.Println(asciigraph.Plot(rates, asciigraph.Height(15), asciigraph.Width(160), asciigraph.Caption(fmt.Sprintf("Rate per %s", test.frequency.String()))))
+			fmt.Println(
+				asciigraph.Plot(
+					rates,
+					asciigraph.Height(15),
+					asciigraph.Width(160),
+					asciigraph.Caption("Rate per "+test.frequency.String()),
+				),
+			)
 			diff := math.Abs(total - test.volume)
 			fmt.Printf("Configured for volume %f, triggered %f. Difference of %f (%f%%)\n", test.volume, total, diff, 100*diff/test.volume)
 			acceptableErrorPercent := 0.1
@@ -200,7 +208,7 @@ func TestWeightedVolumes(t *testing.T) {
 			expectedTotals: []int{666666, 1333334, 1333334, 666666},
 		},
 	} {
-		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
+		t.Run(strconv.Itoa(i), func(t *testing.T) {
 			iterationDuration := 10 * time.Second
 			repeatEvery := 10 * time.Minute
 			c := NewGaussianRateCalculator(repeatEvery/2, 1*time.Minute, iterationDuration, test.weights, float64(test.volume), repeatEvery)

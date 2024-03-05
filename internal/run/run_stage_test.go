@@ -1,6 +1,7 @@
 package run_test
 
 import (
+	"errors"
 	"fmt"
 	"math"
 	"strings"
@@ -452,7 +453,7 @@ func (s *RunTestStage) the_test_run_is_interrupted() *RunTestStage {
 func (s *RunTestStage) setup_teardown_is_called_within_50ms() *RunTestStage {
 	err := retry.Do(func() error {
 		if atomic.LoadInt32(s.setupTeardownCount) <= 0 {
-			return fmt.Errorf("no teardown yet")
+			return errors.New("no teardown yet")
 		}
 		return nil
 	}, retry.Sleep(10*time.Millisecond), retry.MaxTries(5))

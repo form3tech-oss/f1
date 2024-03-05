@@ -41,7 +41,6 @@ linters:
 
   # TODO
   - paralleltest
-  - perfsprint
   - staticcheck
   - gomnd
   - nonamedreturns

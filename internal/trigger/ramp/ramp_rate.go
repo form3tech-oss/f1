@@ -1,6 +1,7 @@
 package ramp
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
@@ -77,13 +78,13 @@ func CalculateRampRate(startRateArg, endRateArg, distributionTypeArg string, dur
 	}
 
 	if startRate == endRate {
-		return nil, fmt.Errorf("start-rate and end-rate should be different, for constant rate try using the constant mode")
+		return nil, errors.New("start-rate and end-rate should be different, for constant rate try using the constant mode")
 	}
 	if startUnit != endUnit {
-		return nil, fmt.Errorf("start-rate and end-rate are not using the same unit")
+		return nil, errors.New("start-rate and end-rate are not using the same unit")
 	}
 	if duration < startUnit {
-		return nil, fmt.Errorf("duration is lower than rate unit")
+		return nil, errors.New("duration is lower than rate unit")
 	}
 
 	rateFn := func(now time.Time) int {

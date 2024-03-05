@@ -2,7 +2,7 @@ package testing_test
 
 import (
 	"bytes"
-	"fmt"
+	"errors"
 	"os"
 	"regexp"
 	go_testing "testing"
@@ -45,7 +45,7 @@ func TestReportsErrorMessageWhenCleanupFails(t *go_testing.T) {
 
 	newT.Logger().SetOutput(&buf)
 	newT.Cleanup(func() {
-		panic(fmt.Errorf("boom"))
+		panic(errors.New("boom"))
 	})
 
 	teardown()
@@ -101,7 +101,7 @@ func TestFailSetsTheFailedState(t *go_testing.T) {
 func TestErrorSetsTheFailedState(t *go_testing.T) {
 	newT, _ := testing.NewT("iteration 0", "test")
 
-	newT.Error(fmt.Errorf("boom"))
+	newT.Error(errors.New("boom"))
 	require.True(t, newT.Failed())
 }
 
@@ -118,7 +118,7 @@ func TestFatalSetsTheFailedState(t *go_testing.T) {
 	done := make(chan struct{})
 	go func() {
 		defer catchPanics(done)
-		newT.Fatal(fmt.Errorf("boom"))
+		newT.Fatal(errors.New("boom"))
 	}()
 	<-done
 

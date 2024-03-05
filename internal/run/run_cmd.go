@@ -139,7 +139,7 @@ func runCmdExecute(s *scenarios.Scenarios, t api.Builder, hookFunc logging.Regis
 		if result.Error() != nil {
 			return result.Error()
 		} else if result.Failed() {
-			return fmt.Errorf("load test failed - see log for details")
+			return errors.New("load test failed - see log for details")
 		}
 		cmd.SilenceUsage = false
 		return nil

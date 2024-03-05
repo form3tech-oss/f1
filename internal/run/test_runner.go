@@ -6,6 +6,7 @@ import (
 	stdlog "log"
 	"os"
 	"os/signal"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"syscall"
@@ -182,7 +183,7 @@ func (r *Run) run() {
 	workDone := make(chan bool, workers)
 	for i := 0; i < workers; i++ {
 		wg.Add(1)
-		go r.runWorker(doWorkChannel, stopWorkers, wg, fmt.Sprint(i), workDone)
+		go r.runWorker(doWorkChannel, stopWorkers, wg, strconv.Itoa(i), workDone)
 	}
 
 	// if the trigger has a limited duration, restrict the run to that duration.
@@ -339,7 +340,7 @@ func (r *Run) runWorker(input <-chan int32, stop <-chan struct{}, wg *sync.WaitG
 }
 
 func (r *Run) fail(message string) *RunResult {
-	r.result.AddError(fmt.Errorf(message))
+	r.result.AddError(errors.New(message))
 	return &r.result
 }
 

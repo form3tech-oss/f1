@@ -1,6 +1,7 @@
 package file
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
@@ -181,22 +182,22 @@ func (s *Stage) parseStage(stageIdx int, defaults Stage) (*runnableStage, error)
 
 func (c *ConfigFile) validateCommonFields() (*ConfigFile, error) {
 	if c.Scenario == nil {
-		return nil, fmt.Errorf("missing scenario")
+		return nil, errors.New("missing scenario")
 	}
 	if c.Limits.MaxDuration == nil {
-		return nil, fmt.Errorf("missing max-duration")
+		return nil, errors.New("missing max-duration")
 	}
 	if c.Limits.Concurrency == nil {
-		return nil, fmt.Errorf("missing concurrency")
+		return nil, errors.New("missing concurrency")
 	}
 	if c.Limits.MaxIterations == nil {
-		return nil, fmt.Errorf("missing max-iterations")
+		return nil, errors.New("missing max-iterations")
 	}
 	if c.Limits.IgnoreDropped == nil {
-		return nil, fmt.Errorf("missing ignore-dropped")
+		return nil, errors.New("missing ignore-dropped")
 	}
 	if len(c.Stages) == 0 {
-		return nil, fmt.Errorf("missing stages")
+		return nil, errors.New("missing stages")
 	}
 
 	if c.Limits.MaxFailures == nil {

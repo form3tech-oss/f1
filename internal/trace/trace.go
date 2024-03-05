@@ -63,7 +63,7 @@ func event(message string, args ...interface{}) {
 		t.Hour(), t.Minute(), t.Second(), t.Nanosecond()/int(time.Millisecond))
 
 	timePart := colorString(fmt.Sprintf("[TRACE - %s]: ", formattedTime), gray)
-	messagePart := colorString(fmt.Sprintf("%s -> ", fMessage), gray)
+	messagePart := colorString(fMessage+" -> ", gray)
 	filePart := colorString(fileName, blue)
 
 	fmt.Println(timePart + messagePart + filePart)
