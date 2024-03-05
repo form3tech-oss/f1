@@ -18,6 +18,7 @@ type ChartTestStage struct {
 }
 
 func NewChartTestStage(t *testing.T) (*ChartTestStage, *ChartTestStage, *ChartTestStage) {
+	t.Helper()
 	stage := &ChartTestStage{
 		t:      t,
 		assert: assert.New(t),

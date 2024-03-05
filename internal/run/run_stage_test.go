@@ -60,6 +60,7 @@ type RunTestStage struct {
 }
 
 func NewRunTestStage(t *testing.T) (*RunTestStage, *RunTestStage, *RunTestStage) {
+	t.Helper()
 	setupTeardownCount := int32(0)
 	iterationTeardownCount := int32(0)
 	stage := &RunTestStage{

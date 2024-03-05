@@ -39,7 +39,6 @@ linters:
   # Requires too many changes
   - testpackage
 
-  - thelper
   - wrapcheck
 
   # TODO

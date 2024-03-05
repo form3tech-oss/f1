@@ -38,6 +38,8 @@ func newScenario(setups, iterations int32) scenario {
 }
 
 func newF1ScenarioStage(t *testing.T) (given, when, then *f1ScenariosStage) {
+	t.Helper()
+
 	s := &f1ScenariosStage{
 		t: t,
 	}
