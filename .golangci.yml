@@ -50,7 +50,6 @@ linters:
   - unparam
   - revive
   - stylecheck
-  - unused
   - lll
   - prealloc
   - forcetypeassert

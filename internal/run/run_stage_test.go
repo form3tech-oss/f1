@@ -182,12 +182,6 @@ func (s *RunTestStage) the_command_should_fail() *RunTestStage {
 	return s
 }
 
-func (s *RunTestStage) the_command_should_succeeded() *RunTestStage {
-	s.assert.NotNil(s.runResult)
-	s.assert.False(s.runResult.Failed())
-	return s
-}
-
 func (s *RunTestStage) a_test_scenario_that_always_fails() *RunTestStage {
 	s.scenario = uuid.New().String()
 	s.f1.Add(s.scenario, func(t *f1_testing.T) (fn f1_testing.RunFn) {
