@@ -382,7 +382,7 @@ func (r *Run) printResultLogs() error {
 
 	if fd != nil {
 		if _, err := io.Copy(os.Stdout, fd); err != nil {
-			return errors.Wrap(err, "error printing printing logs")
+			return errors.Wrap(err, "error printing logs")
 		}
 	}
 

@@ -45,7 +45,6 @@ linters:
   - nonamedreturns
   - goerr113
   - gochecknoglobals
-  - dupword
   - depguard
   - unparam
   - revive
