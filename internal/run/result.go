@@ -116,7 +116,7 @@ func (r *RunResult) Error() error {
 func parseQuantiles(quantiles []*io_prometheus_client.Quantile) DurationPercentileMap {
 	m := make(DurationPercentileMap)
 	for _, quantile := range quantiles {
-		m[*quantile.Quantile] = time.Duration(*quantile.Value)
+		m[quantile.GetQuantile()] = time.Duration(quantile.GetQuantile())
 	}
 	return m
 }

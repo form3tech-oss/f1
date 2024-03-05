@@ -263,19 +263,19 @@ func (r *Run) gatherMetrics() {
 		r.result.AddError(errors.Wrap(err, "unable to gather metrics"))
 	}
 	for _, metric := range m {
-		if *metric.Name == "form3_loadtest_iteration" {
-			for _, m := range metric.Metric {
+		if metric.GetName() == "form3_loadtest_iteration" {
+			for _, m := range metric.GetMetric() {
 				result := "unknown"
 				stage := IterationStage
-				for _, label := range m.Label {
-					if *label.Name == "result" {
-						result = *label.Value
+				for _, label := range m.GetLabel() {
+					if label.GetName() == "result" {
+						result = label.GetValue()
 					}
-					if *label.Name == "stage" {
-						stage = *label.Value
+					if label.GetName() == "stage" {
+						stage = label.GetValue()
 					}
 				}
-				r.result.SetMetrics(result, stage, *m.Summary.SampleCount, m.Summary.Quantile)
+				r.result.SetMetrics(result, stage, m.GetSummary().GetSampleCount(), m.GetSummary().GetQuantile())
 			}
 		}
 	}
@@ -289,19 +289,21 @@ func (r *Run) gatherProgressMetrics(duration time.Duration) {
 	metrics.Instance().Progress.Reset()
 	r.result.ClearProgressMetrics()
 	for _, metric := range m {
-		if *metric.Name == "form3_loadtest_iteration" {
-			for _, m := range metric.Metric {
+		if metric.GetName() == "form3_loadtest_iteration" {
+			for _, m := range metric.GetMetric() {
 				result := "unknown"
 				stage := IterationStage
-				for _, label := range m.Label {
-					if *label.Name == "result" {
-						result = *label.Value
+				for _, label := range m.GetLabel() {
+					if label.GetName() == "result" {
+						result = label.GetValue()
 					}
-					if *label.Name == "stage" {
-						stage = *label.Value
+					if label.GetName() == "stage" {
+						stage = label.GetValue()
 					}
 				}
-				r.result.IncrementMetrics(duration, result, stage, *m.Summary.SampleCount, m.Summary.Quantile)
+				r.result.IncrementMetrics(
+					duration, result, stage, m.GetSummary().GetSampleCount(), m.GetSummary().GetQuantile(),
+				)
 			}
 		}
 	}

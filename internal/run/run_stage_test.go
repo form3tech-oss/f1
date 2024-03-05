@@ -540,10 +540,10 @@ func (s *RunTestStage) the_iteration_metric_has_n_results(n int, result string) 
 		s.require.NotNil(metricFamily)
 		resultMetric := getMetricByResult(metricFamily, result)
 		s.require.NotNil(resultMetric)
-		if uint64(n) == *resultMetric.GetSummary().SampleCount {
+		if uint64(n) == resultMetric.GetSummary().GetSampleCount() {
 			return nil
 		}
-		return fmt.Errorf("expected %d to equal %d", uint64(n), *resultMetric.GetSummary().SampleCount)
+		return fmt.Errorf("expected %d to equal %d", uint64(n), resultMetric.GetSummary().GetSampleCount())
 	})
 	s.require.NoError(err)
 	return s
@@ -556,9 +556,9 @@ func (s *RunTestStage) all_exported_metrics_contain_label(labelName string, labe
 		metricFamily := fakePrometheus.GetMetricFamily(name)
 		s.require.NotNil(metricFamily)
 
-		for _, metric := range metricFamily.Metric {
+		for _, metric := range metricFamily.GetMetric() {
 			match := false
-			for _, label := range metric.Label {
+			for _, label := range metric.GetLabel() {
 				nameMatch := label.GetName() == labelName
 				valueMatch := label.GetValue() == labelValue
 				match = match || (nameMatch && valueMatch)
@@ -576,9 +576,9 @@ func (s *RunTestStage) all_exported_metrics_contain_label(labelName string, labe
 }
 
 func getMetricByResult(metricFamily *io_prometheus_client.MetricFamily, result string) *io_prometheus_client.Metric {
-	for _, metric := range metricFamily.Metric {
-		for _, label := range metric.Label {
-			if *label.Name == "result" && *label.Value == result {
+	for _, metric := range metricFamily.GetMetric() {
+		for _, label := range metric.GetLabel() {
+			if label.GetName() == "result" && label.GetValue() == result {
 				return metric
 			}
 		}

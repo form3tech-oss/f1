@@ -52,24 +52,24 @@ func (f *FakePrometheus) ServeHTTP(response http.ResponseWriter, request *http.R
 		defer errorh.SafeClose(request.Body)
 		metricFamily := &io_prometheus_client.MetricFamily{}
 		expfmt.NewDecoder(request.Body, expfmt.ResponseFormat(request.Header)).Decode(metricFamily)
-		mf, ok := f.metricFamilies.Load(*metricFamily.Name)
+		mf, ok := f.metricFamilies.Load(metricFamily.GetName())
 
-		if metricFamily.Metric != nil {
+		if metricFamily.GetMetric() != nil {
 			groupedLabels := parseGroupedLabels()
-			for _, m := range metricFamily.Metric {
-				m.Label = append(m.Label, groupedLabels...)
+			for _, m := range metricFamily.GetMetric() {
+				m.Label = append(m.GetLabel(), groupedLabels...)
 			}
 		}
 
 		if !ok {
-			f.metricFamilies.Store(*metricFamily.Name, metricFamily)
+			f.metricFamilies.Store(metricFamily.GetName, metricFamily)
 		} else {
 			value, ok := mf.(*io_prometheus_client.MetricFamily)
 			if !ok {
 				response.WriteHeader(http.StatusInternalServerError)
 				return
 			}
-			value.Metric = append(value.Metric, metricFamily.Metric...)
+			value.Metric = append(value.Metric, metricFamily.GetMetric()...)
 		}
 	}
 	f.setHasMetrics()
@@ -111,22 +111,22 @@ func (f *FakePrometheus) GetIterationDuration(scenario string, q float64) float6
 	if !ok {
 		return 0.0
 	}
-	for _, metric := range metrics.Metric {
-		if metric.Summary == nil {
+	for _, metric := range metrics.GetMetric() {
+		if metric.GetSummary() == nil {
 			continue
 		}
 		test := ""
-		for _, label := range metric.Label {
-			if *label.Name == "test" {
-				test = *label.Value
+		for _, label := range metric.GetLabel() {
+			if label.GetName() == "test" {
+				test = label.GetValue()
 			}
 		}
 		if test != scenario {
 			continue
 		}
-		for _, quantile := range metric.Summary.Quantile {
-			if *((*quantile).Quantile) == q {
-				return *quantile.Value
+		for _, quantile := range metric.GetSummary().GetQuantile() {
+			if (*quantile).GetQuantile() == q {
+				return quantile.GetValue()
 			}
 		}
 	}

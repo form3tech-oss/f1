@@ -51,7 +51,6 @@ linters:
   - revive
   - stylecheck
   - unused
-  - protogetter
   - lll
   - prealloc
   - forcetypeassert
