@@ -50,7 +50,6 @@ linters:
   - gocritic
   - forbidigo
   - dupl
-  - gosec
 
 linters-settings:
   tagliatelle:

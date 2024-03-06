@@ -7,6 +7,7 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	io_prometheus_client "github.com/prometheus/client_model/go"
 	"github.com/prometheus/common/expfmt"
@@ -84,7 +85,10 @@ func (f *FakePrometheus) ServeHTTP(response http.ResponseWriter, request *http.R
 
 func (f *FakePrometheus) StartServer() {
 	f.metricFamilies = sync.Map{}
-	f.server = &http.Server{Addr: fmt.Sprintf("localhost:%d", f.Port)}
+	f.server = &http.Server{
+		Addr:              fmt.Sprintf("localhost:%d", f.Port),
+		ReadHeaderTimeout: 1 * time.Second,
+	}
 	f.server.Handler = f
 	go func() {
 		if err := f.server.ListenAndServe(); err != nil {
