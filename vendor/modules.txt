@@ -4,6 +4,9 @@ github.com/aholic/ggtimer
 # github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2
 ## explicit; go 1.13
 github.com/asaskevich/govalidator
+# github.com/avast/retry-go/v4 v4.5.1
+## explicit; go 1.18
+github.com/avast/retry-go/v4
 # github.com/beorn7/perks v1.0.1
 ## explicit; go 1.11
 github.com/beorn7/perks/quantile
@@ -26,9 +29,6 @@ github.com/evalphobia/logrus_fluent
 # github.com/fluent/fluent-logger-golang v1.9.0
 ## explicit
 github.com/fluent/fluent-logger-golang/fluent
-# github.com/giantswarm/retry-go v0.0.0-20151203102909-d78cea247d5e
-## explicit
-github.com/giantswarm/retry-go
 # github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0
 ## explicit
 github.com/golang/freetype/raster
@@ -45,9 +45,6 @@ github.com/hako/durafmt
 # github.com/inconshreveable/mousetrap v1.1.0
 ## explicit; go 1.18
 github.com/inconshreveable/mousetrap
-# github.com/juju/errgo v0.0.0-20140925100237-08cceb5d0b53
-## explicit
-github.com/juju/errgo
 # github.com/kr/text v0.2.0
 ## explicit
 # github.com/matttproud/golang_protobuf_extensions/v2 v2.0.0
