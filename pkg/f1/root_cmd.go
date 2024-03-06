@@ -10,7 +10,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/form3tech-oss/f1/v2/internal/chart"
-	"github.com/form3tech-oss/f1/v2/internal/fluentd_hook"
+	"github.com/form3tech-oss/f1/v2/internal/fluentd"
 	"github.com/form3tech-oss/f1/v2/internal/run"
 	"github.com/form3tech-oss/f1/v2/internal/support/errorh"
 	"github.com/form3tech-oss/f1/v2/internal/trigger"
@@ -26,7 +26,7 @@ func buildRootCmd(s *scenarios.Scenarios, p *profiling) *cobra.Command {
 	builders := trigger.GetBuilders()
 	rootCmd.PersistentFlags().String("cpuprofile", "", "write cpu profile to `file`")
 	rootCmd.PersistentFlags().String("memprofile", "", "write memory profile to `file`")
-	rootCmd.AddCommand(run.Cmd(s, builders, fluentd_hook.AddFluentdLoggingHook))
+	rootCmd.AddCommand(run.Cmd(s, builders, fluentd.AddFluentdLoggingHook))
 	rootCmd.AddCommand(chart.Cmd(builders))
 	rootCmd.AddCommand(scenarios.Cmd(s))
 	rootCmd.AddCommand(completionsCmd(s, p))

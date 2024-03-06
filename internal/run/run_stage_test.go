@@ -19,7 +19,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/form3tech-oss/f1/v2/internal/fluentd_hook"
+	"github.com/form3tech-oss/f1/v2/internal/fluentd"
 	"github.com/form3tech-oss/f1/v2/internal/options"
 	"github.com/form3tech-oss/f1/v2/internal/run"
 	"github.com/form3tech-oss/f1/v2/internal/trigger/api"
@@ -135,7 +135,7 @@ func (s *RunTestStage) i_execute_the_run_command() *RunTestStage {
 			MaxIterations:       s.maxIterations,
 			MaxFailures:         s.maxFailures,
 			MaxFailuresRate:     s.maxFailuresRate,
-			RegisterLogHookFunc: fluentd_hook.AddFluentdLoggingHook,
+			RegisterLogHookFunc: fluentd.AddFluentdLoggingHook,
 		},
 		s.build_trigger())
 	if err != nil {
@@ -357,7 +357,7 @@ func (s *RunTestStage) the_test_run_is_started() *RunTestStage {
 			MaxDuration:         s.duration,
 			Concurrency:         s.concurrency,
 			MaxIterations:       s.maxIterations,
-			RegisterLogHookFunc: fluentd_hook.AddFluentdLoggingHook,
+			RegisterLogHookFunc: fluentd.AddFluentdLoggingHook,
 		},
 			s.build_trigger())
 		require.NoError(s.t, err)
