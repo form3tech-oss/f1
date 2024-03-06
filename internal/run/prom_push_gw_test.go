@@ -69,7 +69,7 @@ func (f *FakePrometheus) ServeHTTP(response http.ResponseWriter, request *http.R
 		}
 
 		if !ok {
-			f.metricFamilies.Store(metricFamily.GetName, metricFamily)
+			f.metricFamilies.Store(metricFamily.GetName(), metricFamily)
 		} else {
 			value, ok := mf.(*io_prometheus_client.MetricFamily)
 			if !ok {

@@ -283,7 +283,7 @@ func (s *RunTestStage) a_test_scenario_that_fails_intermittently() *RunTestStage
 				atomic.AddInt32(s.iterationTeardownCount, 1)
 			})
 			count := atomic.AddInt32(&s.runCount, 1)
-			t.Require().Equal(0, count%2)
+			t.Require().Equal(int32(0), count%2)
 		}
 	})
 	return s
@@ -454,7 +454,7 @@ func (s *RunTestStage) setup_teardown_is_called_within_50ms() *RunTestStage {
 		return nil
 	}, retry.Sleep(10*time.Millisecond), retry.MaxTries(5))
 	s.require.NoError(err)
-	s.assert.GreaterOrEqual(atomic.LoadInt32(s.setupTeardownCount), 1)
+	s.assert.GreaterOrEqual(atomic.LoadInt32(s.setupTeardownCount), int32(1))
 	return s
 }
 
