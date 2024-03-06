@@ -1,17 +1,17 @@
 package ramp
 
 import (
+	"errors"
 	"fmt"
-	"strconv"
-	"strings"
 	"time"
 
-	"github.com/asaskevich/govalidator"
-	"github.com/form3tech-oss/f1/v2/internal/trigger/api"
 	"github.com/spf13/pflag"
+
+	"github.com/form3tech-oss/f1/v2/internal/trigger/api"
+	"github.com/form3tech-oss/f1/v2/internal/trigger/rate"
 )
 
-func RampRate() api.Builder {
+func Rate() api.Builder {
 	flags := pflag.NewFlagSet("ramp", pflag.ContinueOnError)
 	flags.StringP("start-rate", "s", "1/s", "number of iterations to start per interval, in the form <request>/<duration>")
 	flags.StringP("end-rate", "e", "1/s", "number of iterations to end per interval, in the form <request>/<duration>")
@@ -26,34 +26,34 @@ func RampRate() api.Builder {
 		New: func(flags *pflag.FlagSet) (*api.Trigger, error) {
 			startRateArg, err := flags.GetString("start-rate")
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("getting flag: %w", err)
 			}
 			endRateArg, err := flags.GetString("end-rate")
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("getting flag: %w", err)
 			}
 			duration, err := flags.GetDuration("ramp-duration")
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("getting flag: %w", err)
 			}
 			if duration == 0 {
 				duration, err = flags.GetDuration("max-duration")
 				if err != nil {
-					return nil, err
+					return nil, fmt.Errorf("getting flag: %w", err)
 				}
 			}
 			jitterArg, err := flags.GetFloat64("jitter")
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("getting flag: %w", err)
 			}
 			distributionTypeArg, err := flags.GetString("distribution")
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("getting flag: %w", err)
 			}
 
 			rates, err := CalculateRampRate(startRateArg, endRateArg, distributionTypeArg, duration, jitterArg)
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("calculating ramp rate: %w", err)
 			}
 
 			return &api.Trigger{
@@ -68,23 +68,23 @@ func RampRate() api.Builder {
 func CalculateRampRate(startRateArg, endRateArg, distributionTypeArg string, duration time.Duration, jitterArg float64) (*api.Rates, error) {
 	var startTime *time.Time
 
-	startRate, startUnit, err := parseRateArg(startRateArg)
+	startRate, startUnit, err := rate.ParseRate(startRateArg)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("parsing start rate: %w", err)
 	}
-	endRate, endUnit, err := parseRateArg(endRateArg)
+	endRate, endUnit, err := rate.ParseRate(endRateArg)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("parsing end rate: %w", err)
 	}
 
-	if *startRate == *endRate {
-		return nil, fmt.Errorf("start-rate and end-rate should be different, for constant rate try using the constant mode")
+	if startRate == endRate {
+		return nil, errors.New("start-rate and end-rate should be different, for constant rate try using the constant mode")
 	}
-	if *startUnit != *endUnit {
-		return nil, fmt.Errorf("start-rate and end-rate are not using the same unit")
+	if startUnit != endUnit {
+		return nil, errors.New("start-rate and end-rate are not using the same unit")
 	}
-	if duration < *startUnit {
-		return nil, fmt.Errorf("duration is lower than rate unit")
+	if duration < startUnit {
+		return nil, errors.New("duration is lower than rate unit")
 	}
 
 	rateFn := func(now time.Time) int {
@@ -98,15 +98,15 @@ func CalculateRampRate(startRateArg, endRateArg, distributionTypeArg string, dur
 
 		offset := now.Sub(*startTime)
 		position := float64(offset) / float64(duration)
-		rate := *startRate + int(position*float64(*endRate-*startRate))
+		rate := startRate + int(position*float64(endRate-startRate))
 
 		return rate
 	}
 
 	jitterRateFn := api.WithJitter(rateFn, jitterArg)
-	distributedIterationDuration, distributedRateFn, err := api.NewDistribution(distributionTypeArg, *startUnit, jitterRateFn)
+	distributedIterationDuration, distributedRateFn, err := api.NewDistribution(distributionTypeArg, startUnit, jitterRateFn)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("new distribution: %w", err)
 	}
 
 	return &api.Rates{
@@ -114,37 +114,4 @@ func CalculateRampRate(startRateArg, endRateArg, distributionTypeArg string, dur
 		Rate:              distributedRateFn,
 		Duration:          duration,
 	}, nil
-}
-
-func parseRateArg(rateArg string) (*int, *time.Duration, error) {
-	if strings.Contains(rateArg, "/") {
-		rate, err := strconv.Atoi((rateArg)[0:strings.Index(rateArg, "/")])
-		if err != nil {
-			return nil, nil, fmt.Errorf("unable to parse rate arg %s", rateArg)
-		}
-		if rate < 0 {
-			return nil, nil, fmt.Errorf("unable to parse rate arg %s", rateArg)
-		}
-		unitArg := (rateArg)[strings.Index(rateArg, "/")+1:]
-		if !govalidator.IsNumeric(unitArg[0:1]) {
-			unitArg = "1" + unitArg
-		}
-		unit, err := time.ParseDuration(unitArg)
-		if err != nil {
-			return nil, nil, fmt.Errorf("unable to parse rate arg %s", rateArg)
-		}
-
-		return &rate, &unit, nil
-	} else {
-		rate, err := strconv.Atoi(rateArg)
-		if rate < 0 {
-			return nil, nil, fmt.Errorf("unable to parse rate arg %s", rateArg)
-		}
-		if err != nil {
-			return nil, nil, fmt.Errorf("unable to parse rate arg %s", rateArg)
-		}
-		unit := 1 * time.Second
-
-		return &rate, &unit, nil
-	}
 }

@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/form3tech-oss/f1/v2/internal/trigger/api"
-
 	"github.com/spf13/pflag"
+
+	"github.com/form3tech-oss/f1/v2/internal/trigger/api"
 )
 
-func StagedRate() api.Builder {
+func Rate() api.Builder {
 	flags := pflag.NewFlagSet("staged", pflag.ContinueOnError)
 	flags.StringP("stages", "s", "0s:1, 10s:1", "Comma separated list of <stage_duration>:<target_concurrent_iterations>. During the stage, the number of concurrent iterations will ramp up or down to the target. ")
 	flags.DurationP("iterationFrequency", "f", 1*time.Second, "How frequently iterations should be started")
@@ -21,22 +21,21 @@ func StagedRate() api.Builder {
 		Description: "triggers iterations at varying rates",
 		Flags:       flags,
 		New: func(params *pflag.FlagSet) (*api.Trigger, error) {
-
 			jitterArg, err := params.GetFloat64("jitter")
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("getting flag: %w", err)
 			}
 			stg, err := params.GetString("stages")
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("getting flag: %w", err)
 			}
 			frequency, err := params.GetDuration("iterationFrequency")
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("getting flag: %w", err)
 			}
 			distributionTypeArg, err := params.GetString("distribution")
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("getting flag: %w", err)
 			}
 
 			rates, err := CalculateStagedRate(jitterArg, frequency, stg, distributionTypeArg)
@@ -58,14 +57,14 @@ func StagedRate() api.Builder {
 func CalculateStagedRate(jitterArg float64, frequency time.Duration, stg, distributionTypeArg string) (*api.Rates, error) {
 	stages, err := parseStages(stg)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("parsing stages: %w", err)
 	}
 
 	calculator := newRateCalculator(stages)
 	rateFn := api.WithJitter(calculator.Rate, jitterArg)
 	distributedIterationDuration, distributedRateFn, err := api.NewDistribution(distributionTypeArg, frequency, rateFn)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("new distribution: %w", err)
 	}
 
 	return &api.Rates{

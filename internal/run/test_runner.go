@@ -6,33 +6,32 @@ import (
 	stdlog "log"
 	"os"
 	"os/signal"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"syscall"
 	"text/template"
 	"time"
 
-	"github.com/form3tech-oss/f1/v2/internal/logging"
-	"github.com/form3tech-oss/f1/v2/internal/options"
-	"github.com/form3tech-oss/f1/v2/pkg/f1/scenarios"
-	"github.com/pkg/errors"
-	log "github.com/sirupsen/logrus"
-
-	"github.com/form3tech-oss/f1/v2/internal/trace"
-
-	"github.com/form3tech-oss/f1/v2/internal/raterun"
-
-	"github.com/form3tech-oss/f1/v2/internal/trigger/api"
-
 	"github.com/aholic/ggtimer"
+	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/push"
+	log "github.com/sirupsen/logrus"
 
+	"github.com/form3tech-oss/f1/v2/internal/logging"
 	"github.com/form3tech-oss/f1/v2/internal/metrics"
+	"github.com/form3tech-oss/f1/v2/internal/options"
+	"github.com/form3tech-oss/f1/v2/internal/raterun"
+	"github.com/form3tech-oss/f1/v2/internal/trace"
+	"github.com/form3tech-oss/f1/v2/internal/trigger/api"
+	"github.com/form3tech-oss/f1/v2/pkg/f1/scenarios"
 )
 
-const NextIterationWindow = 10 * time.Millisecond
-const IterationStage = "iteration"
+const (
+	NextIterationWindow = 10 * time.Millisecond
+	IterationStage      = "iteration"
+)
 
 func NewRun(options options.RunOptions, t *api.Trigger) (*Run, error) {
 	run := Run{
@@ -40,16 +39,28 @@ func NewRun(options options.RunOptions, t *api.Trigger) (*Run, error) {
 		RateDescription: t.Description,
 		trigger:         t,
 	}
-	prometheusUrl := os.Getenv("PROMETHEUS_PUSH_GATEWAY")
-	if prometheusUrl != "" {
-		run.pusher = push.New(prometheusUrl, "f1-"+options.Scenario).Gatherer(prometheus.DefaultGatherer)
+	prometheusURL := os.Getenv("PROMETHEUS_PUSH_GATEWAY")
+	if prometheusURL != "" {
+		run.pusher = push.New(prometheusURL, "f1-"+options.Scenario).Gatherer(prometheus.DefaultGatherer)
+
+		namespaceLabel := os.Getenv("PROMETHEUS_NAMESPACE")
+		if namespaceLabel != "" {
+			run.pusher = run.pusher.Grouping("namespace", namespaceLabel)
+		}
+
+		idLabel := os.Getenv("PROMETHEUS_LABEL_ID")
+		if idLabel != "" {
+			run.pusher = run.pusher.Grouping("id", idLabel)
+		}
 	}
 	if run.Options.RegisterLogHookFunc == nil {
 		run.Options.RegisterLogHookFunc = logging.NoneRegisterLogHookFunc
 	}
 	run.result.IgnoreDropped = options.IgnoreDropped
+	run.result.MaxFailedIterations = options.MaxFailures
+	run.result.MaxFailedIterationsRate = options.MaxFailuresRate
 
-	progressRunner, _ := raterun.New(func(rate time.Duration, t time.Time) {
+	progressRunner, _ := raterun.New(func(rate time.Duration, _ time.Time) {
 		run.gatherProgressMetrics(rate)
 		fmt.Println(run.result.Progress())
 	}, []raterun.Rate{
@@ -68,7 +79,7 @@ type Run struct {
 	busyWorkers     int32
 	iteration       int32
 	failures        int32
-	result          RunResult
+	result          Result
 	activeScenario  *ActiveScenario
 	interrupt       chan os.Signal
 	trigger         *api.Trigger
@@ -84,7 +95,7 @@ var startTemplate = template.Must(template.New("result parse").
 Running {yellow}{{.Options.Scenario}}{-} scenario for {{if .Options.MaxIterations}}up to {{.Options.MaxIterations}} iterations or up to {{end}}{{duration .Options.MaxDuration}} at a rate of {{.RateDescription}}.
 `))
 
-func (r *Run) Do(s *scenarios.Scenarios) *RunResult {
+func (r *Run) Do(s *scenarios.Scenarios) *Result {
 	fmt.Print(renderTemplate(startTemplate, r))
 	defer r.printSummary()
 	defer r.printLogOnFailure()
@@ -104,7 +115,7 @@ func (r *Run) Do(s *scenarios.Scenarios) *RunResult {
 	// set initial started timestamp so that the progress trackers work
 	r.result.RecordStarted()
 	r.progressRunner.Run()
-	metricsTick := ggtimer.NewTicker(5*time.Second, func(t time.Time) {
+	metricsTick := ggtimer.NewTicker(5*time.Second, func(time.Time) {
 		r.pushMetrics()
 	})
 
@@ -117,7 +128,7 @@ func (r *Run) Do(s *scenarios.Scenarios) *RunResult {
 	return &r.result
 }
 
-func (r *Run) reportSetupFailure() *RunResult {
+func (r *Run) reportSetupFailure() *Result {
 	r.fail("setup failed")
 	r.pushMetrics()
 	fmt.Println(r.result.Setup())
@@ -172,7 +183,7 @@ func (r *Run) run() {
 	workDone := make(chan bool, workers)
 	for i := 0; i < workers; i++ {
 		wg.Add(1)
-		go r.runWorker(doWorkChannel, stopWorkers, wg, fmt.Sprint(i), workDone)
+		go r.runWorker(doWorkChannel, stopWorkers, wg, strconv.Itoa(i), workDone)
 	}
 
 	// if the trigger has a limited duration, restrict the run to that duration.
@@ -252,23 +263,24 @@ func (r *Run) gatherMetrics() {
 		r.result.AddError(errors.Wrap(err, "unable to gather metrics"))
 	}
 	for _, metric := range m {
-		if *metric.Name == "form3_loadtest_iteration" {
-			for _, m := range metric.Metric {
+		if metric.GetName() == "form3_loadtest_iteration" {
+			for _, m := range metric.GetMetric() {
 				result := "unknown"
 				stage := IterationStage
-				for _, label := range m.Label {
-					if *label.Name == "result" {
-						result = *label.Value
+				for _, label := range m.GetLabel() {
+					if label.GetName() == "result" {
+						result = label.GetValue()
 					}
-					if *label.Name == "stage" {
-						stage = *label.Value
+					if label.GetName() == "stage" {
+						stage = label.GetValue()
 					}
 				}
-				r.result.SetMetrics(result, stage, *m.Summary.SampleCount, m.Summary.Quantile)
+				r.result.SetMetrics(result, stage, m.GetSummary().GetSampleCount(), m.GetSummary().GetQuantile())
 			}
 		}
 	}
 }
+
 func (r *Run) gatherProgressMetrics(duration time.Duration) {
 	m, err := metrics.Instance().ProgressRegistry.Gather()
 	if err != nil {
@@ -277,19 +289,21 @@ func (r *Run) gatherProgressMetrics(duration time.Duration) {
 	metrics.Instance().Progress.Reset()
 	r.result.ClearProgressMetrics()
 	for _, metric := range m {
-		if *metric.Name == "form3_loadtest_iteration" {
-			for _, m := range metric.Metric {
+		if metric.GetName() == "form3_loadtest_iteration" {
+			for _, m := range metric.GetMetric() {
 				result := "unknown"
 				stage := IterationStage
-				for _, label := range m.Label {
-					if *label.Name == "result" {
-						result = *label.Value
+				for _, label := range m.GetLabel() {
+					if label.GetName() == "result" {
+						result = label.GetValue()
 					}
-					if *label.Name == "stage" {
-						stage = *label.Value
+					if label.GetName() == "stage" {
+						stage = label.GetValue()
 					}
 				}
-				r.result.IncrementMetrics(duration, result, stage, *m.Summary.SampleCount, m.Summary.Quantile)
+				r.result.IncrementMetrics(
+					duration, result, stage, m.GetSummary().GetSampleCount(), m.GetSummary().GetQuantile(),
+				)
 			}
 		}
 	}
@@ -323,14 +337,12 @@ func (r *Run) runWorker(input <-chan int32, stop <-chan struct{}, wg *sync.WaitG
 			}
 
 			trace.Event("Completed iteration (%v).", iteration)
-
 		}
 	}
 }
 
-func (r *Run) fail(message string) *RunResult {
-	r.result.AddError(fmt.Errorf(message))
-	return &r.result
+func (r *Run) fail(message string) {
+	r.result.AddError(errors.New(message))
 }
 
 func (r *Run) pushMetrics() {
@@ -369,7 +381,7 @@ func (r *Run) printResultLogs() error {
 
 	if fd != nil {
 		if _, err := io.Copy(os.Stdout, fd); err != nil {
-			return errors.Wrap(err, "error printing printing logs")
+			return errors.Wrap(err, "error printing logs")
 		}
 	}
 

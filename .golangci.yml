@@ -1,0 +1,92 @@
+# Using golangci-lint@v1.56.2
+run:
+  timeout: 5m
+  tests: true
+  skip-dirs:
+    - vendor$
+output:
+  print-linter-name: true
+linters:
+  enable-all: true
+  fast: false
+  disable:
+  # Deprecated (see https://golangci-lint.run/usage/linters/)
+  - deadcode
+  - golint
+  - ifshort
+  - interfacer
+  - maligned
+  - nosnakecase
+  - scopelint
+  - structcheck
+  - varcheck
+  - exhaustivestruct
+
+  # Annoying style guides that are very subjective
+  - funlen
+  - nlreturn
+  - wsl
+  - cyclop
+  - varnamelen
+  - maintidx
+  - gocognit
+  - godot
+  - gocyclo
+  - nestif
+  - nilnil
+  - exhaustruct
+
+  # Requires too many changes
+  - testpackage
+
+  # TODO
+  - paralleltest
+  - gomnd
+  - goerr113
+  - gochecknoglobals
+  - depguard
+  - lll
+  - prealloc
+  - gocritic
+  - forbidigo
+  - dupl
+
+linters-settings:
+  tagliatelle:
+    case:
+      rules:
+        json: snake
+        yaml: kebab
+  depguard:
+    rules:
+      main:
+        deny:
+          - pkg: "github.com/pkg/errors"
+            desc: "Please use go built-in error wrapping and handling via `fmt` and `errors` packages"
+  gci:
+    sections:
+      - standard
+      - default
+      - prefix(github.com/form3tech-oss/f1)
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        # unwrapped errors are ok in tests
+        - wrapcheck
+        # this is ok for BDD style tests
+        - unparam
+    - path: _test\.go
+      # ST1003: Poorly chosen identifiers (https://staticcheck.io/docs/checks/#ST1003)
+      # This is to allow identifiers to be snake_cased in favor of BDD integration tests
+      text: "ST1003"
+      linters:
+        - stylecheck
+    - path: _test\.go
+      # This is to allow identifiers to be snake_cased in favor of BDD integration tests
+      text: "var-naming: don't use underscores in Go names;"
+      linters:
+        - revive
+

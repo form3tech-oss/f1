@@ -2,17 +2,15 @@ package constant
 
 import (
 	"fmt"
-	"strconv"
-	"strings"
 	"time"
 
-	"github.com/form3tech-oss/f1/v2/internal/trigger/api"
-
-	"github.com/asaskevich/govalidator"
 	"github.com/spf13/pflag"
+
+	"github.com/form3tech-oss/f1/v2/internal/trigger/api"
+	"github.com/form3tech-oss/f1/v2/internal/trigger/rate"
 )
 
-func ConstantRate() api.Builder {
+func Rate() api.Builder {
 	flags := pflag.NewFlagSet("constant", pflag.ContinueOnError)
 	flags.StringP("rate", "r", "1/s", "number of iterations to start per interval, in the form <request>/<duration>")
 	flags.Float64P("jitter", "j", 0.0, "vary the rate randomly by up to jitter percent")
@@ -25,20 +23,20 @@ func ConstantRate() api.Builder {
 		New: func(params *pflag.FlagSet) (*api.Trigger, error) {
 			rateArg, err := params.GetString("rate")
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("getting flag: %w", err)
 			}
 			jitterArg, err := params.GetFloat64("jitter")
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("getting flag: %w", err)
 			}
 			distributionTypeArg, err := params.GetString("distribution")
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("getting flag: %w", err)
 			}
 
 			rates, err := CalculateConstantRate(jitterArg, rateArg, distributionTypeArg)
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("calculating constant rate: %w", err)
 			}
 
 			return &api.Trigger{
@@ -52,33 +50,15 @@ func ConstantRate() api.Builder {
 }
 
 func CalculateConstantRate(jitterArg float64, rateArg, distributionTypeArg string) (*api.Rates, error) {
-	rate := 0
-	var err error
-	iterationDuration := 1 * time.Second
-	if strings.Contains(rateArg, "/") {
-		rate, err = strconv.Atoi((rateArg)[0:strings.Index(rateArg, "/")])
-		if err != nil {
-			return nil, fmt.Errorf("unable to parse rate %s", rateArg)
-		}
-		unit := (rateArg)[strings.Index(rateArg, "/")+1:]
-		if !govalidator.IsNumeric(unit[0:1]) {
-			unit = "1" + unit
-		}
-		iterationDuration, err = time.ParseDuration(unit)
-		if err != nil {
-			return nil, fmt.Errorf("unable to parse unit %s", rateArg)
-		}
-	} else {
-		rate, err = strconv.Atoi(rateArg)
-		if err != nil {
-			return nil, fmt.Errorf("unable to parse rate %s", rateArg)
-		}
+	rate, iterationDuration, err := rate.ParseRate(rateArg)
+	if err != nil {
+		return nil, fmt.Errorf("unable to parse rate %s: %w", rateArg, err)
 	}
 
 	rateFn := api.WithJitter(func(time.Time) int { return rate }, jitterArg)
 	distributedIterationDuration, distributedRateFn, err := api.NewDistribution(distributionTypeArg, iterationDuration, rateFn)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("new distribution: %w", err)
 	}
 
 	return &api.Rates{

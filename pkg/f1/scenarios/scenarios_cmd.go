@@ -25,7 +25,7 @@ func lsCmd(s *Scenarios) *cobra.Command {
 }
 
 func lsCmdExecute(s *Scenarios) func(*cobra.Command, []string) {
-	return func(cmd *cobra.Command, args []string) {
+	return func(*cobra.Command, []string) {
 		scenarios := s.GetScenarioNames()
 		sort.Strings(scenarios)
 		for _, scenario := range scenarios {

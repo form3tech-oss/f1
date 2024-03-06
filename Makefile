@@ -1,20 +1,22 @@
-GO_FILES?=$$(find ./ -name '*.go' | grep -v /vendor | grep -v /template/ | grep -v /build/ | grep -v swagger-client)
+GOLANGCI_VERSION := 1.56.2
 
-test: goimportscheck
+.PHONY: test
+test:
 	go test ./... -v -race -failfast -p 1 -mod=readonly
 
-require-travis-env:
-ifndef TRAVIS
-	$(error TRAVIS is undefined)
-endif
+.PHONY: tools/golangci-lint
+tools/golangci-lint:
+	@echo "==> Installing golangci-lint..."
+	@./scripts/install-golangci-lint.sh $(GOLANGCI_VERSION)
 
-install-goimports:
-	@if [ -z "$$(command -v goimports)" ]; then \
-    	go get golang.org/x/tools/cmd/goimports; \
-      fi
+.PHONY: lint
+lint: tools/golangci-lint
+	@echo "==> Running golangci-lint..."
+	@tools/golangci-lint run --timeout 600s
 
-goimports:
-	@goimports -w $(GO_FILES)
+.PHONY: lint-fix
+lint-fix: tools/golangci-lint
+	@echo "==> Running golangci-lint..."
+	@tools/golangci-lint run --timeout 600s --fix
 
-goimportscheck:
-	@sh -c "'$(CURDIR)/scripts/goimportscheck.sh'"
+

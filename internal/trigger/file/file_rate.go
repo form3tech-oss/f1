@@ -7,9 +7,10 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/form3tech-oss/f1/v2/internal/trigger/api"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
+
+	"github.com/form3tech-oss/f1/v2/internal/trigger/api"
 )
 
 type runnableStages struct {
@@ -19,6 +20,8 @@ type runnableStages struct {
 	maxDuration         time.Duration
 	concurrency         int
 	maxIterations       int32
+	maxFailures         int
+	maxFailuresRate     int
 	ignoreDropped       bool
 }
 
@@ -30,7 +33,7 @@ type runnableStage struct {
 	params            map[string]string
 }
 
-func FileRate() api.Builder {
+func Rate() api.Builder {
 	flags := pflag.NewFlagSet("file", pflag.ContinueOnError)
 
 	return api.Builder{
@@ -54,11 +57,13 @@ func FileRate() api.Builder {
 				Description: fmt.Sprintf("%d different stages", len(runnableStages.stages)),
 				Duration:    runnableStages.stagesTotalDuration,
 				Options: api.Options{
-					Scenario:      runnableStages.scenario,
-					MaxDuration:   runnableStages.maxDuration,
-					Concurrency:   runnableStages.concurrency,
-					MaxIterations: runnableStages.maxIterations,
-					IgnoreDropped: runnableStages.ignoreDropped,
+					Scenario:        runnableStages.scenario,
+					MaxDuration:     runnableStages.maxDuration,
+					Concurrency:     runnableStages.concurrency,
+					MaxIterations:   runnableStages.maxIterations,
+					MaxFailures:     runnableStages.maxFailures,
+					MaxFailuresRate: runnableStages.maxFailuresRate,
+					IgnoreDropped:   runnableStages.ignoreDropped,
 				},
 			}, nil
 		},
@@ -69,7 +74,7 @@ func FileRate() api.Builder {
 func readFile(filename string) (*[]byte, error) {
 	file, err := os.Open(filepath.Clean(filename))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("opening file: %w", err)
 	}
 	defer func() {
 		if err = file.Close(); err != nil {
@@ -79,7 +84,7 @@ func readFile(filename string) (*[]byte, error) {
 
 	fileContent, err := io.ReadAll(file)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("reading file: %w", err)
 	}
 
 	return &fileContent, nil

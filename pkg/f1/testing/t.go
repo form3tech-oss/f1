@@ -7,10 +7,9 @@ import (
 	"time"
 
 	log "github.com/sirupsen/logrus"
+	"github.com/stretchr/testify/require"
 
 	"github.com/form3tech-oss/f1/v2/internal/metrics"
-
-	"github.com/stretchr/testify/require"
 )
 
 // T is a type passed to Scenario functions to manage test state and support formatted test logs.

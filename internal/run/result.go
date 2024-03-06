@@ -1,6 +1,7 @@
 package run
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"strings"
@@ -11,13 +12,15 @@ import (
 	io_prometheus_client "github.com/prometheus/client_model/go"
 )
 
-type RunResult struct {
+type Result struct {
 	mu                           sync.RWMutex
 	errors                       []error
 	SuccessfulIterationCount     uint64
 	SuccessfulIterationDurations DurationPercentileMap
 	FailedIterationCount         uint64
 	FailedIterationDurations     DurationPercentileMap
+	MaxFailedIterations          int
+	MaxFailedIterationsRate      int
 	startTime                    time.Time
 	TestDuration                 time.Duration
 	LogFile                      string
@@ -27,7 +30,7 @@ type RunResult struct {
 	RecentDuration               time.Duration
 }
 
-func (r *RunResult) SetMetrics(result string, stage string, count uint64, quantiles []*io_prometheus_client.Quantile) {
+func (r *Result) SetMetrics(result string, stage string, count uint64, quantiles []*io_prometheus_client.Quantile) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	if stage != IterationStage {
@@ -52,14 +55,14 @@ func (r *RunResult) SetMetrics(result string, stage string, count uint64, quanti
 	}
 }
 
-func (r *RunResult) ClearProgressMetrics() {
+func (r *Result) ClearProgressMetrics() {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	r.RecentSuccessfulIterations = 0
 	r.SuccessfulIterationDurations = map[float64]time.Duration{}
 }
 
-func (r *RunResult) IncrementMetrics(duration time.Duration, result string, stage string, count uint64, quantiles []*io_prometheus_client.Quantile) {
+func (r *Result) IncrementMetrics(duration time.Duration, result string, stage string, count uint64, quantiles []*io_prometheus_client.Quantile) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	if stage != IterationStage {
@@ -84,14 +87,14 @@ func (r *RunResult) IncrementMetrics(duration time.Duration, result string, stag
 	}
 }
 
-func (r *RunResult) AddError(err error) *RunResult {
+func (r *Result) AddError(err error) *Result {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	r.errors = append(r.errors, err)
 	return r
 }
 
-func (r *RunResult) Error() error {
+func (r *Result) Error() error {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	if r.errors == nil {
@@ -107,13 +110,13 @@ func (r *RunResult) Error() error {
 		errorStrings[i] = fmt.Sprintf("Error %d: %s", i, r.errors[i].Error())
 	}
 
-	return fmt.Errorf(strings.Join(errorStrings, "; "))
+	return errors.New(strings.Join(errorStrings, "; "))
 }
 
 func parseQuantiles(quantiles []*io_prometheus_client.Quantile) DurationPercentileMap {
 	m := make(DurationPercentileMap)
 	for _, quantile := range quantiles {
-		m[*quantile.Quantile] = time.Duration(*quantile.Value)
+		m[quantile.GetQuantile()] = time.Duration(quantile.GetQuantile())
 	}
 	return m
 }
@@ -164,25 +167,30 @@ var (
 			Parse(`{cyan}[{{durationSeconds .Duration | printf "%5s"}}]  Interrupted - waiting for active tests to complete{-}`))
 )
 
-func (r *RunResult) String() string {
+func (r *Result) String() string {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	return renderTemplate(resultTemplate, r)
 }
 
-func (r *RunResult) Failed() bool {
+func (r *Result) Failed() bool {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
-	return r.Error() != nil || r.FailedIterationCount > 0 || (!r.IgnoreDropped && r.DroppedIterationCount > 0)
+
+	return r.Error() != nil ||
+		(!r.IgnoreDropped && r.DroppedIterationCount > 0) ||
+		(r.MaxFailedIterations == 0 && r.MaxFailedIterationsRate == 0 && r.FailedIterationCount > 0) ||
+		(r.MaxFailedIterations > 0 && r.FailedIterationCount > uint64(r.MaxFailedIterations)) ||
+		(r.MaxFailedIterationsRate > 0 && (r.FailedIterationCount*100/r.Iterations() > uint64(r.MaxFailedIterationsRate)))
 }
 
-func (r *RunResult) Progress() string {
+func (r *Result) Progress() string {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	return renderTemplate(progress, r)
 }
 
-func (r *RunResult) Duration() time.Duration {
+func (r *Result) Duration() time.Duration {
 	if r.StartTime().IsZero() {
 		return 0
 	}
@@ -190,59 +198,59 @@ func (r *RunResult) Duration() time.Duration {
 	return time.Since(r.StartTime())
 }
 
-func (r *RunResult) Setup() string {
+func (r *Result) Setup() string {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	return renderTemplate(setup, r)
 }
 
-func (r *RunResult) Teardown() string {
+func (r *Result) Teardown() string {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	return renderTemplate(teardown, r)
 }
 
-func (r *RunResult) MaxDurationElapsed() string {
+func (r *Result) MaxDurationElapsed() string {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	return renderTemplate(timeout, r)
 }
 
-func (r *RunResult) Interrupted() string {
+func (r *Result) Interrupted() string {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	return renderTemplate(interrupt, r)
 }
 
-func (r *RunResult) Iterations() uint64 {
+func (r *Result) Iterations() uint64 {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	return r.FailedIterationCount + r.SuccessfulIterationCount + r.DroppedIterationCount
 }
 
-func (r *RunResult) IterationsStarted() uint64 {
+func (r *Result) IterationsStarted() uint64 {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	return r.FailedIterationCount + r.SuccessfulIterationCount
 }
 
-func (r *RunResult) StartTime() time.Time {
+func (r *Result) StartTime() time.Time {
 	return r.startTime
 }
 
-func (r *RunResult) RecordStarted() {
+func (r *Result) RecordStarted() {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	r.startTime = time.Now()
 }
 
-func (r *RunResult) RecordTestFinished() {
+func (r *Result) RecordTestFinished() {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	r.TestDuration = time.Since(r.startTime)
 }
 
-func (r *RunResult) MaxIterationsReached() string {
+func (r *Result) MaxIterationsReached() string {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	return renderTemplate(maxIterationsReached, r)

@@ -347,6 +347,37 @@ stages:
 			expectedRates:             []int{2, 2, 2, 2, 2},
 			expectedParameters:        map[string]string{"FOO": "bar"},
 		},
+		{
+			testName: "Include max failures",
+			fileContent: `scenario: template
+limits:
+  max-duration: 1m
+  concurrency: 50
+  max-iterations: 100
+  max-failures: 10
+  max-failures-rate: 5
+  ignore-dropped: true
+stages:
+- duration: 5s
+  mode: constant
+  rate: 6/s
+  jitter: 0
+  distribution: none
+  parameters:
+    FOO: bar
+`,
+			expectedScenario:          "template",
+			expectedMaxDuration:       1 * time.Minute,
+			expectedConcurrency:       50,
+			expectedMaxIterations:     100,
+			expectedMaxFailures:       10,
+			expectedMaxFailuresRate:   5,
+			expectedIgnoreDropped:     true,
+			expectedTotalDuration:     5 * time.Second,
+			expectedIterationDuration: 1 * time.Second,
+			expectedRates:             []int{6, 6, 6, 6, 6, 6},
+			expectedParameters:        map[string]string{"FOO": "bar"},
+		},
 	} {
 		t.Run(test.testName, func(t *testing.T) {
 			now, _ := time.Parse(time.RFC3339, "2020-12-10T10:00:00+00:00")
@@ -354,7 +385,7 @@ stages:
 			stagesToRun, err := parseConfigFile([]byte(test.fileContent), now)
 
 			require.NoError(t, err)
-			require.Equal(t, 1, len(stagesToRun.stages))
+			require.Len(t, stagesToRun.stages, 1)
 			require.Equal(t, test.expectedScenario, stagesToRun.scenario)
 			require.Equal(t, test.expectedMaxDuration, stagesToRun.maxDuration)
 			require.Equal(t, test.expectedConcurrency, stagesToRun.concurrency)
@@ -617,7 +648,7 @@ invalid file content
 			runnableStages, err := parseConfigFile([]byte(test.fileContent), now)
 
 			require.Nil(t, runnableStages)
-			require.EqualError(t, err, test.expectedError)
+			require.ErrorContains(t, err, test.expectedError)
 		})
 	}
 }
@@ -631,6 +662,8 @@ type testData struct {
 	expectedMaxDuration       time.Duration
 	expectedIgnoreDropped     bool
 	expectedMaxIterations     int32
+	expectedMaxFailures       int
+	expectedMaxFailuresRate   int
 	expectedConcurrency       int
 	expectedUsersConcurrency  int
 	expectedRates             []int

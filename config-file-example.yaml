@@ -22,6 +22,8 @@ limits:                   # Global limits to apply to the program execution
   max-duration: 5s        # Equivalent to --max-duration flag, will stop the execution once this duration is completed if the program is still running
   concurrency: 50         # Equivalent to --concurrency flag, will limit the concurrency of the running iterations
   max-iterations: 1000    # Equivalent to --max-iterations flag, will run no more then the number of iterations specified here
+  max-failures: 0         # Equivalent to --max-failures flag, the load test will fail if the number of failures is superior to the number specified here
+  max-failures-rate: 0    # Equivalent to --max-failures-rate flag, the load test will fail if the percentage of failures is superior to the percentage specified here
   ignore-dropped: true    # Equivalent to --ignore-dropped flag, drop requests will not fail the run
 schedule:
   stage-start: "2020-12-10T09:00:00+00:00"  # Restarting an execution will skip the stages which were completed, based on the stage duration and this field

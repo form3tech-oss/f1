@@ -12,14 +12,26 @@ import (
 
 var fakePrometheus FakePrometheus
 
-func TestMain(m *testing.M) {
+const (
+	fakePrometheusNamespace = "test-namespace"
+	fakePrometheusID        = "test-run-name"
+)
 
+func TestMain(m *testing.M) {
 	var err error
 	fakePrometheus.Port, err = freeport.GetFreePort()
 	if err != nil {
 		log.Fatal(err)
 	}
 	err = os.Setenv("PROMETHEUS_PUSH_GATEWAY", fmt.Sprintf("http://localhost:%d/", fakePrometheus.Port))
+	if err != nil {
+		log.Fatal(err)
+	}
+	err = os.Setenv("PROMETHEUS_NAMESPACE", fakePrometheusNamespace)
+	if err != nil {
+		log.Fatal(err)
+	}
+	err = os.Setenv("PROMETHEUS_LABEL_ID", fakePrometheusID)
 	if err != nil {
 		log.Fatal(err)
 	}

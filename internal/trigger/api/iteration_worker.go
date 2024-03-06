@@ -3,14 +3,13 @@ package api
 import (
 	"time"
 
-	"github.com/form3tech-oss/f1/v2/internal/trace"
-
 	"github.com/form3tech-oss/f1/v2/internal/options"
+	"github.com/form3tech-oss/f1/v2/internal/trace"
 )
 
 // NewIterationWorker produces a WorkTriggerer which triggers work at fixed intervals.
 func NewIterationWorker(iterationDuration time.Duration, rate RateFunction) WorkTriggerer {
-	return func(workTriggered chan<- bool, stop <-chan bool, workDone <-chan bool, options options.RunOptions) {
+	return func(workTriggered chan<- bool, stop <-chan bool, workDone <-chan bool, _ options.RunOptions) {
 		startRate := rate(time.Now())
 		for i := 0; i < startRate; i++ {
 			workTriggered <- true

@@ -1,14 +1,16 @@
 package file
 
 import (
+	"errors"
 	"fmt"
 	"time"
+
+	"gopkg.in/yaml.v3"
 
 	"github.com/form3tech-oss/f1/v2/internal/trigger/constant"
 	"github.com/form3tech-oss/f1/v2/internal/trigger/gaussian"
 	"github.com/form3tech-oss/f1/v2/internal/trigger/ramp"
 	"github.com/form3tech-oss/f1/v2/internal/trigger/staged"
-	"gopkg.in/yaml.v3"
 )
 
 type ConfigFile struct {
@@ -24,10 +26,12 @@ type Schedule struct {
 }
 
 type Limits struct {
-	MaxDuration   *time.Duration `yaml:"max-duration"`
-	Concurrency   *int           `yaml:"concurrency"`
-	MaxIterations *int32         `yaml:"max-iterations"`
-	IgnoreDropped *bool          `yaml:"ignore-dropped"`
+	MaxDuration     *time.Duration `yaml:"max-duration"`
+	Concurrency     *int           `yaml:"concurrency"`
+	MaxIterations   *int32         `yaml:"max-iterations"`
+	MaxFailures     *int           `yaml:"max-failures"`
+	MaxFailuresRate *int           `yaml:"max-failures-rate"`
+	IgnoreDropped   *bool          `yaml:"ignore-dropped"`
 }
 
 type Stage struct {
@@ -53,7 +57,7 @@ func parseConfigFile(fileContent []byte, now time.Time) (*runnableStages, error)
 	configFile := ConfigFile{}
 	err := yaml.Unmarshal(fileContent, &configFile)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("parsing config file as yaml: %w", err)
 	}
 	validatedConfigFile, err := configFile.validateCommonFields()
 	if err != nil {
@@ -85,6 +89,8 @@ func parseConfigFile(fileContent []byte, now time.Time) (*runnableStages, error)
 		maxDuration:         *validatedConfigFile.Limits.MaxDuration,
 		concurrency:         *validatedConfigFile.Limits.Concurrency,
 		maxIterations:       *validatedConfigFile.Limits.MaxIterations,
+		maxFailures:         *validatedConfigFile.Limits.MaxFailures,
+		maxFailuresRate:     *validatedConfigFile.Limits.MaxFailuresRate,
 		ignoreDropped:       *validatedConfigFile.Limits.IgnoreDropped,
 	}, nil
 }
@@ -94,11 +100,11 @@ func (s *Stage) parseStage(stageIdx int, defaults Stage) (*runnableStage, error)
 	case "constant":
 		validatedConstantStage, err := s.validateConstantStage(stageIdx, defaults)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("validating constant stage: %w", err)
 		}
 		rates, err := constant.CalculateConstantRate(*validatedConstantStage.Jitter, *validatedConstantStage.Rate, *validatedConstantStage.Distribution)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("calculating constant rate: %w", err)
 		}
 
 		return &runnableStage{
@@ -110,11 +116,11 @@ func (s *Stage) parseStage(stageIdx int, defaults Stage) (*runnableStage, error)
 	case "ramp":
 		validatedRampStage, err := s.validateRampStage(stageIdx, defaults)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("validating ramp stage: %w", err)
 		}
 		rates, err := ramp.CalculateRampRate(*validatedRampStage.StartRate, *validatedRampStage.EndRate, *validatedRampStage.Distribution, *validatedRampStage.Duration, *validatedRampStage.Jitter)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("calculating ramp rate: %w", err)
 		}
 
 		return &runnableStage{
@@ -126,11 +132,11 @@ func (s *Stage) parseStage(stageIdx int, defaults Stage) (*runnableStage, error)
 	case "staged":
 		validatedStagedStage, err := s.validateStagedStage(stageIdx, defaults)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("validating staged stage: %w", err)
 		}
 		rates, err := staged.CalculateStagedRate(*validatedStagedStage.Jitter, *validatedStagedStage.IterationFrequency, *validatedStagedStage.Stages, *validatedStagedStage.Distribution)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("calculating staged rate: %w", err)
 		}
 
 		return &runnableStage{
@@ -142,7 +148,7 @@ func (s *Stage) parseStage(stageIdx int, defaults Stage) (*runnableStage, error)
 	case "gaussian":
 		validatedGaussianStage, err := s.validateGaussianStage(stageIdx, defaults)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("validating gaussian stage: %w", err)
 		}
 		rates, err := gaussian.CalculateGaussianRate(
 			*validatedGaussianStage.Volume, *validatedGaussianStage.Jitter, *validatedGaussianStage.Repeat,
@@ -150,7 +156,7 @@ func (s *Stage) parseStage(stageIdx int, defaults Stage) (*runnableStage, error)
 			*validatedGaussianStage.Weights, *validatedGaussianStage.Distribution,
 		)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("calculating gaussian rate: %w", err)
 		}
 
 		return &runnableStage{
@@ -176,24 +182,32 @@ func (s *Stage) parseStage(stageIdx int, defaults Stage) (*runnableStage, error)
 
 func (c *ConfigFile) validateCommonFields() (*ConfigFile, error) {
 	if c.Scenario == nil {
-		return nil, fmt.Errorf("missing scenario")
+		return nil, errors.New("missing scenario")
 	}
 	if c.Limits.MaxDuration == nil {
-		return nil, fmt.Errorf("missing max-duration")
+		return nil, errors.New("missing max-duration")
 	}
 	if c.Limits.Concurrency == nil {
-		return nil, fmt.Errorf("missing concurrency")
+		return nil, errors.New("missing concurrency")
 	}
 	if c.Limits.MaxIterations == nil {
-		return nil, fmt.Errorf("missing max-iterations")
+		return nil, errors.New("missing max-iterations")
 	}
 	if c.Limits.IgnoreDropped == nil {
-		return nil, fmt.Errorf("missing ignore-dropped")
+		return nil, errors.New("missing ignore-dropped")
 	}
 	if len(c.Stages) == 0 {
-		return nil, fmt.Errorf("missing stages")
+		return nil, errors.New("missing stages")
 	}
 
+	if c.Limits.MaxFailures == nil {
+		maxFailures := 0
+		c.Limits.MaxFailures = &maxFailures
+	}
+	if c.Limits.MaxFailuresRate == nil {
+		maxFailuresRate := 0
+		c.Limits.MaxFailuresRate = &maxFailuresRate
+	}
 	if c.Default.Concurrency == nil {
 		c.Default.Concurrency = c.Limits.Concurrency
 	}
@@ -205,16 +219,14 @@ func (s *Stage) validateCommonFieldsOfStage(idx int, defaults Stage) (*Stage, er
 	if s.Duration == nil {
 		if defaults.Duration == nil {
 			return nil, fmt.Errorf("missing duration at stage %d", idx)
-		} else {
-			s.Duration = defaults.Duration
 		}
+		s.Duration = defaults.Duration
 	}
 	if s.Mode == nil {
 		if defaults.Mode == nil {
 			return nil, fmt.Errorf("missing stage mode at stage %d", idx)
-		} else {
-			s.Mode = defaults.Mode
 		}
+		s.Mode = defaults.Mode
 	}
 
 	return s, nil
@@ -224,16 +236,14 @@ func (s *Stage) validateConstantStage(idx int, defaults Stage) (*Stage, error) {
 	if s.Rate == nil {
 		if defaults.Rate == nil {
 			return nil, fmt.Errorf("missing rate at stage %d", idx)
-		} else {
-			s.Rate = defaults.Rate
 		}
+		s.Rate = defaults.Rate
 	}
 	if s.Distribution == nil {
 		if defaults.Distribution == nil {
 			return nil, fmt.Errorf("missing distribution at stage %d", idx)
-		} else {
-			s.Distribution = defaults.Distribution
 		}
+		s.Distribution = defaults.Distribution
 	}
 	if s.Jitter == nil {
 		s.Jitter = defaults.Jitter
@@ -253,23 +263,20 @@ func (s *Stage) validateRampStage(idx int, defaults Stage) (*Stage, error) {
 	if s.StartRate == nil {
 		if defaults.StartRate == nil {
 			return nil, fmt.Errorf("missing start-rate at stage %d", idx)
-		} else {
-			s.StartRate = defaults.StartRate
 		}
+		s.StartRate = defaults.StartRate
 	}
 	if s.EndRate == nil {
 		if defaults.EndRate == nil {
 			return nil, fmt.Errorf("missing end-rate at stage %d", idx)
-		} else {
-			s.EndRate = defaults.EndRate
 		}
+		s.EndRate = defaults.EndRate
 	}
 	if s.Distribution == nil {
 		if defaults.Distribution == nil {
 			return nil, fmt.Errorf("missing distribution at stage %d", idx)
-		} else {
-			s.Distribution = defaults.Distribution
 		}
+		s.Distribution = defaults.Distribution
 	}
 	if s.Jitter == nil {
 		s.Jitter = defaults.Jitter
@@ -289,23 +296,20 @@ func (s *Stage) validateStagedStage(idx int, defaults Stage) (*Stage, error) {
 	if s.Stages == nil {
 		if defaults.Stages == nil {
 			return nil, fmt.Errorf("missing stages at stage %d", idx)
-		} else {
-			s.Stages = defaults.Stages
 		}
+		s.Stages = defaults.Stages
 	}
 	if s.IterationFrequency == nil {
 		if defaults.IterationFrequency == nil {
 			return nil, fmt.Errorf("missing iteration-frequency at stage %d", idx)
-		} else {
-			s.IterationFrequency = defaults.IterationFrequency
 		}
+		s.IterationFrequency = defaults.IterationFrequency
 	}
 	if s.Distribution == nil {
 		if defaults.Distribution == nil {
 			return nil, fmt.Errorf("missing distribution at stage %d", idx)
-		} else {
-			s.Distribution = defaults.Distribution
 		}
+		s.Distribution = defaults.Distribution
 	}
 	if s.Jitter == nil {
 		s.Jitter = defaults.Jitter
@@ -325,51 +329,44 @@ func (s *Stage) validateGaussianStage(idx int, defaults Stage) (*Stage, error) {
 	if s.Volume == nil {
 		if defaults.Volume == nil {
 			return nil, fmt.Errorf("missing volume at stage %d", idx)
-		} else {
-			s.Volume = defaults.Volume
 		}
+		s.Volume = defaults.Volume
 	}
 	if s.Repeat == nil {
 		if defaults.Repeat == nil {
 			return nil, fmt.Errorf("missing repeat at stage %d", idx)
-		} else {
-			s.Repeat = defaults.Repeat
 		}
+		s.Repeat = defaults.Repeat
 	}
 	if s.IterationFrequency == nil {
 		if defaults.IterationFrequency == nil {
 			return nil, fmt.Errorf("missing iteration-frequency at stage %d", idx)
-		} else {
-			s.IterationFrequency = defaults.IterationFrequency
 		}
+		s.IterationFrequency = defaults.IterationFrequency
 	}
 	if s.Peak == nil {
 		if defaults.Peak == nil {
 			return nil, fmt.Errorf("missing peak at stage %d", idx)
-		} else {
-			s.Peak = defaults.Peak
 		}
+		s.Peak = defaults.Peak
 	}
 	if s.Weights == nil {
 		if defaults.Weights == nil {
 			return nil, fmt.Errorf("missing weights at stage %d", idx)
-		} else {
-			s.Weights = defaults.Weights
 		}
+		s.Weights = defaults.Weights
 	}
 	if s.StandardDeviation == nil {
 		if defaults.StandardDeviation == nil {
 			return nil, fmt.Errorf("missing standard-deviation at stage %d", idx)
-		} else {
-			s.StandardDeviation = defaults.StandardDeviation
 		}
+		s.StandardDeviation = defaults.StandardDeviation
 	}
 	if s.Distribution == nil {
 		if defaults.Distribution == nil {
 			return nil, fmt.Errorf("missing distribution at stage %d", idx)
-		} else {
-			s.Distribution = defaults.Distribution
 		}
+		s.Distribution = defaults.Distribution
 	}
 	if s.Jitter == nil {
 		s.Jitter = defaults.Jitter
@@ -389,9 +386,9 @@ func (s *Stage) validateUsersStage(idx int, defaults Stage) (*Stage, error) {
 	if s.Concurrency == nil {
 		if defaults.Concurrency == nil {
 			return nil, fmt.Errorf("missing users at stage %d", idx)
-		} else {
-			s.Concurrency = defaults.Concurrency
 		}
+
+		s.Concurrency = defaults.Concurrency
 	}
 	if s.Parameters == nil {
 		if defaults.Parameters == nil {

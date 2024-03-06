@@ -36,7 +36,7 @@ func getLogFilePath(scenario string) string {
 func redirectLoggingToFile(scenario string) string {
 	logFilePath := getLogFilePath(scenario)
 
-	file, err := os.OpenFile(logFilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0600)
+	file, err := os.OpenFile(logFilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o600)
 	if err == nil {
 		log.StandardLogger().SetOutput(file)
 	} else {

@@ -1,13 +1,13 @@
 package chart
 
 import (
-	"fmt"
+	"strconv"
 	"testing"
 	"time"
 
-	"github.com/form3tech-oss/f1/v2/internal/trigger"
-
 	"github.com/stretchr/testify/assert"
+
+	"github.com/form3tech-oss/f1/v2/internal/trigger"
 )
 
 type ChartTestStage struct {
@@ -18,6 +18,7 @@ type ChartTestStage struct {
 }
 
 func NewChartTestStage(t *testing.T) (*ChartTestStage, *ChartTestStage, *ChartTestStage) {
+	t.Helper()
 	stage := &ChartTestStage{
 		t:      t,
 		assert: assert.New(t),
@@ -28,6 +29,7 @@ func NewChartTestStage(t *testing.T) (*ChartTestStage, *ChartTestStage, *ChartTe
 func (s *ChartTestStage) and() *ChartTestStage {
 	return s
 }
+
 func (s *ChartTestStage) i_execute_the_chart_command() *ChartTestStage {
 	cmd := Cmd(trigger.GetBuilders())
 	cmd.SetArgs(s.args)
@@ -61,7 +63,7 @@ func (s *ChartTestStage) the_load_style_is_ramp() *ChartTestStage {
 }
 
 func (s *ChartTestStage) the_load_style_is_gaussian_with_a_volume_of(volume int) *ChartTestStage {
-	s.args = append(s.args, "gaussian", "--peak", "5m", "--repeat", "10m", "--volume", fmt.Sprint(volume), "--standard-deviation", "1m", "--distribution", "none")
+	s.args = append(s.args, "gaussian", "--peak", "5m", "--repeat", "10m", "--volume", strconv.Itoa(volume), "--standard-deviation", "1m", "--distribution", "none")
 	return s
 }
 
