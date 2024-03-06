@@ -3,6 +3,7 @@ package gaussian
 import (
 	"fmt"
 	"math"
+	"strconv"
 	"testing"
 	"time"
 
@@ -161,7 +162,7 @@ func TestTotalVolumes(t *testing.T) {
 		},
 	} {
 		t.Run(fmt.Sprintf("%d: %f every %s, stddev: %s, peak: %s, jitter %f", i, test.volume, test.frequency.String(), test.stddev, test.peak, test.jitter), func(t *testing.T) {
-			c := NewGaussianRateCalculator(test.peak, test.stddev, test.frequency, test.weights, test.volume, test.repeat)
+			c := NewCalculator(test.peak, test.stddev, test.frequency, test.weights, test.volume, test.repeat)
 			total := 0.0
 			current := time.Now().Truncate(test.repeat)
 			end := current.Add(test.repeat)
@@ -174,7 +175,14 @@ func TestTotalVolumes(t *testing.T) {
 				total += float64(rate)
 			}
 
-			fmt.Println(asciigraph.Plot(rates, asciigraph.Height(15), asciigraph.Width(160), asciigraph.Caption(fmt.Sprintf("Rate per %s", test.frequency.String()))))
+			fmt.Println(
+				asciigraph.Plot(
+					rates,
+					asciigraph.Height(15),
+					asciigraph.Width(160),
+					asciigraph.Caption("Rate per "+test.frequency.String()),
+				),
+			)
 			diff := math.Abs(total - test.volume)
 			fmt.Printf("Configured for volume %f, triggered %f. Difference of %f (%f%%)\n", test.volume, total, diff, 100*diff/test.volume)
 			acceptableErrorPercent := 0.1
@@ -200,10 +208,10 @@ func TestWeightedVolumes(t *testing.T) {
 			expectedTotals: []int{666666, 1333334, 1333334, 666666},
 		},
 	} {
-		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
+		t.Run(strconv.Itoa(i), func(t *testing.T) {
 			iterationDuration := 10 * time.Second
 			repeatEvery := 10 * time.Minute
-			c := NewGaussianRateCalculator(repeatEvery/2, 1*time.Minute, iterationDuration, test.weights, float64(test.volume), repeatEvery)
+			c := NewCalculator(repeatEvery/2, 1*time.Minute, iterationDuration, test.weights, float64(test.volume), repeatEvery)
 			total := 0.0
 			require.Equal(t, len(test.weights), len(test.expectedTotals))
 			expectedTotal := 0
@@ -225,7 +233,7 @@ func TestWeightedVolumes(t *testing.T) {
 				diff := math.Abs(repetitionTotal - float64(test.expectedTotals[i]))
 				fmt.Printf("Configured for volume %d, triggered %f. Difference of %f (%f%%)\n", test.expectedTotals[i], repetitionTotal, diff, 100*diff/float64(test.expectedTotals[i]))
 				acceptableErrorPercent := 0.1
-				assert.True(t, diff < float64(test.expectedTotals[i])*acceptableErrorPercent/100.0, "volumes differ by > %f%%", acceptableErrorPercent*100.0)
+				assert.Less(t, diff, float64(test.expectedTotals[i])*acceptableErrorPercent/100.0, "volumes differ by > %f%%", acceptableErrorPercent*100.0)
 			}
 			require.Equal(t, expectedTotal, test.volume*len(test.weights))
 		})

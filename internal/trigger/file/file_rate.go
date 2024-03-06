@@ -33,7 +33,7 @@ type runnableStage struct {
 	params            map[string]string
 }
 
-func FileRate() api.Builder {
+func Rate() api.Builder {
 	flags := pflag.NewFlagSet("file", pflag.ContinueOnError)
 
 	return api.Builder{

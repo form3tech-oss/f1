@@ -37,7 +37,7 @@ func (s *RatedRunnerStage) and() *RatedRunnerStage {
 }
 
 func (s *RatedRunnerStage) a_rate_runner() *RatedRunnerStage {
-	runner, _ := New(func(rate time.Duration, t time.Time) {
+	runner, _ := New(func(rate time.Duration, _ time.Time) {
 		s.m.Lock()
 		defer s.m.Unlock()
 		s.funcRuns[rate]++

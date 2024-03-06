@@ -17,7 +17,7 @@ import (
 
 const defaultVolume = 24 * 60 * 60
 
-func GaussianRate() api.Builder {
+func Rate() api.Builder {
 	flags := pflag.NewFlagSet("gaussian", pflag.ContinueOnError)
 	flags.Float64("volume", defaultVolume, "The desired volume to be achieved with the calculated load profile. Will be ignored if --peak-rate is also provided.")
 	flags.Duration("repeat", 24*time.Hour, "How often the cycle should repeat")
@@ -107,7 +107,7 @@ func GaussianRate() api.Builder {
 	}
 }
 
-type gaussianRateCalculator struct {
+type Calculator struct {
 	repeatWindow  time.Duration
 	frequency     time.Duration
 	dist          *gaussian.Gaussian
@@ -118,7 +118,11 @@ type gaussianRateCalculator struct {
 	averageWeight float64
 }
 
-func CalculateGaussianRate(volume, jitter float64, repeat, frequency, peak, stddev time.Duration, weights, distributionTypeArg string) (*api.Rates, error) {
+func CalculateGaussianRate(
+	volume, jitter float64,
+	repeat, frequency, peak, stddev time.Duration,
+	weights, distributionTypeArg string,
+) (*api.Rates, error) {
 	var weightsSlice []float64
 	for _, s := range strings.Split(weights, ",") {
 		if s == "" {
@@ -126,12 +130,12 @@ func CalculateGaussianRate(volume, jitter float64, repeat, frequency, peak, stdd
 		}
 		weight, err := strconv.ParseFloat(s, 64)
 		if err != nil {
-			return nil, fmt.Errorf("unable to parse weights")
+			return nil, fmt.Errorf("unable to parse weights: %w", err)
 		}
 		weightsSlice = append(weightsSlice, weight)
 	}
 
-	calculator := NewGaussianRateCalculator(peak, stddev, frequency, weightsSlice, volume, repeat)
+	calculator := NewCalculator(peak, stddev, frequency, weightsSlice, volume, repeat)
 
 	rateFn := api.WithJitter(calculator.For, jitter)
 	distributedIterationDuration, distributedRateFn, err := api.NewDistribution(distributionTypeArg, frequency, rateFn)
@@ -146,7 +150,7 @@ func CalculateGaussianRate(volume, jitter float64, repeat, frequency, peak, stdd
 	}, nil
 }
 
-func (c *gaussianRateCalculator) For(now time.Time) int {
+func (c *Calculator) For(now time.Time) int {
 	// this will be called every tick. Work out how many we should be sending now.
 	start := now.Truncate(c.repeatWindow)
 	slot := float64(now.Sub(start))
@@ -171,7 +175,7 @@ func (c *gaussianRateCalculator) For(now time.Time) int {
 	return int(floorRate)
 }
 
-func NewGaussianRateCalculator(peak time.Duration, stddev time.Duration, frequency time.Duration, weights []float64, volume float64, repeatWindow time.Duration) *gaussianRateCalculator {
+func NewCalculator(peak time.Duration, stddev time.Duration, frequency time.Duration, weights []float64, volume float64, repeatWindow time.Duration) *Calculator {
 	variance := math.Pow(float64(stddev), 2)
 	multiplier := volume * float64(frequency)
 	gauss := gaussian.NewGaussian(float64(peak), variance)
@@ -187,9 +191,9 @@ func NewGaussianRateCalculator(peak time.Duration, stddev time.Duration, frequen
 
 	// account for large standard deviations or peaks beyond the window
 	coveredRegion := gauss.Cdf(float64(repeatWindow-frequency)) - gauss.Cdf(0)
-	multiplier = multiplier / coveredRegion
+	multiplier /= coveredRegion
 
-	return &gaussianRateCalculator{
+	return &Calculator{
 		frequency:     frequency,
 		dist:          gauss,
 		dailyVolume:   volume,

@@ -1,6 +1,7 @@
 package ramp
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
@@ -10,7 +11,7 @@ import (
 	"github.com/form3tech-oss/f1/v2/internal/trigger/rate"
 )
 
-func RampRate() api.Builder {
+func Rate() api.Builder {
 	flags := pflag.NewFlagSet("ramp", pflag.ContinueOnError)
 	flags.StringP("start-rate", "s", "1/s", "number of iterations to start per interval, in the form <request>/<duration>")
 	flags.StringP("end-rate", "e", "1/s", "number of iterations to end per interval, in the form <request>/<duration>")
@@ -77,13 +78,13 @@ func CalculateRampRate(startRateArg, endRateArg, distributionTypeArg string, dur
 	}
 
 	if startRate == endRate {
-		return nil, fmt.Errorf("start-rate and end-rate should be different, for constant rate try using the constant mode")
+		return nil, errors.New("start-rate and end-rate should be different, for constant rate try using the constant mode")
 	}
 	if startUnit != endUnit {
-		return nil, fmt.Errorf("start-rate and end-rate are not using the same unit")
+		return nil, errors.New("start-rate and end-rate are not using the same unit")
 	}
 	if duration < startUnit {
-		return nil, fmt.Errorf("duration is lower than rate unit")
+		return nil, errors.New("duration is lower than rate unit")
 	}
 
 	rateFn := func(now time.Time) int {

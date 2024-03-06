@@ -1,7 +1,6 @@
-package fluentd_hook
+package fluentd
 
 import (
-	"fmt"
 	"os"
 	"strconv"
 
@@ -23,7 +22,7 @@ func AddFluentdLoggingHook(scenario string) {
 	hook, err := logrus_fluent.NewWithConfig(logrus_fluent.Config{
 		Port:                portNum,
 		Host:                host,
-		DefaultTag:          fmt.Sprintf("f1-%s", scenario),
+		DefaultTag:          "f1-" + scenario,
 		TagPrefix:           "service",
 		DefaultMessageField: "message",
 		AsyncConnect:        false,

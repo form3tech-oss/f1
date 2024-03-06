@@ -1,6 +1,7 @@
 package run_test
 
 import (
+	"errors"
 	"fmt"
 	"math"
 	"strings"
@@ -18,7 +19,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/form3tech-oss/f1/v2/internal/fluentd_hook"
+	"github.com/form3tech-oss/f1/v2/internal/fluentd"
 	"github.com/form3tech-oss/f1/v2/internal/options"
 	"github.com/form3tech-oss/f1/v2/internal/run"
 	"github.com/form3tech-oss/f1/v2/internal/trigger/api"
@@ -37,7 +38,7 @@ type RunTestStage struct {
 	startTime              time.Time
 	t                      *testing.T
 	scenario               string
-	runResult              *run.RunResult
+	runResult              *run.Result
 	concurrency            int
 	setupTeardownCount     *int32
 	iterationTeardownCount *int32
@@ -60,6 +61,7 @@ type RunTestStage struct {
 }
 
 func NewRunTestStage(t *testing.T) (*RunTestStage, *RunTestStage, *RunTestStage) {
+	t.Helper()
 	setupTeardownCount := int32(0)
 	iterationTeardownCount := int32(0)
 	stage := &RunTestStage{
@@ -133,12 +135,12 @@ func (s *RunTestStage) i_execute_the_run_command() *RunTestStage {
 			MaxIterations:       s.maxIterations,
 			MaxFailures:         s.maxFailures,
 			MaxFailuresRate:     s.maxFailuresRate,
-			RegisterLogHookFunc: fluentd_hook.AddFluentdLoggingHook,
+			RegisterLogHookFunc: fluentd.AddFluentdLoggingHook,
 		},
 		s.build_trigger())
 	if err != nil {
 		log.WithError(err).Info("run creation failed")
-		s.runResult = (&run.RunResult{}).AddError(err)
+		s.runResult = (&run.Result{}).AddError(err)
 		return s
 	}
 	s.runResult = r.Do(s.f1.GetScenarios())
@@ -176,19 +178,13 @@ func (s *RunTestStage) the_number_of_started_iterations_should_be(expected int32
 
 func (s *RunTestStage) the_command_should_fail() *RunTestStage {
 	s.assert.NotNil(s.runResult)
-	s.assert.Equal(true, s.runResult.Failed())
-	return s
-}
-
-func (s *RunTestStage) the_command_should_succeeded() *RunTestStage {
-	s.assert.NotNil(s.runResult)
-	s.assert.Equal(false, s.runResult.Failed())
+	s.assert.True(s.runResult.Failed())
 	return s
 }
 
 func (s *RunTestStage) a_test_scenario_that_always_fails() *RunTestStage {
 	s.scenario = uuid.New().String()
-	s.f1.Add(s.scenario, func(t *f1_testing.T) (fn f1_testing.RunFn) {
+	s.f1.Add(s.scenario, func(t *f1_testing.T) f1_testing.RunFn {
 		t.Cleanup(func() {
 			atomic.AddInt32(s.setupTeardownCount, 1)
 		})
@@ -204,7 +200,7 @@ func (s *RunTestStage) a_test_scenario_that_always_fails() *RunTestStage {
 
 func (s *RunTestStage) a_test_scenario_that_always_panics() *RunTestStage {
 	s.scenario = uuid.New().String()
-	s.f1.Add(s.scenario, func(t *f1_testing.T) (fn f1_testing.RunFn) {
+	s.f1.Add(s.scenario, func(t *f1_testing.T) f1_testing.RunFn {
 		t.Cleanup(func() {
 			atomic.AddInt32(s.setupTeardownCount, 1)
 		})
@@ -220,7 +216,7 @@ func (s *RunTestStage) a_test_scenario_that_always_panics() *RunTestStage {
 
 func (s *RunTestStage) a_test_scenario_that_always_fails_an_assertion() *RunTestStage {
 	s.scenario = uuid.New().String()
-	s.f1.Add(s.scenario, func(t *f1_testing.T) (fn f1_testing.RunFn) {
+	s.f1.Add(s.scenario, func(t *f1_testing.T) f1_testing.RunFn {
 		t.Cleanup(func() {
 			atomic.AddInt32(s.setupTeardownCount, 1)
 		})
@@ -236,7 +232,7 @@ func (s *RunTestStage) a_test_scenario_that_always_fails_an_assertion() *RunTest
 
 func (s *RunTestStage) a_test_scenario_that_always_fails_setup() *RunTestStage {
 	s.scenario = uuid.New().String()
-	s.f1.Add(s.scenario, func(t *f1_testing.T) (fn f1_testing.RunFn) {
+	s.f1.Add(s.scenario, func(t *f1_testing.T) f1_testing.RunFn {
 		t.Cleanup(func() {
 			atomic.AddInt32(s.setupTeardownCount, 1)
 		})
@@ -248,7 +244,7 @@ func (s *RunTestStage) a_test_scenario_that_always_fails_setup() *RunTestStage {
 
 func (s *RunTestStage) a_scenario_where_each_iteration_takes(duration time.Duration) *RunTestStage {
 	s.scenario = uuid.New().String()
-	s.f1.Add(s.scenario, func(t *f1_testing.T) (fn f1_testing.RunFn) {
+	s.f1.Add(s.scenario, func(t *f1_testing.T) f1_testing.RunFn {
 		t.Cleanup(func() {
 			atomic.AddInt32(s.setupTeardownCount, 1)
 		})
@@ -277,7 +273,7 @@ func (s *RunTestStage) iteration_teardown_is_called_n_times(n int32) *RunTestSta
 
 func (s *RunTestStage) a_test_scenario_that_fails_intermittently() *RunTestStage {
 	s.scenario = uuid.New().String()
-	s.f1.Add(s.scenario, func(t *f1_testing.T) (fn f1_testing.RunFn) {
+	s.f1.Add(s.scenario, func(t *f1_testing.T) f1_testing.RunFn {
 		t.Cleanup(func() {
 			atomic.AddInt32(s.setupTeardownCount, 1)
 		})
@@ -287,7 +283,7 @@ func (s *RunTestStage) a_test_scenario_that_fails_intermittently() *RunTestStage
 				atomic.AddInt32(s.iterationTeardownCount, 1)
 			})
 			count := atomic.AddInt32(&s.runCount, 1)
-			t.Require().True(count%2 == 0)
+			t.Require().Equal(int32(0), count%2)
 		}
 	})
 	return s
@@ -310,8 +306,9 @@ func (s *RunTestStage) the_number_of_dropped_iterations_should_be(expected uint6
 
 func (s *RunTestStage) distribution_duration_map_of_requests() map[time.Duration]int32 {
 	distributionMap := make(map[time.Duration]int32)
-	s.durations.Range(func(key, value interface{}) bool {
-		requestDuration := value.(time.Duration)
+	s.durations.Range(func(_, value interface{}) bool {
+		requestDuration, ok := value.(time.Duration)
+		s.require.True(ok)
 		truncatedDuration := requestDuration.Truncate(100 * time.Millisecond)
 		existingDuration := distributionMap[truncatedDuration] + 1
 		distributionMap[truncatedDuration] = existingDuration
@@ -360,10 +357,10 @@ func (s *RunTestStage) the_test_run_is_started() *RunTestStage {
 			MaxDuration:         s.duration,
 			Concurrency:         s.concurrency,
 			MaxIterations:       s.maxIterations,
-			RegisterLogHookFunc: fluentd_hook.AddFluentdLoggingHook,
+			RegisterLogHookFunc: fluentd.AddFluentdLoggingHook,
 		},
 			s.build_trigger())
-		require.Nil(s.t, err)
+		require.NoError(s.t, err)
 		s.runResult = r.Do(s.f1.GetScenarios())
 	}()
 	return s
@@ -372,8 +369,9 @@ func (s *RunTestStage) the_test_run_is_started() *RunTestStage {
 func (s *RunTestStage) build_trigger() *api.Trigger {
 	var t *api.Trigger
 	var err error
-	if s.triggerType == Constant {
-		flags := constant.ConstantRate().Flags
+	switch s.triggerType {
+	case Constant:
+		flags := constant.Rate().Flags
 
 		err = flags.Set("rate", s.rate)
 		require.NoError(s.t, err)
@@ -383,10 +381,10 @@ func (s *RunTestStage) build_trigger() *api.Trigger {
 			require.NoError(s.t, err)
 		}
 
-		t, err = constant.ConstantRate().New(flags)
+		t, err = constant.Rate().New(flags)
 		require.NoError(s.t, err)
-	} else if s.triggerType == Staged {
-		flags := staged.StagedRate().Flags
+	case Staged:
+		flags := staged.Rate().Flags
 
 		err = flags.Set("stages", s.stages)
 		require.NoError(s.t, err)
@@ -399,14 +397,14 @@ func (s *RunTestStage) build_trigger() *api.Trigger {
 			require.NoError(s.t, err)
 		}
 
-		t, err = staged.StagedRate().New(flags)
-		require.Nil(s.t, err)
-	} else if s.triggerType == Users {
-		flags := users.UsersRate().Flags
-		t, err = users.UsersRate().New(flags)
-		require.Nil(s.t, err)
-	} else if s.triggerType == Ramp {
-		flags := ramp.RampRate().Flags
+		t, err = staged.Rate().New(flags)
+		require.NoError(s.t, err)
+	case Users:
+		flags := users.Rate().Flags
+		t, err = users.Rate().New(flags)
+		require.NoError(s.t, err)
+	case Ramp:
+		flags := ramp.Rate().Flags
 
 		err = flags.Set("start-rate", s.startRate)
 		require.NoError(s.t, err)
@@ -428,16 +426,16 @@ func (s *RunTestStage) build_trigger() *api.Trigger {
 			require.NoError(s.t, err)
 		}
 
-		t, err = ramp.RampRate().New(flags)
-		require.Nil(s.t, err)
-	} else if s.triggerType == File {
-		flags := file.FileRate().Flags
+		t, err = ramp.Rate().New(flags)
+		require.NoError(s.t, err)
+	case File:
+		flags := file.Rate().Flags
 
 		err := flags.Parse([]string{s.configFile})
 		require.NoError(s.t, err)
 
-		t, err = file.FileRate().New(flags)
-		require.Nil(s.t, err)
+		t, err = file.Rate().New(flags)
+		require.NoError(s.t, err)
 	}
 	return t
 }
@@ -451,12 +449,12 @@ func (s *RunTestStage) the_test_run_is_interrupted() *RunTestStage {
 func (s *RunTestStage) setup_teardown_is_called_within_50ms() *RunTestStage {
 	err := retry.Do(func() error {
 		if atomic.LoadInt32(s.setupTeardownCount) <= 0 {
-			return fmt.Errorf("no teardown yet")
+			return errors.New("no teardown yet")
 		}
 		return nil
 	}, retry.Sleep(10*time.Millisecond), retry.MaxTries(5))
-	s.assert.NoError(err)
-	s.assert.True(atomic.LoadInt32(s.setupTeardownCount) >= 1)
+	s.require.NoError(err)
+	s.assert.GreaterOrEqual(atomic.LoadInt32(s.setupTeardownCount), int32(1))
 	return s
 }
 
@@ -487,7 +485,7 @@ func (s *RunTestStage) metrics_are_pushed_to_prometheus() *RunTestStage {
 
 func (s *RunTestStage) a_scenario_where_the_final_iteration_takes_100ms() *RunTestStage {
 	s.scenario = uuid.New().String()
-	s.f1.Add(s.scenario, func(t *f1_testing.T) (fn f1_testing.RunFn) {
+	s.f1.Add(s.scenario, func(t *f1_testing.T) f1_testing.RunFn {
 		t.Cleanup(func() {
 			atomic.AddInt32(s.setupTeardownCount, 1)
 		})
@@ -538,10 +536,10 @@ func (s *RunTestStage) the_iteration_metric_has_n_results(n int, result string) 
 		s.require.NotNil(metricFamily)
 		resultMetric := getMetricByResult(metricFamily, result)
 		s.require.NotNil(resultMetric)
-		if uint64(n) == *resultMetric.GetSummary().SampleCount {
+		if uint64(n) == resultMetric.GetSummary().GetSampleCount() {
 			return nil
 		}
-		return fmt.Errorf("expected %d to equal %d", uint64(n), *resultMetric.GetSummary().SampleCount)
+		return fmt.Errorf("expected %d to equal %d", uint64(n), resultMetric.GetSummary().GetSampleCount())
 	})
 	s.require.NoError(err)
 	return s
@@ -554,9 +552,9 @@ func (s *RunTestStage) all_exported_metrics_contain_label(labelName string, labe
 		metricFamily := fakePrometheus.GetMetricFamily(name)
 		s.require.NotNil(metricFamily)
 
-		for _, metric := range metricFamily.Metric {
+		for _, metric := range metricFamily.GetMetric() {
 			match := false
-			for _, label := range metric.Label {
+			for _, label := range metric.GetLabel() {
 				nameMatch := label.GetName() == labelName
 				valueMatch := label.GetValue() == labelValue
 				match = match || (nameMatch && valueMatch)
@@ -574,9 +572,9 @@ func (s *RunTestStage) all_exported_metrics_contain_label(labelName string, labe
 }
 
 func getMetricByResult(metricFamily *io_prometheus_client.MetricFamily, result string) *io_prometheus_client.Metric {
-	for _, metric := range metricFamily.Metric {
-		for _, label := range metric.Label {
-			if *label.Name == "result" && *label.Value == result {
+	for _, metric := range metricFamily.GetMetric() {
+		for _, label := range metric.GetLabel() {
+			if label.GetName() == "result" && label.GetValue() == result {
 				return metric
 			}
 		}

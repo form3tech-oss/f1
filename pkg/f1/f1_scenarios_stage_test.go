@@ -22,10 +22,10 @@ type scenario struct {
 	iterations *int32
 }
 
-func (s scenario) scenariofn(_ *f1_testing.T) f1_testing.RunFn {
+func (s scenario) scenariofn(*f1_testing.T) f1_testing.RunFn {
 	atomic.AddInt32(s.setups, 1)
 
-	return func(_ *f1_testing.T) {
+	return func(*f1_testing.T) {
 		atomic.AddInt32(s.iterations, 1)
 	}
 }
@@ -37,7 +37,9 @@ func newScenario(setups, iterations int32) scenario {
 	}
 }
 
-func newF1ScenarioStage(t *testing.T) (given, when, then *f1ScenariosStage) {
+func newF1ScenarioStage(t *testing.T) (*f1ScenariosStage, *f1ScenariosStage, *f1ScenariosStage) {
+	t.Helper()
+
 	s := &f1ScenariosStage{
 		t: t,
 	}
@@ -71,7 +73,7 @@ func (s *f1ScenariosStage) the_f1_scenario_is_executed() {
 
 func (s *f1ScenariosStage) each_scenarios_setup_and_iteration_functions_are_called() {
 	for _, scn := range s.scenarios {
-		assert.Equal(s.t, *scn.setups, int32(1))
+		assert.Equal(s.t, int32(1), *scn.setups)
 		assert.GreaterOrEqual(s.t, *scn.iterations, int32(5))
 	}
 }

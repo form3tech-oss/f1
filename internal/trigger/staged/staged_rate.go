@@ -9,7 +9,7 @@ import (
 	"github.com/form3tech-oss/f1/v2/internal/trigger/api"
 )
 
-func StagedRate() api.Builder {
+func Rate() api.Builder {
 	flags := pflag.NewFlagSet("staged", pflag.ContinueOnError)
 	flags.StringP("stages", "s", "0s:1, 10s:1", "Comma separated list of <stage_duration>:<target_concurrent_iterations>. During the stage, the number of concurrent iterations will ramp up or down to the target. ")
 	flags.DurationP("iterationFrequency", "f", 1*time.Second, "How frequently iterations should be started")

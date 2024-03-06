@@ -15,7 +15,7 @@ func NewDistribution(distributionTypeArg string, iterationDuration time.Duration
 		distributedIterationDuration, distributedRateFn := withRegularDistribution(iterationDuration, rateFn)
 		return distributedIterationDuration, distributedRateFn, nil
 	case "random":
-		randomFn := func(limit int) int { return rand.Intn(limit) }
+		randomFn := rand.Intn
 		distributedIterationDuration, distributedRateFn := withRandomDistribution(iterationDuration, rateFn, randomFn)
 		return distributedIterationDuration, distributedRateFn, nil
 	default:

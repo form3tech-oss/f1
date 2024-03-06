@@ -33,7 +33,7 @@ To configure your bash shell to load completions for each session add to your ba
 # ~/.bashrc or ~/.profile
 . <(f1 completion)
 `,
-		Run: func(cmd *cobra.Command, args []string) {
+		Run: func(*cobra.Command, []string) {
 			errorh.Print(buildRootCmd(s, p).GenBashCompletion(os.Stdout), "error generating bash completion")
 		},
 	}
@@ -47,7 +47,7 @@ func zshCmd(s *scenarios.Scenarios, p *profiling) *cobra.Command {
 
 . <(f1 completion)
 `,
-		Run: func(cmd *cobra.Command, args []string) {
+		Run: func(*cobra.Command, []string) {
 			errorh.Print(buildRootCmd(s, p).GenZshCompletion(os.Stdout), "error generating zsh completion")
 		},
 	}
@@ -59,7 +59,7 @@ func fishCmd(s *scenarios.Scenarios, p *profiling) *cobra.Command {
 		Short: "Generates fish completion scripts",
 		Long: `To define completions run
 ./f1 completions fish >  ~/.config/fish/completions/f1.fish`,
-		Run: func(cmd *cobra.Command, args []string) {
+		Run: func(*cobra.Command, []string) {
 			errorh.Print(buildRootCmd(s, p).GenFishCompletion(os.Stdout, true), "error generating fish completion")
 		},
 	}
