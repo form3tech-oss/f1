@@ -44,7 +44,6 @@ linters:
   - gomnd
   - goerr113
   - gochecknoglobals
-  - depguard
   - lll
   - prealloc
   - gocritic
