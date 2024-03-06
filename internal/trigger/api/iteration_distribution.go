@@ -25,6 +25,7 @@ func NewDistribution(distributionTypeArg string, iterationDuration time.Duration
 
 func withRegularDistribution(iterationDuration time.Duration, rateFn RateFunction) (time.Duration, RateFunction) {
 	distributedIterationDuration := 100 * time.Millisecond
+	tolerance := 0.0000001
 
 	if iterationDuration <= distributedIterationDuration {
 		return iterationDuration, rateFn
@@ -43,14 +44,13 @@ func withRegularDistribution(iterationDuration time.Duration, rateFn RateFunctio
 		}
 
 		accRate += float64(rate) / float64(tickSteps)
-		accRate = math.Round(accRate*10_000_000) / 10_000_000
 		remainingSteps--
 
-		if accRate < 1 {
+		if accRate < 1-tolerance {
 			return 0
 		}
 
-		roundedAccRate := int(accRate)
+		roundedAccRate := int(math.Round(accRate/tolerance) * tolerance)
 		accRate -= float64(roundedAccRate)
 
 		return roundedAccRate
