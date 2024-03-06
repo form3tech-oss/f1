@@ -51,7 +51,13 @@ func (f *FakePrometheus) ServeHTTP(response http.ResponseWriter, request *http.R
 	if request != nil && request.Body != nil {
 		defer errorh.SafeClose(request.Body)
 		metricFamily := &io_prometheus_client.MetricFamily{}
-		expfmt.NewDecoder(request.Body, expfmt.ResponseFormat(request.Header)).Decode(metricFamily)
+		err := expfmt.NewDecoder(request.Body, expfmt.ResponseFormat(request.Header)).Decode(metricFamily)
+		if err != nil {
+			log.WithError(err).Error("decoding metric family")
+			response.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
 		mf, ok := f.metricFamilies.Load(metricFamily.GetName())
 
 		if metricFamily.GetMetric() != nil {

@@ -52,7 +52,6 @@ linters:
   - gocritic
   - forbidigo
   - dupl
-  - errcheck
   - gosec
 
 linters-settings:

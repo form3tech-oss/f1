@@ -144,6 +144,6 @@ func TestNameReturnsScenarioName(t *go_testing.T) {
 }
 
 func catchPanics(done chan<- struct{}) {
-	recover()
+	_ = recover()
 	close(done)
 }
