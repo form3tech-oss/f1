@@ -1,4 +1,4 @@
-package fluentd_hook //nolint:stylecheck // breaking change
+package fluentd_hook //nolint:stylecheck,revive // breaking change
 
 import (
 	"os"

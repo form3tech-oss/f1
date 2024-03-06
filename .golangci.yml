@@ -47,7 +47,6 @@ linters:
   - gochecknoglobals
   - depguard
   - unparam
-  - revive
   - lll
   - prealloc
   - forcetypeassert

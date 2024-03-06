@@ -162,7 +162,7 @@ func TestTotalVolumes(t *testing.T) {
 		},
 	} {
 		t.Run(fmt.Sprintf("%d: %f every %s, stddev: %s, peak: %s, jitter %f", i, test.volume, test.frequency.String(), test.stddev, test.peak, test.jitter), func(t *testing.T) {
-			c := NewGaussianRateCalculator(test.peak, test.stddev, test.frequency, test.weights, test.volume, test.repeat)
+			c := NewCalculator(test.peak, test.stddev, test.frequency, test.weights, test.volume, test.repeat)
 			total := 0.0
 			current := time.Now().Truncate(test.repeat)
 			end := current.Add(test.repeat)
@@ -211,7 +211,7 @@ func TestWeightedVolumes(t *testing.T) {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
 			iterationDuration := 10 * time.Second
 			repeatEvery := 10 * time.Minute
-			c := NewGaussianRateCalculator(repeatEvery/2, 1*time.Minute, iterationDuration, test.weights, float64(test.volume), repeatEvery)
+			c := NewCalculator(repeatEvery/2, 1*time.Minute, iterationDuration, test.weights, float64(test.volume), repeatEvery)
 			total := 0.0
 			require.Equal(t, len(test.weights), len(test.expectedTotals))
 			expectedTotal := 0

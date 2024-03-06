@@ -12,11 +12,11 @@ import (
 
 func GetBuilders() []api.Builder {
 	return []api.Builder{
-		constant.ConstantRate(),
-		staged.StagedRate(),
-		gaussian.GaussianRate(),
-		users.UsersRate(),
-		ramp.RampRate(),
-		file.FileRate(),
+		constant.Rate(),
+		staged.Rate(),
+		gaussian.Rate(),
+		users.Rate(),
+		ramp.Rate(),
+		file.Rate(),
 	}
 }

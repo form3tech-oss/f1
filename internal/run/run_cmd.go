@@ -86,38 +86,38 @@ func runCmdExecute(s *scenarios.Scenarios, t api.Builder, hookFunc logging.Regis
 			scenarioName = args[0]
 			duration, err = cmd.Flags().GetDuration("max-duration")
 			if err != nil {
-				return errors.New(fmt.Sprintf("Invalid duration value: %s", err))
+				return fmt.Errorf("invalid max-duration value: %w", err)
 			}
 			concurrency, err = cmd.Flags().GetInt("concurrency")
 			if err != nil || concurrency < 1 {
-				return errors.New(fmt.Sprintf("Invalid concurrency value: %s", err))
+				return fmt.Errorf("invalid concurrency value: %w", err)
 			}
 			maxIterations, err = cmd.Flags().GetInt32("max-iterations")
 			if err != nil {
-				return errors.New(fmt.Sprintf("Invalid maxIterations value: %s", err))
+				return fmt.Errorf("invalid max-iterations value: %w", err)
 			}
 			maxFailures, err = cmd.Flags().GetInt("max-failures")
 			if err != nil {
-				return errors.New(fmt.Sprintf("Invalid maxFailures value: %s", err))
+				return fmt.Errorf("invalid max-failures value: %w", err)
 			}
 			maxFailuresRate, err = cmd.Flags().GetInt("max-failures-rate")
 			if err != nil {
-				return errors.New(fmt.Sprintf("Invalid maxFailuresRate value: %s", err))
+				return fmt.Errorf("invalid max-failures-rate value: %w", err)
 			}
 			ignoreDropped, err = cmd.Flags().GetBool("ignore-dropped")
 			if err != nil {
-				return errors.New(fmt.Sprintf("Invalid ignore-dropped value: %s", err))
+				return fmt.Errorf("invalid ignore-dropped value: %w", err)
 			}
 		}
 
 		verbose, err := cmd.Flags().GetBool("verbose")
 		if err != nil {
-			return errors.New(fmt.Sprintf("Invalid verbose value: %s", err))
+			return fmt.Errorf("invalid verbose value: %w", err)
 		}
 
 		verboseFail, err := cmd.Flags().GetBool("verbose-fail")
 		if err != nil {
-			return errors.New(fmt.Sprintf("Invalid verbose-fail value: %s", err))
+			return fmt.Errorf("invalid verbose-fail value: %w", err)
 		}
 
 		run, err := NewRun(options.RunOptions{

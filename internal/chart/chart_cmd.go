@@ -36,7 +36,7 @@ func Cmd(builders []api.Builder) *cobra.Command {
 }
 
 func chartCmdExecute(t api.Builder) func(cmd *cobra.Command, args []string) error {
-	return func(cmd *cobra.Command, args []string) error {
+	return func(cmd *cobra.Command, _ []string) error {
 		cmd.SilenceUsage = true
 
 		startString, err := cmd.Flags().GetString("chart-start")

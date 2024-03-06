@@ -11,7 +11,7 @@ import (
 	"github.com/form3tech-oss/f1/v2/internal/trigger/rate"
 )
 
-func RampRate() api.Builder {
+func Rate() api.Builder {
 	flags := pflag.NewFlagSet("ramp", pflag.ContinueOnError)
 	flags.StringP("start-rate", "s", "1/s", "number of iterations to start per interval, in the form <request>/<duration>")
 	flags.StringP("end-rate", "e", "1/s", "number of iterations to end per interval, in the form <request>/<duration>")

@@ -9,14 +9,14 @@ import (
 	"github.com/form3tech-oss/f1/v2/internal/trigger/api"
 )
 
-func UsersRate() api.Builder {
+func Rate() api.Builder {
 	flags := pflag.NewFlagSet("users", pflag.ContinueOnError)
 
 	return api.Builder{
 		Name:        "users <scenario>",
 		Description: "triggers test iterations from a static set of users controlled by the --concurrency flag",
 		Flags:       flags,
-		New: func(params *pflag.FlagSet) (*api.Trigger, error) {
+		New: func(*pflag.FlagSet) (*api.Trigger, error) {
 			trigger := func(workTriggered chan<- bool, stop <-chan bool, workDone <-chan bool, options options.RunOptions) {
 				doWork := NewWorker(options.Concurrency)
 				doWork(workTriggered, stop, workDone, options)
@@ -29,7 +29,7 @@ func UsersRate() api.Builder {
 					// on the number of users specified in the `--concurrency` flag.
 					// This flag is not required for the `chart` command, which uses the `DryRun`
 					// function, so its not possible to provide an accurate rate function here.
-					DryRun: func(t time.Time) int { return 1 },
+					DryRun: func(time.Time) int { return 1 },
 				},
 				nil
 		},
@@ -37,7 +37,7 @@ func UsersRate() api.Builder {
 }
 
 func NewWorker(concurrency int) api.WorkTriggerer {
-	return func(workTriggered chan<- bool, stop <-chan bool, workDone <-chan bool, options options.RunOptions) {
+	return func(workTriggered chan<- bool, stop <-chan bool, workDone <-chan bool, _ options.RunOptions) {
 		for i := 0; i < concurrency; i++ {
 			workTriggered <- true
 		}

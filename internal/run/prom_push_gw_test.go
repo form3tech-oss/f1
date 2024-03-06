@@ -135,7 +135,7 @@ func (f *FakePrometheus) GetIterationDuration(scenario string, q float64) float6
 
 func (f *FakePrometheus) GetMetricNames() []string {
 	names := []string{}
-	f.metricFamilies.Range(func(key, value interface{}) bool {
+	f.metricFamilies.Range(func(key, _ interface{}) bool {
 		name, ok := key.(string)
 		if ok {
 			names = append(names, name)

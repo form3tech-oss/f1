@@ -10,7 +10,7 @@ import (
 	"github.com/form3tech-oss/f1/v2/internal/trigger/rate"
 )
 
-func ConstantRate() api.Builder {
+func Rate() api.Builder {
 	flags := pflag.NewFlagSet("constant", pflag.ContinueOnError)
 	flags.StringP("rate", "r", "1/s", "number of iterations to start per interval, in the form <request>/<duration>")
 	flags.Float64P("jitter", "j", 0.0, "vary the rate randomly by up to jitter percent")

@@ -38,7 +38,7 @@ type RunTestStage struct {
 	startTime              time.Time
 	t                      *testing.T
 	scenario               string
-	runResult              *run.RunResult
+	runResult              *run.Result
 	concurrency            int
 	setupTeardownCount     *int32
 	iterationTeardownCount *int32
@@ -140,7 +140,7 @@ func (s *RunTestStage) i_execute_the_run_command() *RunTestStage {
 		s.build_trigger())
 	if err != nil {
 		log.WithError(err).Info("run creation failed")
-		s.runResult = (&run.RunResult{}).AddError(err)
+		s.runResult = (&run.Result{}).AddError(err)
 		return s
 	}
 	s.runResult = r.Do(s.f1.GetScenarios())
@@ -306,7 +306,7 @@ func (s *RunTestStage) the_number_of_dropped_iterations_should_be(expected uint6
 
 func (s *RunTestStage) distribution_duration_map_of_requests() map[time.Duration]int32 {
 	distributionMap := make(map[time.Duration]int32)
-	s.durations.Range(func(key, value interface{}) bool {
+	s.durations.Range(func(_, value interface{}) bool {
 		requestDuration := value.(time.Duration)
 		truncatedDuration := requestDuration.Truncate(100 * time.Millisecond)
 		existingDuration := distributionMap[truncatedDuration] + 1
@@ -369,7 +369,7 @@ func (s *RunTestStage) build_trigger() *api.Trigger {
 	var t *api.Trigger
 	var err error
 	if s.triggerType == Constant {
-		flags := constant.ConstantRate().Flags
+		flags := constant.Rate().Flags
 
 		err = flags.Set("rate", s.rate)
 		require.NoError(s.t, err)
@@ -379,10 +379,10 @@ func (s *RunTestStage) build_trigger() *api.Trigger {
 			require.NoError(s.t, err)
 		}
 
-		t, err = constant.ConstantRate().New(flags)
+		t, err = constant.Rate().New(flags)
 		require.NoError(s.t, err)
 	} else if s.triggerType == Staged {
-		flags := staged.StagedRate().Flags
+		flags := staged.Rate().Flags
 
 		err = flags.Set("stages", s.stages)
 		require.NoError(s.t, err)
@@ -395,14 +395,14 @@ func (s *RunTestStage) build_trigger() *api.Trigger {
 			require.NoError(s.t, err)
 		}
 
-		t, err = staged.StagedRate().New(flags)
+		t, err = staged.Rate().New(flags)
 		require.NoError(s.t, err)
 	} else if s.triggerType == Users {
-		flags := users.UsersRate().Flags
-		t, err = users.UsersRate().New(flags)
+		flags := users.Rate().Flags
+		t, err = users.Rate().New(flags)
 		require.NoError(s.t, err)
 	} else if s.triggerType == Ramp {
-		flags := ramp.RampRate().Flags
+		flags := ramp.Rate().Flags
 
 		err = flags.Set("start-rate", s.startRate)
 		require.NoError(s.t, err)
@@ -424,15 +424,15 @@ func (s *RunTestStage) build_trigger() *api.Trigger {
 			require.NoError(s.t, err)
 		}
 
-		t, err = ramp.RampRate().New(flags)
+		t, err = ramp.Rate().New(flags)
 		require.NoError(s.t, err)
 	} else if s.triggerType == File {
-		flags := file.FileRate().Flags
+		flags := file.Rate().Flags
 
 		err := flags.Parse([]string{s.configFile})
 		require.NoError(s.t, err)
 
-		t, err = file.FileRate().New(flags)
+		t, err = file.Rate().New(flags)
 		require.NoError(s.t, err)
 	}
 	return t

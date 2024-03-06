@@ -34,7 +34,7 @@ func buildRootCmd(s *scenarios.Scenarios, p *profiling) *cobra.Command {
 }
 
 func startProfiling(p *profiling) func(*cobra.Command, []string) {
-	return func(cmd *cobra.Command, args []string) {
+	return func(cmd *cobra.Command, _ []string) {
 		if file, ok := cmd.Flags().GetString("cpuprofile"); ok == nil && file != "" {
 			var err error
 			p.cpuProfile, err = os.Create(file)
