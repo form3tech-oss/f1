@@ -22,10 +22,10 @@ type scenario struct {
 	iterations *int32
 }
 
-func (s scenario) scenariofn(_ *f1_testing.T) f1_testing.RunFn {
+func (s scenario) scenariofn(*f1_testing.T) f1_testing.RunFn {
 	atomic.AddInt32(s.setups, 1)
 
-	return func(_ *f1_testing.T) {
+	return func(*f1_testing.T) {
 		atomic.AddInt32(s.iterations, 1)
 	}
 }
@@ -37,7 +37,7 @@ func newScenario(setups, iterations int32) scenario {
 	}
 }
 
-func newF1ScenarioStage(t *testing.T) (given, when, then *f1ScenariosStage) {
+func newF1ScenarioStage(t *testing.T) (*f1ScenariosStage, *f1ScenariosStage, *f1ScenariosStage) {
 	t.Helper()
 
 	s := &f1ScenariosStage{

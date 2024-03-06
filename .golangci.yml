@@ -42,7 +42,6 @@ linters:
   # TODO
   - paralleltest
   - gomnd
-  - nonamedreturns
   - goerr113
   - gochecknoglobals
   - depguard
