@@ -2,11 +2,10 @@ package rate
 
 import (
 	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/asaskevich/govalidator"
 )
 
 func ParseRate(rateArg string) (int, time.Duration, error) {
@@ -23,7 +22,7 @@ func ParseRate(rateArg string) (int, time.Duration, error) {
 			return rate, unit, fmt.Errorf("invalid rate arg %s", rateArg)
 		}
 		unitArg := (rateArg)[strings.Index(rateArg, "/")+1:]
-		if !govalidator.IsNumeric(unitArg[0:1]) {
+		if !isNumeric(unitArg[0:1]) {
 			unitArg = "1" + unitArg
 		}
 		unit, err = time.ParseDuration(unitArg)
@@ -43,4 +42,9 @@ func ParseRate(rateArg string) (int, time.Duration, error) {
 	}
 
 	return rate, unit, nil
+}
+
+func isNumeric(value string) bool {
+	re := regexp.MustCompile("^[0-9]+$")
+	return re.MatchString(value)
 }

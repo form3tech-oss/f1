@@ -1,9 +1,6 @@
 # github.com/aholic/ggtimer v0.0.0-20150905131044-5d7b30837a52
 ## explicit
 github.com/aholic/ggtimer
-# github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2
-## explicit; go 1.13
-github.com/asaskevich/govalidator
 # github.com/avast/retry-go/v4 v4.5.1
 ## explicit; go 1.18
 github.com/avast/retry-go/v4
