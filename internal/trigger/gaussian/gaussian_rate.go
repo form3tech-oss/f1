@@ -191,7 +191,7 @@ func NewCalculator(peak time.Duration, stddev time.Duration, frequency time.Dura
 
 	// account for large standard deviations or peaks beyond the window
 	coveredRegion := gauss.Cdf(float64(repeatWindow-frequency)) - gauss.Cdf(0)
-	multiplier = multiplier / coveredRegion
+	multiplier /= coveredRegion
 
 	return &Calculator{
 		frequency:     frequency,

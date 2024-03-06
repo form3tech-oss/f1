@@ -368,7 +368,8 @@ func (s *RunTestStage) the_test_run_is_started() *RunTestStage {
 func (s *RunTestStage) build_trigger() *api.Trigger {
 	var t *api.Trigger
 	var err error
-	if s.triggerType == Constant {
+	switch s.triggerType {
+	case Constant:
 		flags := constant.Rate().Flags
 
 		err = flags.Set("rate", s.rate)
@@ -381,7 +382,7 @@ func (s *RunTestStage) build_trigger() *api.Trigger {
 
 		t, err = constant.Rate().New(flags)
 		require.NoError(s.t, err)
-	} else if s.triggerType == Staged {
+	case Staged:
 		flags := staged.Rate().Flags
 
 		err = flags.Set("stages", s.stages)
@@ -397,11 +398,11 @@ func (s *RunTestStage) build_trigger() *api.Trigger {
 
 		t, err = staged.Rate().New(flags)
 		require.NoError(s.t, err)
-	} else if s.triggerType == Users {
+	case Users:
 		flags := users.Rate().Flags
 		t, err = users.Rate().New(flags)
 		require.NoError(s.t, err)
-	} else if s.triggerType == Ramp {
+	case Ramp:
 		flags := ramp.Rate().Flags
 
 		err = flags.Set("start-rate", s.startRate)
@@ -426,7 +427,7 @@ func (s *RunTestStage) build_trigger() *api.Trigger {
 
 		t, err = ramp.Rate().New(flags)
 		require.NoError(s.t, err)
-	} else if s.triggerType == File {
+	case File:
 		flags := file.Rate().Flags
 
 		err := flags.Parse([]string{s.configFile})
