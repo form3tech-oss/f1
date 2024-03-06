@@ -46,7 +46,6 @@ linters:
   - goerr113
   - gochecknoglobals
   - depguard
-  - unparam
   - lll
   - prealloc
   - forcetypeassert
@@ -81,6 +80,8 @@ issues:
       linters:
         # unwrapped errors are ok in tests
         - wrapcheck
+        # this is ok for BDD style tests
+        - unparam
     - path: _test\.go
       # ST1003: Poorly chosen identifiers (https://staticcheck.io/docs/checks/#ST1003)
       # This is to allow identifiers to be snake_cased in favor of BDD integration tests

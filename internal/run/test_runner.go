@@ -341,9 +341,8 @@ func (r *Run) runWorker(input <-chan int32, stop <-chan struct{}, wg *sync.WaitG
 	}
 }
 
-func (r *Run) fail(message string) *Result {
+func (r *Run) fail(message string) {
 	r.result.AddError(errors.New(message))
-	return &r.result
 }
 
 func (r *Run) pushMetrics() {
