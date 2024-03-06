@@ -1,10 +1,10 @@
 package run
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
 	"github.com/form3tech-oss/f1/v2/internal/logging"
@@ -64,7 +64,7 @@ func runCmdExecute(s *scenarios.Scenarios, t api.Builder, hookFunc logging.Regis
 
 		trig, err := t.New(cmd.Flags())
 		if err != nil {
-			return errors.Wrap(err, "error creating trigger command")
+			return fmt.Errorf("creating trigger command: %w", err)
 		}
 
 		var scenarioName string

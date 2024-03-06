@@ -1,6 +1,7 @@
 package run
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	stdlog "log"
@@ -14,7 +15,6 @@ import (
 	"time"
 
 	"github.com/aholic/ggtimer"
-	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/push"
 	log "github.com/sirupsen/logrus"
@@ -260,7 +260,7 @@ func (r *Run) doWork(doWorkChannel chan<- int32, durationElapsed *CancellableTim
 func (r *Run) gatherMetrics() {
 	m, err := prometheus.DefaultGatherer.Gather()
 	if err != nil {
-		r.result.AddError(errors.Wrap(err, "unable to gather metrics"))
+		r.result.AddError(fmt.Errorf("gather metrics: %w", err))
 	}
 	for _, metric := range m {
 		if metric.GetName() == "form3_loadtest_iteration" {
@@ -284,7 +284,7 @@ func (r *Run) gatherMetrics() {
 func (r *Run) gatherProgressMetrics(duration time.Duration) {
 	m, err := metrics.Instance().ProgressRegistry.Gather()
 	if err != nil {
-		r.result.AddError(errors.Wrap(err, "unable to gather metrics"))
+		r.result.AddError(fmt.Errorf("gather metrics: %w", err))
 	}
 	metrics.Instance().Progress.Reset()
 	r.result.ClearProgressMetrics()
@@ -368,7 +368,7 @@ func (r *Run) printLogOnFailure() {
 func (r *Run) printResultLogs() error {
 	fd, err := os.Open(r.result.LogFile)
 	if err != nil {
-		return errors.Wrap(err, "error opening log file")
+		return fmt.Errorf("opening log file: %w", err)
 	}
 	defer func() {
 		if fd == nil {
@@ -381,7 +381,7 @@ func (r *Run) printResultLogs() error {
 
 	if fd != nil {
 		if _, err := io.Copy(os.Stdout, fd); err != nil {
-			return errors.Wrap(err, "error printing logs")
+			return fmt.Errorf("printing logs: %w", err)
 		}
 	}
 
