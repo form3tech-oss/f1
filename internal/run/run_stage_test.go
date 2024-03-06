@@ -307,7 +307,8 @@ func (s *RunTestStage) the_number_of_dropped_iterations_should_be(expected uint6
 func (s *RunTestStage) distribution_duration_map_of_requests() map[time.Duration]int32 {
 	distributionMap := make(map[time.Duration]int32)
 	s.durations.Range(func(_, value interface{}) bool {
-		requestDuration := value.(time.Duration)
+		requestDuration, ok := value.(time.Duration)
+		s.require.True(ok)
 		truncatedDuration := requestDuration.Truncate(100 * time.Millisecond)
 		existingDuration := distributionMap[truncatedDuration] + 1
 		distributionMap[truncatedDuration] = existingDuration

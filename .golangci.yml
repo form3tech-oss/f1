@@ -48,7 +48,6 @@ linters:
   - depguard
   - lll
   - prealloc
-  - forcetypeassert
   - gocritic
   - forbidigo
   - dupl
