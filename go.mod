@@ -17,7 +17,7 @@ require (
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.8.0
 	github.com/spf13/pflag v1.0.5
-	github.com/stretchr/testify v1.8.4
+	github.com/stretchr/testify v1.9.0
 	github.com/wcharczuk/go-chart/v2 v2.1.1
 	github.com/workanator/go-ataman v0.0.0-20201223053433-503c6ff9de7d
 	go.uber.org/goleak v1.3.0
