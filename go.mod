@@ -4,7 +4,6 @@ go 1.20
 
 require (
 	github.com/aholic/ggtimer v0.0.0-20150905131044-5d7b30837a52
-	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2
 	github.com/avast/retry-go/v4 v4.5.1
 	github.com/chobie/go-gaussian v0.0.0-20150107165016-53c09d90eeaf
 	github.com/evalphobia/logrus_fluent v0.5.4
