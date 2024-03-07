@@ -1,9 +1,30 @@
 on: [push]
 jobs:
+  version:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+      - name: version
+        id: version
+        uses: codacy/git-version@80c816f11db8dea5e3a81025f598193015b51832 #v2.8.0
+        with:
+          prefix: "v"
+          minor-identifier: /feat(\([\w\d]+\))?:/
+          major-identifier: /^\s*BREAKING(\s+CHANGE)?:/
+      - uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
+      - name: Install gorelease
+        run: go install golang.org/x/exp/cmd/gorelease@v0.0.0-20240103183307-be819d1f06fc
+      - name: verify-version
+        run: echo "Comparing ${{ steps.version.outputs.previous-version }} to ${{ steps.version.outputs.version }}"; gorelease -base ${{ steps.version.outputs.previous-version }} -version ${{ steps.version.outputs.version }}
   Test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        with:
+          fetch-depth: 0
       - uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
       - name: test
         run: |
