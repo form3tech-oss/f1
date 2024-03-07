@@ -62,6 +62,8 @@ linters-settings:
         deny:
           - pkg: "github.com/pkg/errors"
             desc: "Please use go built-in error wrapping and handling via `fmt` and `errors` packages"
+          - pkg: "github.com/giantswarm/retry-go"
+            desc: "Please use https://github.com/avast/retry-go/v4"
   gci:
     sections:
       - standard

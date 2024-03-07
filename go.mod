@@ -5,9 +5,9 @@ go 1.20
 require (
 	github.com/aholic/ggtimer v0.0.0-20150905131044-5d7b30837a52
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2
+	github.com/avast/retry-go/v4 v4.5.1
 	github.com/chobie/go-gaussian v0.0.0-20150107165016-53c09d90eeaf
 	github.com/evalphobia/logrus_fluent v0.5.4
-	github.com/giantswarm/retry-go v0.0.0-20151203102909-d78cea247d5e
 	github.com/google/uuid v1.6.0
 	github.com/guptarohit/asciigraph v0.5.6
 	github.com/hako/durafmt v0.0.0-20210608085754-5c1018a4e16b
@@ -34,7 +34,6 @@ require (
 	github.com/fluent/fluent-logger-golang v1.9.0 // indirect
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
-	github.com/juju/errgo v0.0.0-20140925100237-08cceb5d0b53 // indirect
 	github.com/kr/text v0.2.0 // indirect
 	github.com/matttproud/golang_protobuf_extensions/v2 v2.0.0 // indirect
 	github.com/philhofer/fwd v1.1.2 // indirect

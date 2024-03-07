@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/giantswarm/retry-go"
+	"github.com/avast/retry-go/v4"
 	"github.com/google/uuid"
 	io_prometheus_client "github.com/prometheus/client_model/go"
 	"github.com/prometheus/common/expfmt"
@@ -452,7 +452,7 @@ func (s *RunTestStage) setup_teardown_is_called_within_50ms() *RunTestStage {
 			return errors.New("no teardown yet")
 		}
 		return nil
-	}, retry.Sleep(10*time.Millisecond), retry.MaxTries(5))
+	}, retry.Delay(10*time.Millisecond), retry.Attempts(5))
 	s.require.NoError(err)
 	s.assert.GreaterOrEqual(atomic.LoadInt32(s.setupTeardownCount), int32(1))
 	return s
