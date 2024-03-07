@@ -36,7 +36,7 @@ func New() *F1 {
 // will result in the test "myTest" being runnable from the command line:
 //
 //	f1 run constant -r 1/s -d 10s myTest
-func (f *F1) Add(name string, scenarioFn testing.ScenarioFn, options ...scenarios.ScenarioOption) *F1 {
+func (f *F1) Add(_ string, name string, scenarioFn testing.ScenarioFn, options ...scenarios.ScenarioOption) *F1 {
 	info := &scenarios.Scenario{
 		Name:       name,
 		ScenarioFn: scenarioFn,
