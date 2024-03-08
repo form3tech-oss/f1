@@ -1,6 +1,6 @@
 module github.com/form3tech-oss/f1/v2
 
-go 1.20
+go 1.21
 
 require (
 	github.com/aholic/ggtimer v0.0.0-20150905131044-5d7b30837a52
@@ -11,13 +11,13 @@ require (
 	github.com/guptarohit/asciigraph v0.5.6
 	github.com/hako/durafmt v0.0.0-20210608085754-5c1018a4e16b
 	github.com/phayes/freeport v0.0.0-20220201140144-74d24b5ae9f5
-	github.com/prometheus/client_golang v1.18.0
-	github.com/prometheus/client_model v0.5.0
-	github.com/prometheus/common v0.45.0
+	github.com/prometheus/client_golang v1.19.0
+	github.com/prometheus/client_model v0.6.0
+	github.com/prometheus/common v0.50.0
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.8.0
 	github.com/spf13/pflag v1.0.5
-	github.com/stretchr/testify v1.8.4
+	github.com/stretchr/testify v1.9.0
 	github.com/wcharczuk/go-chart/v2 v2.1.1
 	github.com/workanator/go-ataman v0.0.0-20201223053433-503c6ff9de7d
 	go.uber.org/goleak v1.3.0
@@ -34,13 +34,12 @@ require (
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/kr/text v0.2.0 // indirect
-	github.com/matttproud/golang_protobuf_extensions/v2 v2.0.0 // indirect
 	github.com/philhofer/fwd v1.1.2 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
-	github.com/prometheus/procfs v0.12.0 // indirect
+	github.com/prometheus/procfs v0.13.0 // indirect
 	github.com/tinylib/msgp v1.1.9 // indirect
-	golang.org/x/image v0.13.0 // indirect
-	golang.org/x/sys v0.15.0 // indirect
-	google.golang.org/protobuf v1.31.0 // indirect
+	golang.org/x/image v0.15.0 // indirect
+	golang.org/x/sys v0.18.0 // indirect
+	google.golang.org/protobuf v1.33.0 // indirect
 	gopkg.in/workanator/go-ataman.v1 v1.0.0-20201223053604-e3b73d2e8108 // indirect
 )
