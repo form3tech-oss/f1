@@ -1,26 +1,24 @@
 package f1
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/spf13/cobra"
-
-	"github.com/form3tech-oss/f1/v2/internal/support/errorh"
-	"github.com/form3tech-oss/f1/v2/pkg/f1/scenarios"
 )
 
-func completionsCmd(s *scenarios.Scenarios, p *profiling) *cobra.Command {
+func completionsCmd(rootCmd *cobra.Command) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "generate",
 		Short: "Generates shell completions",
 	}
-	cmd.AddCommand(bashCmd(s, p))
-	cmd.AddCommand(zshCmd(s, p))
-	cmd.AddCommand(fishCmd(s, p))
+	cmd.AddCommand(bashCmd(rootCmd))
+	cmd.AddCommand(zshCmd(rootCmd))
+	cmd.AddCommand(fishCmd(rootCmd))
 	return cmd
 }
 
-func bashCmd(s *scenarios.Scenarios, p *profiling) *cobra.Command {
+func bashCmd(rootCmd *cobra.Command) *cobra.Command {
 	return &cobra.Command{
 		Use:   "bash",
 		Short: "Generates bash completion scripts",
@@ -33,13 +31,17 @@ To configure your bash shell to load completions for each session add to your ba
 # ~/.bashrc or ~/.profile
 . <(f1 completion)
 `,
-		Run: func(*cobra.Command, []string) {
-			errorh.Print(buildRootCmd(s, p).GenBashCompletion(os.Stdout), "error generating bash completion")
+		RunE: func(*cobra.Command, []string) error {
+			if err := rootCmd.GenBashCompletionV2(os.Stdout, true); err != nil {
+				return fmt.Errorf("generating bash completion: %w", err)
+			}
+
+			return nil
 		},
 	}
 }
 
-func zshCmd(s *scenarios.Scenarios, p *profiling) *cobra.Command {
+func zshCmd(rootCmd *cobra.Command) *cobra.Command {
 	return &cobra.Command{
 		Use:   "zsh",
 		Short: "Generates zsh completion scripts",
@@ -47,20 +49,26 @@ func zshCmd(s *scenarios.Scenarios, p *profiling) *cobra.Command {
 
 . <(f1 completion)
 `,
-		Run: func(*cobra.Command, []string) {
-			errorh.Print(buildRootCmd(s, p).GenZshCompletion(os.Stdout), "error generating zsh completion")
+		RunE: func(*cobra.Command, []string) error {
+			if err := rootCmd.GenZshCompletion(os.Stdout); err != nil {
+				return fmt.Errorf("generating zsh completion: %w", err)
+			}
+			return nil
 		},
 	}
 }
 
-func fishCmd(s *scenarios.Scenarios, p *profiling) *cobra.Command {
+func fishCmd(rootCmd *cobra.Command) *cobra.Command {
 	return &cobra.Command{
 		Use:   "fish",
 		Short: "Generates fish completion scripts",
 		Long: `To define completions run
 ./f1 completions fish >  ~/.config/fish/completions/f1.fish`,
-		Run: func(*cobra.Command, []string) {
-			errorh.Print(buildRootCmd(s, p).GenFishCompletion(os.Stdout, true), "error generating fish completion")
+		RunE: func(*cobra.Command, []string) error {
+			if err := rootCmd.GenFishCompletion(os.Stdout, true); err != nil {
+				return fmt.Errorf("generating fish completion: %w", err)
+			}
+			return nil
 		},
 	}
 }
