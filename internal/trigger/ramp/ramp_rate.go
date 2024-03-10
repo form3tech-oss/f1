@@ -7,6 +7,7 @@ import (
 
 	"github.com/spf13/pflag"
 
+	"github.com/form3tech-oss/f1/v2/internal/trace"
 	"github.com/form3tech-oss/f1/v2/internal/trigger/api"
 	"github.com/form3tech-oss/f1/v2/internal/trigger/rate"
 )
@@ -23,7 +24,7 @@ func Rate() api.Builder {
 		Name:        "ramp <scenario>",
 		Description: "ramp up or down requests for a certain duration",
 		Flags:       flags,
-		New: func(flags *pflag.FlagSet) (*api.Trigger, error) {
+		New: func(flags *pflag.FlagSet, tracer trace.Tracer) (*api.Trigger, error) {
 			startRateArg, err := flags.GetString("start-rate")
 			if err != nil {
 				return nil, fmt.Errorf("getting flag: %w", err)
@@ -57,7 +58,7 @@ func Rate() api.Builder {
 			}
 
 			return &api.Trigger{
-				Trigger:     api.NewIterationWorker(rates.IterationDuration, rates.Rate),
+				Trigger:     api.NewIterationWorker(rates.IterationDuration, rates.Rate, tracer),
 				Description: fmt.Sprintf("starting iterations from %s to %s during %v, using distribution %s", startRateArg, endRateArg, duration, distributionTypeArg),
 				DryRun:      rates.Rate,
 			}, nil

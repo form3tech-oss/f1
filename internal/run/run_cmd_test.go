@@ -686,3 +686,27 @@ func TestParameterisedMaxFailures(t *testing.T) {
 		})
 	}
 }
+
+func TestTracing(t *testing.T) {
+	given, when, then := NewRunTestStage(t)
+
+	given.
+		tracing_is_enabled().and().
+		a_concurrent_constant_trigger_is_configured().and()
+
+	when.i_execute_the_run_command()
+
+	then.the_trace_output_should_be_present()
+}
+
+func TestFluentd_InvalidPort(t *testing.T) {
+	given, when, then := NewRunTestStage(t)
+
+	given.
+		a_fluentd_config_with_host_and_port("host", "port").and().
+		a_concurrent_constant_trigger_is_configured()
+
+	when.i_execute_the_run_command()
+
+	then.run_fails_with_error_containing("parsing fluentd port")
+}

@@ -7,13 +7,21 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/form3tech-oss/f1/v2/internal/envsettings"
 	"github.com/form3tech-oss/f1/v2/internal/logging"
 	"github.com/form3tech-oss/f1/v2/internal/options"
+	"github.com/form3tech-oss/f1/v2/internal/trace"
 	"github.com/form3tech-oss/f1/v2/internal/trigger/api"
 	"github.com/form3tech-oss/f1/v2/pkg/f1/scenarios"
 )
 
-func Cmd(s *scenarios.Scenarios, builders []api.Builder, hookFunc logging.RegisterLogHookFunc) *cobra.Command {
+func Cmd(
+	s *scenarios.Scenarios,
+	builders []api.Builder,
+	settings envsettings.Settings,
+	hookFunc logging.RegisterLogHookFunc,
+	tracer trace.Tracer,
+) *cobra.Command {
 	runCmd := &cobra.Command{
 		Use:   "run <subcommand>",
 		Short: "Runs a test scenario",
@@ -24,7 +32,7 @@ func Cmd(s *scenarios.Scenarios, builders []api.Builder, hookFunc logging.Regist
 			triggerCmd := &cobra.Command{
 				Use:   t.Name,
 				Short: t.Description,
-				RunE:  runCmdExecute(s, t, hookFunc),
+				RunE:  runCmdExecute(s, t, settings, hookFunc, tracer),
 				Args:  cobra.MatchAll(cobra.ExactArgs(1)),
 			}
 			triggerCmd.Flags().BoolP("verbose", "v", false, "enables log output to stdout")
@@ -36,7 +44,7 @@ func Cmd(s *scenarios.Scenarios, builders []api.Builder, hookFunc logging.Regist
 			triggerCmd := &cobra.Command{
 				Use:       t.Name,
 				Short:     t.Description,
-				RunE:      runCmdExecute(s, t, hookFunc),
+				RunE:      runCmdExecute(s, t, settings, hookFunc, tracer),
 				Args:      cobra.MatchAll(cobra.ExactArgs(1)),
 				ValidArgs: s.GetScenarioNames(),
 			}
@@ -58,11 +66,17 @@ func Cmd(s *scenarios.Scenarios, builders []api.Builder, hookFunc logging.Regist
 	return runCmd
 }
 
-func runCmdExecute(s *scenarios.Scenarios, t api.Builder, hookFunc logging.RegisterLogHookFunc) func(cmd *cobra.Command, args []string) error {
+func runCmdExecute(
+	s *scenarios.Scenarios,
+	t api.Builder,
+	settings envsettings.Settings,
+	hookFunc logging.RegisterLogHookFunc,
+	tracer trace.Tracer,
+) func(cmd *cobra.Command, args []string) error {
 	return func(cmd *cobra.Command, args []string) error {
 		cmd.SilenceUsage = true
 
-		trig, err := t.New(cmd.Flags())
+		trig, err := t.New(cmd.Flags(), tracer)
 		if err != nil {
 			return fmt.Errorf("creating trigger command: %w", err)
 		}
@@ -131,11 +145,15 @@ func runCmdExecute(s *scenarios.Scenarios, t api.Builder, hookFunc logging.Regis
 			MaxFailuresRate:     maxFailuresRate,
 			RegisterLogHookFunc: hookFunc,
 			IgnoreDropped:       ignoreDropped,
-		}, trig)
+		}, trig, settings, tracer)
 		if err != nil {
-			return err
+			return fmt.Errorf("new run: %w", err)
 		}
-		result := run.Do(s)
+		result, err := run.Do(s)
+		if err != nil {
+			return fmt.Errorf("internal error on run: %w", err)
+		}
+
 		if result.Error() != nil {
 			return result.Error()
 		} else if result.Failed() {

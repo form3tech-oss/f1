@@ -25,16 +25,15 @@ func getGeneratedLogFilePath(scenario string) string {
 	)
 }
 
-func getLogFilePath(scenario string) string {
-	logFilePath := os.Getenv("LOG_FILE_PATH")
-	if logFilePath != "" && directoryExists(logFilePath) {
-		return logFilePath
+func getLogFilePath(scenario string, logPath string) string {
+	if logPath != "" && directoryExists(logPath) {
+		return logPath
 	}
 	return getGeneratedLogFilePath(scenario)
 }
 
-func redirectLoggingToFile(scenario string) string {
-	logFilePath := getLogFilePath(scenario)
+func redirectLoggingToFile(scenario string, logPath string) string {
+	logFilePath := getLogFilePath(scenario, logPath)
 
 	file, err := os.OpenFile(logFilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o600)
 	if err == nil {

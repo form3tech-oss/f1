@@ -10,6 +10,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
 
+	"github.com/form3tech-oss/f1/v2/internal/trace"
 	"github.com/form3tech-oss/f1/v2/internal/trigger/api"
 )
 
@@ -40,7 +41,7 @@ func Rate() api.Builder {
 		Name:        "file <filename>",
 		Description: "triggers test iterations from a yaml config file",
 		Flags:       flags,
-		New: func(flags *pflag.FlagSet) (*api.Trigger, error) {
+		New: func(flags *pflag.FlagSet, tracer trace.Tracer) (*api.Trigger, error) {
 			filename := flags.Arg(0)
 			fileContent, err := readFile(filename)
 			if err != nil {
@@ -52,7 +53,7 @@ func Rate() api.Builder {
 			}
 
 			return &api.Trigger{
-				Trigger:     newStagesWorker(runnableStages.stages),
+				Trigger:     newStagesWorker(runnableStages.stages, tracer),
 				DryRun:      newDryRun(runnableStages.stages),
 				Description: fmt.Sprintf("%d different stages", len(runnableStages.stages)),
 				Duration:    runnableStages.stagesTotalDuration,

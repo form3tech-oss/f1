@@ -8,8 +8,10 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/form3tech-oss/f1/v2/internal/chart"
+	"github.com/form3tech-oss/f1/v2/internal/envsettings"
 	"github.com/form3tech-oss/f1/v2/internal/fluentd"
 	"github.com/form3tech-oss/f1/v2/internal/run"
+	"github.com/form3tech-oss/f1/v2/internal/trace"
 	"github.com/form3tech-oss/f1/v2/internal/trigger"
 	"github.com/form3tech-oss/f1/v2/pkg/f1/scenarios"
 )
@@ -19,7 +21,7 @@ const (
 	flagMemProfile = "memprofile"
 )
 
-func buildRootCmd(s *scenarios.Scenarios, p *profiling) (*cobra.Command, error) {
+func buildRootCmd(s *scenarios.Scenarios, settings envsettings.Settings, p *profiling) (*cobra.Command, error) {
 	rootCmd := &cobra.Command{
 		Use:               getCmdName(),
 		Short:             "F1 load testing tool",
@@ -36,8 +38,19 @@ func buildRootCmd(s *scenarios.Scenarios, p *profiling) (*cobra.Command, error) 
 		return nil, fmt.Errorf("marking flag as filename: %w", err)
 	}
 
-	rootCmd.AddCommand(run.Cmd(s, builders, fluentd.AddFluentdLoggingHook))
-	rootCmd.AddCommand(chart.Cmd(builders))
+	var tracer trace.Tracer = trace.NewNilTracer()
+	if settings.Trace {
+		tracer = trace.NewConsoleTracer(os.Stdout)
+	}
+
+	rootCmd.AddCommand(run.Cmd(
+		s,
+		builders,
+		settings,
+		fluentd.LoggingHook(settings.Fluentd.Host, settings.Fluentd.Port),
+		tracer,
+	))
+	rootCmd.AddCommand(chart.Cmd(builders, tracer))
 	rootCmd.AddCommand(scenarios.Cmd(s))
 	rootCmd.AddCommand(completionsCmd(rootCmd))
 	return rootCmd, nil

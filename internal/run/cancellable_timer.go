@@ -13,14 +13,16 @@ type CancellableTimer struct {
 	C         chan bool
 	reset     chan time.Duration
 	cancelled int32
+	tracer    trace.Tracer
 }
 
-func NewCancellableTimer(d time.Duration) *CancellableTimer {
+func NewCancellableTimer(d time.Duration, tracer trace.Tracer) *CancellableTimer {
 	timer := &CancellableTimer{
 		cancel: make(chan bool),
 		C:      make(chan bool),
 		reset:  make(chan time.Duration),
 		timer:  time.NewTimer(d),
+		tracer: tracer,
 	}
 
 	go timer.wait()
@@ -38,9 +40,9 @@ func (c *CancellableTimer) wait() {
 			c.C <- true
 			return
 		case <-c.cancel:
-			trace.ReceivedFromChannel("cancel")
+			c.tracer.ReceivedFromChannel("cancel")
 			c.C <- false
-			trace.SentToChannel("C")
+			c.tracer.SentToChannel("C")
 			return
 		}
 	}
@@ -48,7 +50,7 @@ func (c *CancellableTimer) wait() {
 
 // Cancel makes all the waiters receive false
 func (c *CancellableTimer) Cancel() bool {
-	trace.Event("Closing Channel 'cancel'")
+	c.tracer.Event("Closing Channel 'cancel'")
 	if atomic.CompareAndSwapInt32(&c.cancelled, 0, 1) {
 		close(c.cancel)
 		return true

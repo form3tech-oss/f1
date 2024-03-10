@@ -8,6 +8,8 @@ import (
 	"github.com/phayes/freeport"
 	log "github.com/sirupsen/logrus"
 	"go.uber.org/goleak"
+
+	"github.com/form3tech-oss/f1/v2/internal/envsettings"
 )
 
 var fakePrometheus FakePrometheus
@@ -23,15 +25,15 @@ func TestMain(m *testing.M) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	err = os.Setenv("PROMETHEUS_PUSH_GATEWAY", fmt.Sprintf("http://localhost:%d/", fakePrometheus.Port))
+	err = os.Setenv(envsettings.EnvPrometheusPushGateway, fmt.Sprintf("http://localhost:%d/", fakePrometheus.Port))
 	if err != nil {
 		log.Fatal(err)
 	}
-	err = os.Setenv("PROMETHEUS_NAMESPACE", fakePrometheusNamespace)
+	err = os.Setenv(envsettings.EnvPrometheusNamespace, fakePrometheusNamespace)
 	if err != nil {
 		log.Fatal(err)
 	}
-	err = os.Setenv("PROMETHEUS_LABEL_ID", fakePrometheusID)
+	err = os.Setenv(envsettings.EnvPrometheusLabelID, fakePrometheusID)
 	if err != nil {
 		log.Fatal(err)
 	}

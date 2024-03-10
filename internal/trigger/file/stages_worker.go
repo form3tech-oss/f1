@@ -8,11 +8,12 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/form3tech-oss/f1/v2/internal/options"
+	"github.com/form3tech-oss/f1/v2/internal/trace"
 	"github.com/form3tech-oss/f1/v2/internal/trigger/api"
 	"github.com/form3tech-oss/f1/v2/internal/trigger/users"
 )
 
-func newStagesWorker(stages []runnableStage) api.WorkTriggerer {
+func newStagesWorker(stages []runnableStage, tracer trace.Tracer) api.WorkTriggerer {
 	return func(workTriggered chan<- bool, stop <-chan bool, workDone <-chan bool, options options.RunOptions) {
 		safeThresholdBeforeNextIteration := 20 * time.Millisecond
 		stopStageCh := make(chan bool)
@@ -28,7 +29,7 @@ func newStagesWorker(stages []runnableStage) api.WorkTriggerer {
 				defer wg.Done()
 
 				if stage.usersConcurrency == 0 {
-					doWork := api.NewIterationWorker(stage.iterationDuration, stage.rate)
+					doWork := api.NewIterationWorker(stage.iterationDuration, stage.rate, tracer)
 					doWork(workTriggered, stopStageCh, workDone, options)
 				} else {
 					doWork := users.NewWorker(stage.usersConcurrency)

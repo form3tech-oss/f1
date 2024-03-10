@@ -10,10 +10,11 @@ import (
 	"github.com/wcharczuk/go-chart/v2"
 
 	"github.com/form3tech-oss/f1/v2/internal/support/errorh"
+	"github.com/form3tech-oss/f1/v2/internal/trace"
 	"github.com/form3tech-oss/f1/v2/internal/trigger/api"
 )
 
-func Cmd(builders []api.Builder) *cobra.Command {
+func Cmd(builders []api.Builder, tracer trace.Tracer) *cobra.Command {
 	chartCmd := &cobra.Command{
 		Use:   "chart <subcommand>",
 		Short: "plots a chart of the test scenarios that would be triggered over time with the provided run function",
@@ -23,7 +24,7 @@ func Cmd(builders []api.Builder) *cobra.Command {
 		triggerCmd := &cobra.Command{
 			Use:   t.Name,
 			Short: t.Description,
-			RunE:  chartCmdExecute(t),
+			RunE:  chartCmdExecute(t, tracer),
 		}
 		triggerCmd.Flags().String("chart-start", time.Now().Format(time.RFC3339), "Optional start time for the chart")
 		triggerCmd.Flags().Duration("chart-duration", 10*time.Minute, "Duration for the chart")
@@ -35,7 +36,7 @@ func Cmd(builders []api.Builder) *cobra.Command {
 	return chartCmd
 }
 
-func chartCmdExecute(t api.Builder) func(cmd *cobra.Command, args []string) error {
+func chartCmdExecute(t api.Builder, tracer trace.Tracer) func(cmd *cobra.Command, args []string) error {
 	return func(cmd *cobra.Command, _ []string) error {
 		cmd.SilenceUsage = true
 
@@ -56,7 +57,7 @@ func chartCmdExecute(t api.Builder) func(cmd *cobra.Command, args []string) erro
 			return fmt.Errorf("getting flag: %w", err)
 		}
 
-		trig, err := t.New(cmd.Flags())
+		trig, err := t.New(cmd.Flags(), tracer)
 		if err != nil {
 			return fmt.Errorf("creating builder: %w", err)
 		}
