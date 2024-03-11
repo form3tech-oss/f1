@@ -1,71 +1,66 @@
 package f1
 
 import (
+	"fmt"
 	"os"
 	"path"
-	"runtime"
-	"runtime/pprof"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
 	"github.com/form3tech-oss/f1/v2/internal/chart"
 	"github.com/form3tech-oss/f1/v2/internal/fluentd"
 	"github.com/form3tech-oss/f1/v2/internal/run"
-	"github.com/form3tech-oss/f1/v2/internal/support/errorh"
 	"github.com/form3tech-oss/f1/v2/internal/trigger"
 	"github.com/form3tech-oss/f1/v2/pkg/f1/scenarios"
 )
 
-func buildRootCmd(s *scenarios.Scenarios, p *profiling) *cobra.Command {
+const (
+	flagCPUProfile = "cpuprofile"
+	flagMemProfile = "memprofile"
+)
+
+func buildRootCmd(s *scenarios.Scenarios, p *profiling) (*cobra.Command, error) {
 	rootCmd := &cobra.Command{
-		Use:              getCmdName(),
-		Short:            "F1 load testing tool",
-		PersistentPreRun: startProfiling(p),
+		Use:               getCmdName(),
+		Short:             "F1 load testing tool",
+		PersistentPreRunE: startProfiling(p),
 	}
 	builders := trigger.GetBuilders()
-	rootCmd.PersistentFlags().String("cpuprofile", "", "write cpu profile to `file`")
-	rootCmd.PersistentFlags().String("memprofile", "", "write memory profile to `file`")
+
+	rootCmd.PersistentFlags().String(flagCPUProfile, "", "write cpu profile to `file`")
+	if err := rootCmd.MarkPersistentFlagFilename(flagCPUProfile); err != nil {
+		return nil, fmt.Errorf("marking flag as filename: %w", err)
+	}
+	rootCmd.PersistentFlags().String(flagMemProfile, "", "write memory profile to `file`")
+	if err := rootCmd.MarkPersistentFlagFilename(flagMemProfile); err != nil {
+		return nil, fmt.Errorf("marking flag as filename: %w", err)
+	}
+
 	rootCmd.AddCommand(run.Cmd(s, builders, fluentd.AddFluentdLoggingHook))
 	rootCmd.AddCommand(chart.Cmd(builders))
 	rootCmd.AddCommand(scenarios.Cmd(s))
-	rootCmd.AddCommand(completionsCmd(s, p))
-	return rootCmd
+	rootCmd.AddCommand(completionsCmd(rootCmd))
+	return rootCmd, nil
 }
 
-func startProfiling(p *profiling) func(*cobra.Command, []string) {
-	return func(cmd *cobra.Command, _ []string) {
-		if file, ok := cmd.Flags().GetString("cpuprofile"); ok == nil && file != "" {
-			var err error
-			p.cpuProfile, err = os.Create(file)
-			if err != nil {
-				log.Fatal("could not create CPU profile: ", err)
-			}
-			if err := pprof.StartCPUProfile(p.cpuProfile); err != nil {
-				log.Fatal("could not start CPU profile: ", err)
-			}
-		}
-		if file, ok := cmd.Flags().GetString("memprofile"); ok == nil && file != "" {
-			p.memProfile = file
-		}
-	}
-}
-
-func writeProfiles(p *profiling) {
-	if p.cpuProfile != nil {
-		pprof.StopCPUProfile()
-		errorh.Print(p.cpuProfile.Close(), "error closing cpu profile")
-	}
-	if p.memProfile != "" {
-		f, err := os.Create(p.memProfile)
+func startProfiling(p *profiling) func(*cobra.Command, []string) error {
+	return func(cmd *cobra.Command, _ []string) error {
+		var err error
+		p.cpuProfileFileName, err = cmd.Flags().GetString(flagCPUProfile)
 		if err != nil {
-			log.Fatal("could not create memory profile: ", err)
+			return fmt.Errorf("getting flag: %w", err)
 		}
-		defer errorh.SafeClose(f)
-		runtime.GC() // get up-to-date statistics
-		if err := pprof.WriteHeapProfile(f); err != nil {
-			log.Fatal("could not write memory profile: ", err)
+
+		p.memProfileFileName, err = cmd.Flags().GetString(flagMemProfile)
+		if err != nil {
+			return fmt.Errorf("getting flag: %w", err)
 		}
+
+		if err := p.start(); err != nil {
+			return fmt.Errorf("starting profiling: %w", err)
+		}
+
+		return nil
 	}
 }
 

@@ -1,6 +1,7 @@
 package f1
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
@@ -13,11 +14,6 @@ import (
 type F1 struct {
 	scenarios *scenarios.Scenarios
 	profiling *profiling
-}
-
-type profiling struct {
-	cpuProfile *os.File
-	memProfile string
 }
 
 // Instantiates a new instance of an F1 CLI.
@@ -50,12 +46,34 @@ func (f *F1) Add(name string, scenarioFn testing.ScenarioFn, options ...scenario
 	return f
 }
 
+func (f *F1) execute(args []string) error {
+	rootCmd, err := buildRootCmd(f.scenarios, f.profiling)
+	if err != nil {
+		return fmt.Errorf("building root command: %w", err)
+	}
+
+	if len(args) > 0 {
+		rootCmd.SetArgs(args)
+	}
+
+	err = rootCmd.Execute()
+	// stop profiling regardless of err
+	profilingErr := f.profiling.stop()
+
+	errs := errors.Join(err, profilingErr)
+
+	if errs != nil {
+		return fmt.Errorf("command execution: %w", err)
+	}
+
+	return nil
+}
+
 // Synchronously runs the F1 CLI. This function is the blocking entrypoint to the CLI,
 // so you should register your test scenarios with the Add function prior to calling this
 // function.
 func (f *F1) Execute() {
-	if err := buildRootCmd(f.scenarios, f.profiling).Execute(); err != nil {
-		writeProfiles(f.profiling)
+	if err := f.execute(nil); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
@@ -64,12 +82,8 @@ func (f *F1) Execute() {
 // Similar to Execute, but takes command line arguments from the args array. Useful
 // for testing F1 test scenarios.
 func (f *F1) ExecuteWithArgs(args []string) error {
-	rootCmd := buildRootCmd(f.scenarios, f.profiling)
-	rootCmd.SetArgs(args)
-	err := rootCmd.Execute()
-	writeProfiles(f.profiling)
-	if err != nil {
-		return fmt.Errorf("command execute: %w", err)
+	if err := f.execute(args); err != nil {
+		return fmt.Errorf("execute with args: %w", err)
 	}
 
 	return nil
