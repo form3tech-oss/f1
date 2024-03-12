@@ -9,7 +9,6 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/wcharczuk/go-chart/v2"
 
-	"github.com/form3tech-oss/f1/v2/internal/support/errorh"
 	"github.com/form3tech-oss/f1/v2/internal/trace"
 	"github.com/form3tech-oss/f1/v2/internal/trigger/api"
 )
@@ -117,7 +116,7 @@ func chartCmdExecute(t api.Builder, tracer trace.Tracer) func(cmd *cobra.Command
 		if err != nil {
 			return fmt.Errorf("creting file: %w", err)
 		}
-		defer errorh.SafeClose(f)
+		defer f.Close()
 
 		err = graph.Render(chart.PNG, f)
 		if err != nil {
