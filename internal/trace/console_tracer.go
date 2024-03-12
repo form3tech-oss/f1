@@ -7,14 +7,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
-)
 
-const (
-	termReset  = "\033[0m"
-	termGray   = "\033[37m"
-	termYellow = "\033[33m"
-	termBlue   = "\033[34m"
-	termRed    = "\033[31m"
+	"github.com/form3tech-oss/f1/v2/internal/termcolor"
 )
 
 type ConsoleTracer struct {
@@ -28,7 +22,7 @@ func NewConsoleTracer(output io.Writer) *ConsoleTracer {
 var _ Tracer = &ConsoleTracer{}
 
 func colorString(s string, c string) string {
-	return c + s + termReset
+	return c + s + termcolor.Reset
 }
 
 func (t *ConsoleTracer) ReceivedFromChannel(name string) {
@@ -55,22 +49,22 @@ func (t *ConsoleTracer) event(message string, args ...any) {
 
 	keywords := []string{"channel", "Channel"}
 
-	fMessage := colorString(fmt.Sprintf(message, args...), termYellow)
+	fMessage := colorString(fmt.Sprintf(message, args...), termcolor.Yellow)
 
 	for _, s := range keywords {
-		fMessage = strings.Replace(fMessage, s, termRed+s+termYellow, 1)
+		fMessage = strings.Replace(fMessage, s, termcolor.Red+s+termcolor.Yellow, 1)
 	}
 
 	fileName := frame.File + strconv.Itoa(frame.Line)
-	fileName = colorString(fileName, termBlue)
+	fileName = colorString(fileName, termcolor.Blue)
 
 	now := time.Now()
 	formattedTime := fmt.Sprintf("%02d:%02d:%02d %02dms",
 		now.Hour(), now.Minute(), now.Second(), now.Nanosecond()/int(time.Millisecond))
 
-	timePart := colorString(fmt.Sprintf("[TRACE - %s]: ", formattedTime), termGray)
-	messagePart := colorString(fMessage+" -> ", termGray)
-	filePart := colorString(fileName, termBlue)
+	timePart := colorString(fmt.Sprintf("[TRACE - %s]: ", formattedTime), termcolor.White)
+	messagePart := colorString(fMessage+" -> ", termcolor.White)
+	filePart := colorString(fileName, termcolor.Blue)
 
 	fmt.Fprintln(t.writer, timePart+messagePart+filePart)
 }
