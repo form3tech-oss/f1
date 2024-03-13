@@ -6,6 +6,7 @@ import (
 
 	"github.com/spf13/pflag"
 
+	"github.com/form3tech-oss/f1/v2/internal/trace"
 	"github.com/form3tech-oss/f1/v2/internal/trigger/api"
 )
 
@@ -20,7 +21,7 @@ func Rate() api.Builder {
 		Name:        "staged <scenario>",
 		Description: "triggers iterations at varying rates",
 		Flags:       flags,
-		New: func(params *pflag.FlagSet) (*api.Trigger, error) {
+		New: func(params *pflag.FlagSet, tracer trace.Tracer) (*api.Trigger, error) {
 			jitterArg, err := params.GetFloat64("jitter")
 			if err != nil {
 				return nil, fmt.Errorf("getting flag: %w", err)
@@ -44,7 +45,7 @@ func Rate() api.Builder {
 			}
 
 			return &api.Trigger{
-					Trigger:     api.NewIterationWorker(rates.IterationDuration, rates.Rate),
+					Trigger:     api.NewIterationWorker(rates.IterationDuration, rates.Rate, tracer),
 					DryRun:      rates.Rate,
 					Description: fmt.Sprintf("Starting iterations every %s in numbers varying by time: %s, using distribution %s", frequency, stg, distributionTypeArg),
 					Duration:    rates.Duration,

@@ -1,8 +1,10 @@
 package run_test
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
+	"io"
 	"math"
 	"strings"
 	"sync"
@@ -15,13 +17,14 @@ import (
 	"github.com/google/uuid"
 	io_prometheus_client "github.com/prometheus/client_model/go"
 	"github.com/prometheus/common/expfmt"
-	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/form3tech-oss/f1/v2/internal/envsettings"
 	"github.com/form3tech-oss/f1/v2/internal/fluentd"
 	"github.com/form3tech-oss/f1/v2/internal/options"
 	"github.com/form3tech-oss/f1/v2/internal/run"
+	"github.com/form3tech-oss/f1/v2/internal/trace"
 	"github.com/form3tech-oss/f1/v2/internal/trigger/api"
 	"github.com/form3tech-oss/f1/v2/internal/trigger/constant"
 	"github.com/form3tech-oss/f1/v2/internal/trigger/file"
@@ -39,6 +42,7 @@ type RunTestStage struct {
 	t                      *testing.T
 	scenario               string
 	runResult              *run.Result
+	runError               error
 	concurrency            int
 	setupTeardownCount     *int32
 	iterationTeardownCount *int32
@@ -58,6 +62,12 @@ type RunTestStage struct {
 	rampDuration           string
 	durations              sync.Map
 	f1                     *f1.F1
+
+	tracer       trace.Tracer
+	tracerWg     sync.WaitGroup
+	tracerOutput bytes.Buffer
+	tracerWriter *io.PipeWriter
+	tracerReader *io.PipeReader
 }
 
 func NewRunTestStage(t *testing.T) (*RunTestStage, *RunTestStage, *RunTestStage) {
@@ -72,7 +82,11 @@ func NewRunTestStage(t *testing.T) (*RunTestStage, *RunTestStage, *RunTestStage)
 		setupTeardownCount:     &setupTeardownCount,
 		iterationTeardownCount: &iterationTeardownCount,
 		f1:                     f1.New(),
+		tracer:                 trace.NewConsoleTracer(io.Discard),
 	}
+
+	stage.tracerReader, stage.tracerWriter = io.Pipe()
+
 	fakePrometheus.ClearMetrics()
 	return stage, stage, stage
 }
@@ -127,6 +141,7 @@ func (s *RunTestStage) a_ramp_duration_of(rampDuration string) *RunTestStage {
 }
 
 func (s *RunTestStage) i_execute_the_run_command() *RunTestStage {
+	settings := envsettings.Get()
 	r, err := run.NewRun(
 		options.RunOptions{
 			Scenario:            s.scenario,
@@ -135,15 +150,20 @@ func (s *RunTestStage) i_execute_the_run_command() *RunTestStage {
 			MaxIterations:       s.maxIterations,
 			MaxFailures:         s.maxFailures,
 			MaxFailuresRate:     s.maxFailuresRate,
-			RegisterLogHookFunc: fluentd.AddFluentdLoggingHook,
+			RegisterLogHookFunc: fluentd.LoggingHook(settings.Fluentd.Host, settings.Fluentd.Port),
 		},
-		s.build_trigger())
+		s.build_trigger(), settings, s.tracer)
 	if err != nil {
-		log.WithError(err).Info("run creation failed")
-		s.runResult = (&run.Result{}).AddError(err)
+		s.runError = fmt.Errorf("run create: %w", err)
 		return s
 	}
-	s.runResult = r.Do(s.f1.GetScenarios())
+
+	s.runResult, err = r.Do(s.f1.GetScenarios())
+	if err != nil {
+		s.runError = fmt.Errorf("run do: %w", err)
+		return s
+	}
+
 	return s
 }
 
@@ -352,16 +372,21 @@ func (s *RunTestStage) an_iteration_limit_of(iterations int32) *RunTestStage {
 
 func (s *RunTestStage) the_test_run_is_started() *RunTestStage {
 	go func() {
-		r, err := run.NewRun(options.RunOptions{
-			Scenario:            s.scenario,
-			MaxDuration:         s.duration,
-			Concurrency:         s.concurrency,
-			MaxIterations:       s.maxIterations,
-			RegisterLogHookFunc: fluentd.AddFluentdLoggingHook,
-		},
-			s.build_trigger())
-		require.NoError(s.t, err)
-		s.runResult = r.Do(s.f1.GetScenarios())
+		r, err := run.NewRun(
+			options.RunOptions{
+				Scenario:            s.scenario,
+				MaxDuration:         s.duration,
+				Concurrency:         s.concurrency,
+				MaxIterations:       s.maxIterations,
+				RegisterLogHookFunc: fluentd.LoggingHook("", ""),
+			},
+			s.build_trigger(), envsettings.Get(), s.tracer)
+		if err != nil {
+			s.runError = fmt.Errorf("new run: %w", err)
+			return
+		}
+
+		s.runResult, s.runError = r.Do(s.f1.GetScenarios())
 	}()
 	return s
 }
@@ -381,7 +406,7 @@ func (s *RunTestStage) build_trigger() *api.Trigger {
 			require.NoError(s.t, err)
 		}
 
-		t, err = constant.Rate().New(flags)
+		t, err = constant.Rate().New(flags, s.tracer)
 		require.NoError(s.t, err)
 	case Staged:
 		flags := staged.Rate().Flags
@@ -397,11 +422,11 @@ func (s *RunTestStage) build_trigger() *api.Trigger {
 			require.NoError(s.t, err)
 		}
 
-		t, err = staged.Rate().New(flags)
+		t, err = staged.Rate().New(flags, s.tracer)
 		require.NoError(s.t, err)
 	case Users:
 		flags := users.Rate().Flags
-		t, err = users.Rate().New(flags)
+		t, err = users.Rate().New(flags, s.tracer)
 		require.NoError(s.t, err)
 	case Ramp:
 		flags := ramp.Rate().Flags
@@ -426,7 +451,7 @@ func (s *RunTestStage) build_trigger() *api.Trigger {
 			require.NoError(s.t, err)
 		}
 
-		t, err = ramp.Rate().New(flags)
+		t, err = ramp.Rate().New(flags, s.tracer)
 		require.NoError(s.t, err)
 	case File:
 		flags := file.Rate().Flags
@@ -434,7 +459,7 @@ func (s *RunTestStage) build_trigger() *api.Trigger {
 		err := flags.Parse([]string{s.configFile})
 		require.NoError(s.t, err)
 
-		t, err = file.Rate().New(flags)
+		t, err = file.Rate().New(flags, s.tracer)
 		require.NoError(s.t, err)
 	}
 	return t
@@ -568,6 +593,50 @@ func (s *RunTestStage) all_exported_metrics_contain_label(labelName string, labe
 			}
 		}
 	}
+	return s
+}
+
+func (s *RunTestStage) the_trace_output_should_be_present() *RunTestStage {
+	s.require.NoError(s.tracerWriter.Close())
+	s.tracerWg.Wait()
+
+	s.require.NotEmpty(s.tracerOutput)
+	return s
+}
+
+func (s *RunTestStage) tracing_is_enabled() *RunTestStage {
+	s.tracerWg.Add(1)
+
+	go func() {
+		defer s.tracerWg.Done()
+		_, err := io.Copy(&s.tracerOutput, s.tracerReader)
+		s.require.NoError(err)
+	}()
+
+	s.tracer = trace.NewConsoleTracer(s.tracerWriter)
+	return s
+}
+
+func (s *RunTestStage) a_concurrent_constant_trigger_is_configured() *RunTestStage {
+	return s.
+		a_trigger_type_of(Constant).and().
+		a_rate_of("10/s").and().
+		a_duration_of(500 * time.Millisecond).and().
+		a_concurrency_of(50).and().
+		an_iteration_limit_of(1000).and().
+		a_scenario_where_each_iteration_takes(1 * time.Millisecond)
+}
+
+func (s *RunTestStage) a_fluentd_config_with_host_and_port(host, port string) *RunTestStage {
+	s.t.Setenv(envsettings.EnvFluentdHost, host)
+	s.t.Setenv(envsettings.EnvFluentdPort, port)
+
+	return s
+}
+
+func (s *RunTestStage) run_fails_with_error_containing(message string) *RunTestStage {
+	s.require.ErrorContains(s.runError, message)
+
 	return s
 }
 

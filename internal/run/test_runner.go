@@ -19,6 +19,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/push"
 	log "github.com/sirupsen/logrus"
 
+	"github.com/form3tech-oss/f1/v2/internal/envsettings"
 	"github.com/form3tech-oss/f1/v2/internal/logging"
 	"github.com/form3tech-oss/f1/v2/internal/metrics"
 	"github.com/form3tech-oss/f1/v2/internal/options"
@@ -33,24 +34,24 @@ const (
 	IterationStage      = "iteration"
 )
 
-func NewRun(options options.RunOptions, t *api.Trigger) (*Run, error) {
+func NewRun(options options.RunOptions, t *api.Trigger, settings envsettings.Settings, tracer trace.Tracer) (*Run, error) {
 	run := Run{
 		Options:         options,
+		Settings:        settings,
 		RateDescription: t.Description,
 		trigger:         t,
+		tracer:          tracer,
 	}
-	prometheusURL := os.Getenv("PROMETHEUS_PUSH_GATEWAY")
-	if prometheusURL != "" {
-		run.pusher = push.New(prometheusURL, "f1-"+options.Scenario).Gatherer(prometheus.DefaultGatherer)
+	if run.Settings.Prometheus.PushGateway != "" {
+		run.pusher = push.New(settings.Prometheus.PushGateway, "f1-"+options.Scenario).
+			Gatherer(prometheus.DefaultGatherer)
 
-		namespaceLabel := os.Getenv("PROMETHEUS_NAMESPACE")
-		if namespaceLabel != "" {
-			run.pusher = run.pusher.Grouping("namespace", namespaceLabel)
+		if run.Settings.Prometheus.Namespace != "" {
+			run.pusher = run.pusher.Grouping("namespace", run.Settings.Prometheus.Namespace)
 		}
 
-		idLabel := os.Getenv("PROMETHEUS_LABEL_ID")
-		if idLabel != "" {
-			run.pusher = run.pusher.Grouping("id", idLabel)
+		if run.Settings.Prometheus.LabelID != "" {
+			run.pusher = run.pusher.Grouping("id", run.Settings.Prometheus.LabelID)
 		}
 	}
 	if run.Options.RegisterLogHookFunc == nil {
@@ -76,17 +77,20 @@ func NewRun(options options.RunOptions, t *api.Trigger) (*Run, error) {
 
 type Run struct {
 	Options         options.RunOptions
-	busyWorkers     int32
-	iteration       int32
-	failures        int32
-	result          Result
-	activeScenario  *ActiveScenario
-	interrupt       chan os.Signal
-	trigger         *api.Trigger
+	Settings        envsettings.Settings
 	RateDescription string
-	pusher          *push.Pusher
-	notifyDropped   sync.Once
-	progressRunner  raterun.Runner
+
+	busyWorkers    int32
+	iteration      int32
+	failures       int32
+	result         Result
+	activeScenario *ActiveScenario
+	interrupt      chan os.Signal
+	trigger        *api.Trigger
+	tracer         trace.Tracer
+	pusher         *push.Pusher
+	notifyDropped  sync.Once
+	progressRunner raterun.Runner
 }
 
 var startTemplate = template.Must(template.New("result parse").
@@ -95,12 +99,14 @@ var startTemplate = template.Must(template.New("result parse").
 Running {yellow}{{.Options.Scenario}}{-} scenario for {{if .Options.MaxIterations}}up to {{.Options.MaxIterations}} iterations or up to {{end}}{{duration .Options.MaxDuration}} at a rate of {{.RateDescription}}.
 `))
 
-func (r *Run) Do(s *scenarios.Scenarios) *Result {
+func (r *Run) Do(s *scenarios.Scenarios) (*Result, error) {
 	fmt.Print(renderTemplate(startTemplate, r))
 	defer r.printSummary()
 	defer r.printLogOnFailure()
 
-	r.configureLogging()
+	if err := r.configureLogging(); err != nil {
+		return nil, fmt.Errorf("configure logging: %w", err)
+	}
 
 	metrics.Instance().Reset()
 
@@ -109,7 +115,7 @@ func (r *Run) Do(s *scenarios.Scenarios) *Result {
 	defer r.teardownActiveScenario()
 
 	if r.activeScenario.t.Failed() {
-		return r.reportSetupFailure()
+		return r.reportSetupFailure(), nil
 	}
 
 	// set initial started timestamp so that the progress trackers work
@@ -125,7 +131,7 @@ func (r *Run) Do(s *scenarios.Scenarios) *Result {
 	metricsTick.Close()
 	r.gatherMetrics()
 
-	return &r.result
+	return &r.result, nil
 }
 
 func (r *Run) reportSetupFailure() *Result {
@@ -144,14 +150,20 @@ func (r *Run) teardownActiveScenario() {
 	fmt.Println(r.result.Teardown())
 }
 
-func (r *Run) configureLogging() {
-	r.Options.RegisterLogHookFunc(r.Options.Scenario)
+func (r *Run) configureLogging() error {
+	err := r.Options.RegisterLogHookFunc(r.Options.Scenario)
+	if err != nil {
+		return fmt.Errorf("calling register log hook func: %w", err)
+	}
+
 	if !r.Options.Verbose {
-		r.result.LogFile = redirectLoggingToFile(r.Options.Scenario)
+		r.result.LogFile = redirectLoggingToFile(r.Options.Scenario, r.Settings.LogFilePath)
 		welcomeMessage := renderTemplate(startTemplate, r)
 		log.Info(welcomeMessage)
 		fmt.Printf("Saving logs to %s\n\n", r.result.LogFile)
 	}
+
+	return nil
 }
 
 func (r *Run) printSummary() {
@@ -193,7 +205,7 @@ func (r *Run) run() {
 	}
 
 	// Cancel work slightly before end of duration to avoid starting a new iteration
-	durationElapsed := NewCancellableTimer(duration - NextIterationWindow)
+	durationElapsed := NewCancellableTimer(duration-NextIterationWindow, r.tracer)
 	r.result.RecordStarted()
 	defer r.result.RecordTestFinished()
 
@@ -204,7 +216,7 @@ func (r *Run) run() {
 	// This blocks waiting for cancellable timer
 	go func() {
 		elapsed := <-durationElapsed.C
-		trace.ReceivedFromChannel("C")
+		r.tracer.ReceivedFromChannel("C")
 		if elapsed {
 			fmt.Println(r.result.MaxDurationElapsed())
 		}
@@ -216,7 +228,7 @@ func (r *Run) run() {
 
 	// run more iterations on every tick, until duration has elapsed.
 	for {
-		trace.Event("Run loop ")
+		r.tracer.Event("Run loop ")
 		select {
 		case <-r.interrupt:
 			fmt.Println(r.result.Interrupted())
@@ -225,9 +237,9 @@ func (r *Run) run() {
 			signal.Stop(r.interrupt)
 			durationElapsed.Cancel()
 		case <-workTriggered:
-			trace.ReceivedFromChannel("workTriggered")
+			r.tracer.ReceivedFromChannel("workTriggered")
 			r.doWork(doWorkChannel, durationElapsed)
-			trace.Event("Called do work")
+			r.tracer.Event("Called do work")
 		case <-stopWorkers:
 			wg.Wait()
 			return
@@ -246,13 +258,13 @@ func (r *Run) doWork(doWorkChannel chan<- int32, durationElapsed *CancellableTim
 	}
 	iteration := atomic.AddInt32(&r.iteration, 1)
 	if r.Options.MaxIterations > 0 && iteration > r.Options.MaxIterations {
-		trace.Event("Max iterations exceeded Calling Cancel on iteration  '%v' .", iteration)
+		r.tracer.Event("Max iterations exceeded Calling Cancel on iteration  '%v' .", iteration)
 		if durationElapsed.Cancel() {
 			fmt.Println(r.result.MaxIterationsReached())
 		}
-		trace.Event("Max iterations exceeded Called Cancel on iteration  '%v' .", iteration)
+		r.tracer.Event("Max iterations exceeded Called Cancel on iteration  '%v' .", iteration)
 	} else if r.Options.MaxIterations <= 0 || iteration <= r.Options.MaxIterations {
-		trace.Event("Within Max iterations So calling dowork() on iteration  '%v' .", iteration)
+		r.tracer.Event("Within Max iterations So calling dowork() on iteration  '%v' .", iteration)
 		doWorkChannel <- iteration
 	}
 }
@@ -311,14 +323,14 @@ func (r *Run) gatherProgressMetrics(duration time.Duration) {
 
 func (r *Run) runWorker(input <-chan int32, stop <-chan struct{}, wg *sync.WaitGroup, worker string, workDone chan<- bool) {
 	defer wg.Done()
-	trace.Event("Started worker (%v)", worker)
+	r.tracer.Event("Started worker (%v)", worker)
 	for {
 		select {
 		case <-stop:
-			trace.Event("Stopping worker (%v)", worker)
+			r.tracer.Event("Stopping worker (%v)", worker)
 			return
 		case iteration := <-input:
-			trace.Event("Received work (%v) from Channel 'doWork' iteration (%v)", worker, iteration)
+			r.tracer.Event("Received work (%v) from Channel 'doWork' iteration (%v)", worker, iteration)
 			atomic.AddInt32(&r.busyWorkers, 1)
 
 			scenario := r.activeScenario.scenario
@@ -336,7 +348,7 @@ func (r *Run) runWorker(input <-chan int32, stop <-chan struct{}, wg *sync.WaitG
 				return
 			}
 
-			trace.Event("Completed iteration (%v).", iteration)
+			r.tracer.Event("Completed iteration (%v).", iteration)
 		}
 	}
 }

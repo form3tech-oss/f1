@@ -6,6 +6,7 @@ import (
 	"github.com/spf13/pflag"
 
 	"github.com/form3tech-oss/f1/v2/internal/options"
+	"github.com/form3tech-oss/f1/v2/internal/trace"
 	"github.com/form3tech-oss/f1/v2/internal/trigger/api"
 )
 
@@ -16,7 +17,7 @@ func Rate() api.Builder {
 		Name:        "users <scenario>",
 		Description: "triggers test iterations from a static set of users controlled by the --concurrency flag",
 		Flags:       flags,
-		New: func(*pflag.FlagSet) (*api.Trigger, error) {
+		New: func(*pflag.FlagSet, trace.Tracer) (*api.Trigger, error) {
 			trigger := func(workTriggered chan<- bool, stop <-chan bool, workDone <-chan bool, options options.RunOptions) {
 				doWork := NewWorker(options.Concurrency)
 				doWork(workTriggered, stop, workDone, options)

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/form3tech-oss/f1/v2/internal/envsettings"
 	"github.com/form3tech-oss/f1/v2/pkg/f1/scenarios"
 	"github.com/form3tech-oss/f1/v2/pkg/f1/testing"
 )
@@ -14,6 +15,7 @@ import (
 type F1 struct {
 	scenarios *scenarios.Scenarios
 	profiling *profiling
+	settings  envsettings.Settings
 }
 
 // Instantiates a new instance of an F1 CLI.
@@ -21,6 +23,7 @@ func New() *F1 {
 	return &F1{
 		scenarios: scenarios.New(),
 		profiling: &profiling{},
+		settings:  envsettings.Get(),
 	}
 }
 
@@ -47,7 +50,7 @@ func (f *F1) Add(name string, scenarioFn testing.ScenarioFn, options ...scenario
 }
 
 func (f *F1) execute(args []string) error {
-	rootCmd, err := buildRootCmd(f.scenarios, f.profiling)
+	rootCmd, err := buildRootCmd(f.scenarios, f.settings, f.profiling)
 	if err != nil {
 		return fmt.Errorf("building root command: %w", err)
 	}

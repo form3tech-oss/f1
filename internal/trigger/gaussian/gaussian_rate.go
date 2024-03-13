@@ -11,6 +11,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
 
+	"github.com/form3tech-oss/f1/v2/internal/trace"
 	"github.com/form3tech-oss/f1/v2/internal/trigger/api"
 	"github.com/form3tech-oss/f1/v2/internal/trigger/rate"
 )
@@ -33,7 +34,7 @@ func Rate() api.Builder {
 		Name:        "gaussian <scenario>",
 		Description: "distributes load to match a desired monthly volume",
 		Flags:       flags,
-		New: func(flags *pflag.FlagSet) (*api.Trigger, error) {
+		New: func(flags *pflag.FlagSet, tracer trace.Tracer) (*api.Trigger, error) {
 			volume, err := flags.GetFloat64("volume")
 			if err != nil {
 				return nil, fmt.Errorf("getting flag: %w", err)
@@ -89,7 +90,7 @@ func Rate() api.Builder {
 			}
 
 			return &api.Trigger{
-					Trigger: api.NewIterationWorker(rates.IterationDuration, rates.Rate),
+					Trigger: api.NewIterationWorker(rates.IterationDuration, rates.Rate, tracer),
 					DryRun:  rates.Rate,
 					Description: fmt.Sprintf(
 						"Gaussian distribution triggering %d iterations per %s, peaking at %s with standard deviation of %s%s, using distribution %s",

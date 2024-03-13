@@ -87,7 +87,17 @@ It provides the following information:
 - `(20/s)` (attempted) rate,
 - `p(50): 16.899154ms p(95): 19.1134ms p(100): 21.435088ms` average time per iteration, for a given percentile.
 
+### Environment variables
 
+| Name | Format | Default | Description |
+| --- | --- | --- | --- |
+| `PROMETHEUS_PUSH_GATEWAY` | string - `host:port` or `ip:port` | `""` | Configures the address of a [Prometheus Push Gateway](https://prometheus.io/docs/instrumenting/pushing/) for exposing metrics. The prometheus job name configured will be `f1-{scenario_name}`. Disabled by default.|
+| `PROMETHEUS_NAMESPACE` | string | `""` | Sets the metric label `namespace` to the specified value. Label is omitted if the value provided is empty.|
+| `PROMETHEUS_LABEL_ID` | string | `""` | Sets the metric label `id` to the specified value. Label is omitted if the value provided is empty.|
+| `LOG_FILE_PATH` | string | `""`| Specify the log file path if `--verbose` is enabled. The logfile path will be an automatically generated temp file if not specified. |
+| `TRACE` | bool | "" | If set to `"true"` detailed internal tracing is printed to stdout. Disabled by default. |
+| `FLUENTD_HOST`| string | "" | Enable log shipping to a fluentd host. Must together with `FLUENTD_PORT`. Disabled by default. |
+| `FLUENTD_PORT`| int | "" | Enable log shipping to a fluentd host. Must together with `FLUENTD_HOST`. Disabled by default. |
 
 ## Design decisions
 ### Why did we decide to write our own load testing tool?

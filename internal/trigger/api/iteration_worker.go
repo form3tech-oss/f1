@@ -8,7 +8,7 @@ import (
 )
 
 // NewIterationWorker produces a WorkTriggerer which triggers work at fixed intervals.
-func NewIterationWorker(iterationDuration time.Duration, rate RateFunction) WorkTriggerer {
+func NewIterationWorker(iterationDuration time.Duration, rate RateFunction, tracer trace.Tracer) WorkTriggerer {
 	return func(workTriggered chan<- bool, stop <-chan bool, workDone <-chan bool, _ options.RunOptions) {
 		startRate := rate(time.Now())
 		for i := 0; i < startRate; i++ {
@@ -24,9 +24,9 @@ func NewIterationWorker(iterationDuration time.Duration, rate RateFunction) Work
 			case <-workDone:
 				continue
 			case <-stop:
-				trace.ReceivedFromChannel("stop")
+				tracer.ReceivedFromChannel("stop")
 				iterationTicker.Stop()
-				trace.Event("Iteration worker stopped.")
+				tracer.Event("Iteration worker stopped.")
 				return
 			case start := <-iterationTicker.C:
 				// if both stop and the ticker are available at the same time
@@ -41,7 +41,7 @@ func NewIterationWorker(iterationDuration time.Duration, rate RateFunction) Work
 
 				iterationRate := rate(start)
 				for i := 0; i < iterationRate; i++ {
-					trace.SendingToChannel("workTriggered")
+					tracer.SendingToChannel("workTriggered")
 					workTriggered <- true
 				}
 			}

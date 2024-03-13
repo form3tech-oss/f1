@@ -1,12 +1,14 @@
 package chart
 
 import (
+	"io"
 	"strconv"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 
+	"github.com/form3tech-oss/f1/v2/internal/trace"
 	"github.com/form3tech-oss/f1/v2/internal/trigger"
 )
 
@@ -31,7 +33,7 @@ func (s *ChartTestStage) and() *ChartTestStage {
 }
 
 func (s *ChartTestStage) i_execute_the_chart_command() *ChartTestStage {
-	cmd := Cmd(trigger.GetBuilders())
+	cmd := Cmd(trigger.GetBuilders(), trace.NewConsoleTracer(io.Discard))
 	cmd.SetArgs(s.args)
 	s.err = cmd.Execute()
 	return s

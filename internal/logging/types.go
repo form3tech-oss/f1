@@ -1,5 +1,7 @@
 package logging
 
-type RegisterLogHookFunc func(scenario string)
+type RegisterLogHookFunc func(scenario string) error
 
-var NoneRegisterLogHookFunc = func(string) {}
+func NoneRegisterLogHookFunc(string) error {
+	return nil
+}
