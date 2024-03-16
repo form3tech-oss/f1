@@ -12,10 +12,11 @@ import (
 	"github.com/form3tech-oss/f1/v2/internal/metrics"
 )
 
-// T is a type passed to Scenario functions to manage test state and support formatted test logs.
-// A test ends when its Scenario function returns or calls any of the methods FailNow, Fatal, Fatalf.
-// Those methods must be called only from the goroutine running the Scenario function.
-// The other reporting methods, such as the variations of Log and Error, may be called simultaneously from multiple goroutines.
+// T is a type passed to Scenario functions to manage test state and support formatted test logs. A
+// test ends when its Scenario function returns or calls any of the methods FailNow, Fatal, Fatalf.
+// Those methods must be called only from the goroutine running the Scenario function. The other
+// reporting methods, such as the variations of Log and Error, may be called simultaneously from
+// multiple goroutines.
 type T struct {
 	// "iteration " + iteration number or "setup"
 	Iteration string
@@ -53,9 +54,11 @@ func (t *T) Name() string {
 	return t.Scenario
 }
 
-// FailNow marks the function as having failed and stops its execution by calling runtime.Goexit (which then runs all deferred calls in the current goroutine).
-// Execution will continue at the next Scenario iteration. FailNow must be called from the goroutine running the Scenario,
-// not from other goroutines created during the Scenario. Calling FailNow does not stop those other goroutines.
+// FailNow marks the function as having failed and stops its execution by calling runtime.Goexit
+// (which then runs all deferred calls in the current goroutine). Execution will continue at the
+// next Scenario iteration. FailNow must be called from the goroutine running the Scenario, not from
+// other goroutines created during the Scenario. Calling FailNow does not stop those other
+// goroutines.
 func (t *T) FailNow() {
 	if t.tearingDown {
 		atomic.StoreInt64(&t.teardownFailed, int64(1))
@@ -165,5 +168,11 @@ func (t *T) teardown() {
 }
 
 func recordTime(t *T, stageName string, start time.Time) {
-	metrics.Instance().Record(metrics.IterationResult, t.Scenario, stageName, metrics.Result(t.Failed()), time.Since(start).Nanoseconds())
+	metrics.Instance().Record(
+		metrics.IterationResult,
+		t.Scenario,
+		stageName,
+		metrics.Result(t.Failed()),
+		time.Since(start).Nanoseconds(),
+	)
 }

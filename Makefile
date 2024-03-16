@@ -19,4 +19,10 @@ lint-fix: tools/golangci-lint
 	@echo "==> Running golangci-lint..."
 	@tools/golangci-lint run --timeout 600s --fix
 
+.PHONY: install-pkgsite
+install-pkgsite:
+	go install golang.org/x/pkgsite/cmd/pkgsite@latest
 
+.PHONY: open-docs
+open-docs:
+	pkgsite -open .

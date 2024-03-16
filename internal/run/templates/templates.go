@@ -10,6 +10,7 @@ import (
 	"github.com/form3tech-oss/f1/v2/internal/termcolor"
 )
 
+//nolint:lll // templates read better with long lines
 const (
 	startTemplate = `{u}{bold}{intensive_blue}F1 Load Tester{-}
 Running {yellow}{{.Options.Scenario}}{-} scenario for {{if .Options.MaxIterations}}up to {{.Options.MaxIterations}} iterations or up to {{end}}{{duration .Options.MaxDuration}} at a rate of {{.RateDescription}}.

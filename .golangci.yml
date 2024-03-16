@@ -43,7 +43,6 @@ linters:
   - paralleltest
   - gomnd
   - goerr113
-  - lll
   - forbidigo
   - dupl
 
@@ -76,6 +75,8 @@ issues:
         - wrapcheck
         # this is ok for BDD style tests
         - unparam
+        # long lines are OK in tests
+        - lll
     - path: _test\.go
       # ST1003: Poorly chosen identifiers (https://staticcheck.io/docs/checks/#ST1003)
       # This is to allow identifiers to be snake_cased in favor of BDD integration tests
