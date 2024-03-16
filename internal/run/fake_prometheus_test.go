@@ -16,8 +16,8 @@ func parseGroupLabels(requiestURI string) []*io_prometheus_client.LabelPair {
 	// labels added via push.Grouping are passed through URI
 	// example: /metrics/job/f1-f94b1fd3-1a08-4829-896e-792397ccdbfd/namespace/test-namespace/abc/cde
 
-	var labels []*io_prometheus_client.LabelPair
 	parts := strings.Split(requiestURI, "/")[4:]
+	labels := make([]*io_prometheus_client.LabelPair, 0, len(parts)/2)
 
 	var labelName string
 	for i, part := range parts {

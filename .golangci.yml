@@ -44,7 +44,6 @@ linters:
   - gomnd
   - goerr113
   - lll
-  - prealloc
   - forbidigo
   - dupl
 
