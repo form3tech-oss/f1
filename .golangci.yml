@@ -39,12 +39,14 @@ linters:
   # Requires too many changes
   - testpackage
 
+  # Project is not large enough to need duplicate code detection
+  - dupl
+
   # TODO
   - paralleltest
   - gomnd
   - goerr113
   - forbidigo
-  - dupl
 
 linters-settings:
   tagliatelle:
