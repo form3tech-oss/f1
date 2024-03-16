@@ -122,10 +122,12 @@ type Calculator struct {
 func CalculateGaussianRate(
 	volume, jitter float64,
 	repeat, frequency, peak, stddev time.Duration,
-	weights, distributionTypeArg string,
+	weightsArg, distributionTypeArg string,
 ) (*api.Rates, error) {
-	var weightsSlice []float64
-	for _, s := range strings.Split(weights, ",") {
+	weights := strings.Split(weightsArg, ",")
+	weightsSlice := make([]float64, 0, len(weights))
+
+	for _, s := range weights {
 		if s == "" {
 			continue
 		}

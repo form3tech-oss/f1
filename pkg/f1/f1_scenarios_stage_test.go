@@ -53,10 +53,10 @@ func newF1ScenarioStage(t *testing.T) (*f1ScenariosStage, *f1ScenariosStage, *f1
 }
 
 func (s *f1ScenariosStage) f1_is_configured_to_run_a_combined_scenario() {
-	var scenarios []f1_testing.ScenarioFn
-	for _, scn := range s.scenarios {
+	scenarios := make([]f1_testing.ScenarioFn, len(s.scenarios))
+	for i, scn := range s.scenarios {
 		fn := scn.scenariofn
-		scenarios = append(scenarios, fn)
+		scenarios[i] = fn
 	}
 
 	s.runner = f1.New().Add("combined", f1.CombineScenarios(scenarios...))
