@@ -12,10 +12,15 @@ import (
 
 func Rate() api.Builder {
 	flags := pflag.NewFlagSet("staged", pflag.ContinueOnError)
-	flags.StringP("stages", "s", "0s:1, 10s:1", "Comma separated list of <stage_duration>:<target_concurrent_iterations>. During the stage, the number of concurrent iterations will ramp up or down to the target. ")
-	flags.DurationP("iterationFrequency", "f", 1*time.Second, "How frequently iterations should be started")
-	flags.Float64P("jitter", "j", 0.0, "vary the rate randomly by up to jitter percent")
-	flags.String("distribution", "regular", "optional parameter to distribute the rate over steps of 100ms, which can be none|regular|random")
+	flags.StringP("stages", "s", "0s:1, 10s:1",
+		"Comma separated list of <stage_duration>:<target_concurrent_iterations>. "+
+			"During the stage, the number of concurrent iterations will ramp up or down to the target.")
+	flags.DurationP("iterationFrequency", "f", 1*time.Second,
+		"How frequently iterations should be started")
+	flags.Float64P("jitter", "j", 0.0,
+		"vary the rate randomly by up to jitter percent")
+	flags.String("distribution", "regular",
+		"optional parameter to distribute the rate over steps of 100ms, which can be none|regular|random")
 
 	return api.Builder{
 		Name:        "staged <scenario>",
@@ -45,17 +50,24 @@ func Rate() api.Builder {
 			}
 
 			return &api.Trigger{
-					Trigger:     api.NewIterationWorker(rates.IterationDuration, rates.Rate, tracer),
-					DryRun:      rates.Rate,
-					Description: fmt.Sprintf("Starting iterations every %s in numbers varying by time: %s, using distribution %s", frequency, stg, distributionTypeArg),
-					Duration:    rates.Duration,
+					Trigger: api.NewIterationWorker(rates.IterationDuration, rates.Rate, tracer),
+					DryRun:  rates.Rate,
+					Description: fmt.Sprintf(
+						"Starting iterations every %s in numbers varying by time: %s, using distribution %s",
+						frequency, stg, distributionTypeArg),
+					Duration: rates.Duration,
 				},
 				nil
 		},
 	}
 }
 
-func CalculateStagedRate(jitterArg float64, frequency time.Duration, stg, distributionTypeArg string) (*api.Rates, error) {
+func CalculateStagedRate(
+	jitterArg float64,
+	frequency time.Duration,
+	stg string,
+	distributionTypeArg string,
+) (*api.Rates, error) {
 	stages, err := parseStages(stg)
 	if err != nil {
 		return nil, fmt.Errorf("parsing stages: %w", err)

@@ -71,7 +71,9 @@ var (
 
 func Instance() *Metrics {
 	once.Do(func() {
-		percentileObjectives := map[float64]float64{0.5: 0.05, 0.75: 0.05, 0.9: 0.01, 0.95: 0.001, 0.99: 0.001, 0.9999: 0.00001, 1.0: 0.00001}
+		percentileObjectives := map[float64]float64{
+			0.5: 0.05, 0.75: 0.05, 0.9: 0.01, 0.95: 0.001, 0.99: 0.001, 0.9999: 0.00001, 1.0: 0.00001,
+		}
 		m = &Metrics{
 			Setup: prometheus.NewSummaryVec(prometheus.SummaryOpts{
 				Namespace:  metricNamespace,

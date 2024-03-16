@@ -7,7 +7,11 @@ import (
 	"time"
 )
 
-func NewDistribution(distributionTypeArg string, iterationDuration time.Duration, rateFn RateFunction) (time.Duration, RateFunction, error) {
+func NewDistribution(
+	distributionTypeArg string,
+	iterationDuration time.Duration,
+	rateFn RateFunction,
+) (time.Duration, RateFunction, error) {
 	switch distributionTypeArg {
 	case "none":
 		return iterationDuration, rateFn, nil
@@ -59,7 +63,11 @@ func withRegularDistribution(iterationDuration time.Duration, rateFn RateFunctio
 	return distributedIterationDuration, distributedRateFn
 }
 
-func withRandomDistribution(iterationDuration time.Duration, rateFn RateFunction, randFn func(int) int) (time.Duration, RateFunction) {
+func withRandomDistribution(
+	iterationDuration time.Duration,
+	rateFn RateFunction,
+	randFn func(int) int,
+) (time.Duration, RateFunction) {
 	distributedIterationDuration := 100 * time.Millisecond
 
 	if iterationDuration <= distributedIterationDuration {
