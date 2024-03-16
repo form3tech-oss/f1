@@ -273,15 +273,15 @@ func (r *Run) gatherMetrics() {
 		r.result.AddError(fmt.Errorf("gather metrics: %w", err))
 	}
 	for _, metric := range m {
-		if metric.GetName() == "form3_loadtest_iteration" {
+		if metric.GetName() == metrics.InterationMetricName {
 			for _, m := range metric.GetMetric() {
-				result := "unknown"
+				result := metrics.UnknownResult
 				stage := IterationStage
 				for _, label := range m.GetLabel() {
-					if label.GetName() == "result" {
-						result = label.GetValue()
+					if label.GetName() == metrics.ResultLabel {
+						result = metrics.FromString(label.GetValue())
 					}
-					if label.GetName() == "stage" {
+					if label.GetName() == metrics.StageLabel {
 						stage = label.GetValue()
 					}
 				}
@@ -299,15 +299,15 @@ func (r *Run) gatherProgressMetrics(duration time.Duration) {
 	metrics.Instance().Progress.Reset()
 	r.result.ClearProgressMetrics()
 	for _, metric := range m {
-		if metric.GetName() == "form3_loadtest_iteration" {
+		if metric.GetName() == metrics.InterationMetricName {
 			for _, m := range metric.GetMetric() {
-				result := "unknown"
+				result := metrics.UnknownResult
 				stage := IterationStage
 				for _, label := range m.GetLabel() {
-					if label.GetName() == "result" {
-						result = label.GetValue()
+					if label.GetName() == metrics.ResultLabel {
+						result = metrics.FromString(label.GetValue())
 					}
-					if label.GetName() == "stage" {
+					if label.GetName() == metrics.StageLabel {
 						stage = label.GetValue()
 					}
 				}

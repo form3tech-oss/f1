@@ -3,13 +3,13 @@ package run
 import (
 	"errors"
 	"fmt"
-	"log"
 	"strings"
 	"sync"
 	"time"
 
 	io_prometheus_client "github.com/prometheus/client_model/go"
 
+	"github.com/form3tech-oss/f1/v2/internal/metrics"
 	"github.com/form3tech-oss/f1/v2/internal/run/templates"
 )
 
@@ -33,7 +33,7 @@ type Result struct {
 	LogFile                      string
 }
 
-func (r *Result) SetMetrics(result string, stage string, count uint64, quantiles []*io_prometheus_client.Quantile) {
+func (r *Result) SetMetrics(result metrics.ResultType, stage string, count uint64, quantiles []*io_prometheus_client.Quantile) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	if stage != IterationStage {
@@ -41,20 +41,19 @@ func (r *Result) SetMetrics(result string, stage string, count uint64, quantiles
 	}
 	r.RecentDuration = 1 * time.Second
 	switch result {
-	case "success":
+	case metrics.SucessResult:
 		r.RecentSuccessfulIterations = count - r.SuccessfulIterationCount
 		r.SuccessfulIterationCount = count
 		r.SuccessfulIterationDurations = parseQuantiles(quantiles)
 		return
-	case "fail":
+	case metrics.FailedResult:
 		r.FailedIterationCount = count
 		r.FailedIterationDurations = parseQuantiles(quantiles)
 		return
-	case "dropped":
+	case metrics.DroppedResult:
 		r.DroppedIterationCount = count
 		return
-	default:
-		log.Fatalf("unknown result type %s", result)
+	case metrics.UnknownResult:
 	}
 }
 
@@ -65,7 +64,7 @@ func (r *Result) ClearProgressMetrics() {
 	r.SuccessfulIterationDurations = map[float64]time.Duration{}
 }
 
-func (r *Result) IncrementMetrics(duration time.Duration, result string, stage string, count uint64, quantiles []*io_prometheus_client.Quantile) {
+func (r *Result) IncrementMetrics(duration time.Duration, result metrics.ResultType, stage string, count uint64, quantiles []*io_prometheus_client.Quantile) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	if stage != IterationStage {
@@ -73,20 +72,19 @@ func (r *Result) IncrementMetrics(duration time.Duration, result string, stage s
 	}
 	r.RecentDuration = duration
 	switch result {
-	case "success":
+	case metrics.SucessResult:
 		r.RecentSuccessfulIterations = count
 		r.SuccessfulIterationCount += count
 		r.SuccessfulIterationDurations = parseQuantiles(quantiles)
 		return
-	case "fail":
+	case metrics.FailedResult:
 		r.FailedIterationCount += count
 		r.FailedIterationDurations = parseQuantiles(quantiles)
 		return
-	case "dropped":
+	case metrics.DroppedResult:
 		r.DroppedIterationCount += count
 		return
-	default:
-		log.Fatalf("unknown result type %s", result)
+	case metrics.UnknownResult:
 	}
 }
 
