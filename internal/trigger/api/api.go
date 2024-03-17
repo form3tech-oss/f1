@@ -22,10 +22,10 @@ type Parameter struct {
 }
 
 type Builder struct {
-	Name              string
-	Description       string
 	New               Constructor
 	Flags             *pflag.FlagSet
+	Name              string
+	Description       string
 	IgnoreCommonFlags bool
 }
 
@@ -35,24 +35,24 @@ type Trigger struct {
 	Trigger     WorkTriggerer
 	DryRun      RateFunction
 	Description string
-	Duration    time.Duration
 	Options     Options
+	Duration    time.Duration
 }
 
 type Options struct {
+	Scenario        string
 	MaxDuration     time.Duration
 	Concurrency     int
-	Verbose         bool
-	VerboseFail     bool
-	MaxIterations   int32
 	MaxFailures     int
 	MaxFailuresRate int
+	MaxIterations   int32
+	Verbose         bool
+	VerboseFail     bool
 	IgnoreDropped   bool
-	Scenario        string
 }
 
 type Rates struct {
-	IterationDuration time.Duration
 	Rate              RateFunction
+	IterationDuration time.Duration
 	Duration          time.Duration
 }

@@ -45,13 +45,13 @@ type Instance struct {
 	// function that is going to be run at specific timed intervals,
 	// according to current rate set at a specific moment in time
 	runFunction RunFunction
-	rates       []Rate
-	// index for the next rate in rates array
-	nextRateIndex int
 	// runs runFunction at current rate interval
 	fnTicker *time.Ticker
 	// rateTimer controls when to Start next rate interval
 	rateTimer *time.Timer
+	rates     []Rate
+	// index for the next rate in rates array
+	nextRateIndex int
 }
 
 func (rr *Instance) Terminate() {

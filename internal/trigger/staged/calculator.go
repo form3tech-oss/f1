@@ -7,9 +7,9 @@ import (
 )
 
 type rateCalculator struct {
-	current int
-	stages  []stage
 	start   time.Time
+	stages  []stage
+	current int
 }
 
 func newRateCalculator(stages []stage) *rateCalculator {

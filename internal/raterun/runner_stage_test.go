@@ -10,11 +10,11 @@ import (
 )
 
 type RatedRunnerStage struct {
-	rates    []Rate
 	runner   Runner
-	m        sync.Mutex
 	funcRuns map[time.Duration]int
 	t        *testing.T
+	rates    []Rate
+	m        sync.Mutex
 }
 
 func NewRatedRunnerStage(t *testing.T) (*RatedRunnerStage, *RatedRunnerStage, *RatedRunnerStage) {

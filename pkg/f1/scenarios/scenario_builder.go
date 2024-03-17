@@ -14,12 +14,12 @@ type Scenarios struct {
 // Represents a test scenario.
 type Scenario struct {
 	// The name of the test scenario, which can be used to invoke it via the CLI.
+	ScenarioFn testing.ScenarioFn
+	// The function that is invoked on each iteration of the test scenario.
+	RunFn       testing.RunFn
 	Name        string
 	Description string
 	Parameters  []ScenarioParameter
-	ScenarioFn  testing.ScenarioFn
-	// The function that is invoked on each iteration of the test scenario.
-	RunFn testing.RunFn
 }
 
 type ScenarioParameter struct {

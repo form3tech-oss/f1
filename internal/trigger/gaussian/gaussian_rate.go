@@ -124,10 +124,10 @@ func Rate() api.Builder {
 }
 
 type Calculator struct {
-	repeatWindow  time.Duration
-	frequency     time.Duration
 	dist          *gaussian.Gaussian
 	weights       []float64
+	repeatWindow  time.Duration
+	frequency     time.Duration
 	dailyVolume   float64
 	remainder     float64
 	multiplier    float64
@@ -246,7 +246,7 @@ func calculateVolume(peakTps string, peakTime, stddev time.Duration) (float64, e
 }
 
 func gauss(a, b, c, x float64) float64 {
-	return a * math.Exp(-(math.Pow(x-b, 2) / (2 * c * c)))
+	return a * math.Exp(-((x - b) * (x - b) / (2 * c * c)))
 }
 
 func parseRateToTPS(rateArg string) (float64, error) {

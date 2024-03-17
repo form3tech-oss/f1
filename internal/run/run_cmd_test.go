@@ -11,7 +11,6 @@ func TestSimpleFlow(t *testing.T) {
 	given, when, then := NewRunTestStage(t)
 
 	test := TestParam{
-		name:                   "basic test",
 		constantRate:           "10/100ms",
 		testDuration:           100 * time.Millisecond,
 		concurrency:            100,

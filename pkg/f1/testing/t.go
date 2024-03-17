@@ -18,15 +18,15 @@ import (
 // reporting methods, such as the variations of Log and Error, may be called simultaneously from
 // multiple goroutines.
 type T struct {
-	// "iteration " + iteration number or "setup"
-	Iteration string
 	// logger with user and iteration tags
-	logger         *log.Logger
-	failed         int64
-	teardownFailed int64
-	require        *require.Assertions
+	logger  *log.Logger
+	require *require.Assertions
+	// "iteration " + iteration number or "setup"
+	Iteration      string
 	Scenario       string
 	teardownStack  []func()
+	failed         int64
+	teardownFailed int64
 	tearingDown    bool
 }
 
