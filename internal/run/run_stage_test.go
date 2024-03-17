@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"math"
+	"net/http/httptest"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -33,6 +34,11 @@ import (
 	"github.com/form3tech-oss/f1/v2/internal/trigger/users"
 	"github.com/form3tech-oss/f1/v2/pkg/f1"
 	f1_testing "github.com/form3tech-oss/f1/v2/pkg/f1/testing"
+)
+
+const (
+	fakePrometheusNamespace = "test-namespace"
+	fakePrometheusID        = "test-run-name"
 )
 
 type RunTestStage struct {
@@ -68,6 +74,10 @@ type RunTestStage struct {
 	tracerOutput bytes.Buffer
 	tracerWriter *io.PipeWriter
 	tracerReader *io.PipeReader
+
+	settings envsettings.Settings
+
+	metricData *MetricData
 }
 
 func NewRunTestStage(t *testing.T) (*RunTestStage, *RunTestStage, *RunTestStage) {
@@ -83,11 +93,20 @@ func NewRunTestStage(t *testing.T) (*RunTestStage, *RunTestStage, *RunTestStage)
 		iterationTeardownCount: &iterationTeardownCount,
 		f1:                     f1.New(),
 		tracer:                 trace.NewConsoleTracer(io.Discard),
+		settings:               envsettings.Get(),
+		metricData:             NewMetricData(),
 	}
+
+	handler := FakePrometheusHandler(t, stage.metricData)
+	ts := httptest.NewServer(handler)
+	t.Cleanup(ts.Close)
+
+	stage.settings.Prometheus.PushGateway = ts.URL
+	stage.settings.Prometheus.LabelID = fakePrometheusID
+	stage.settings.Prometheus.Namespace = fakePrometheusNamespace
 
 	stage.tracerReader, stage.tracerWriter = io.Pipe()
 
-	fakePrometheus.ClearMetrics()
 	return stage, stage, stage
 }
 
@@ -141,7 +160,6 @@ func (s *RunTestStage) a_ramp_duration_of(rampDuration string) *RunTestStage {
 }
 
 func (s *RunTestStage) i_execute_the_run_command() *RunTestStage {
-	settings := envsettings.Get()
 	r, err := run.NewRun(
 		options.RunOptions{
 			Scenario:            s.scenario,
@@ -150,9 +168,9 @@ func (s *RunTestStage) i_execute_the_run_command() *RunTestStage {
 			MaxIterations:       s.maxIterations,
 			MaxFailures:         s.maxFailures,
 			MaxFailuresRate:     s.maxFailuresRate,
-			RegisterLogHookFunc: fluentd.LoggingHook(settings.Fluentd.Host, settings.Fluentd.Port),
+			RegisterLogHookFunc: fluentd.LoggingHook(s.settings.Fluentd.Host, s.settings.Fluentd.Port),
 		},
-		s.build_trigger(), settings, s.tracer)
+		s.build_trigger(), s.settings, s.tracer)
 	if err != nil {
 		s.runError = fmt.Errorf("run create: %w", err)
 		return s
@@ -380,7 +398,7 @@ func (s *RunTestStage) the_test_run_is_started() *RunTestStage {
 				MaxIterations:       s.maxIterations,
 				RegisterLogHookFunc: fluentd.LoggingHook("", ""),
 			},
-			s.build_trigger(), envsettings.Get(), s.tracer)
+			s.build_trigger(), s.settings, s.tracer)
 		if err != nil {
 			s.runError = fmt.Errorf("new run: %w", err)
 			return
@@ -504,7 +522,7 @@ func (s *RunTestStage) a_distribution_type(distributionType string) *RunTestStag
 }
 
 func (s *RunTestStage) metrics_are_pushed_to_prometheus() *RunTestStage {
-	s.assert.True(fakePrometheus.HasMetrics())
+	s.assert.False(s.metricData.Empty())
 	return s
 }
 
@@ -529,21 +547,21 @@ func (s *RunTestStage) a_scenario_where_the_final_iteration_takes_100ms() *RunTe
 }
 
 func (s *RunTestStage) the_100th_percentile_is_slow() *RunTestStage {
-	s.assert.GreaterOrEqual(fakePrometheus.GetIterationDuration(s.scenario, 1.0), float64(100*time.Millisecond))
+	s.assert.GreaterOrEqual(s.metricData.GetIterationDuration(s.scenario, 1.0), float64(100*time.Millisecond))
 	return s
 }
 
 func (s *RunTestStage) all_other_percentiles_are_fast() *RunTestStage {
-	s.assert.Greater(fakePrometheus.GetIterationDuration(s.scenario, 0.9), 0.0)
-	s.assert.LessOrEqual(fakePrometheus.GetIterationDuration(s.scenario, 0.9), float64(25*time.Millisecond))
-	s.assert.Greater(fakePrometheus.GetIterationDuration(s.scenario, 0.95), 0.0)
-	s.assert.LessOrEqual(fakePrometheus.GetIterationDuration(s.scenario, 0.95), float64(25*time.Millisecond))
+	s.assert.Greater(s.metricData.GetIterationDuration(s.scenario, 0.9), 0.0)
+	s.assert.LessOrEqual(s.metricData.GetIterationDuration(s.scenario, 0.9), float64(25*time.Millisecond))
+	s.assert.Greater(s.metricData.GetIterationDuration(s.scenario, 0.95), 0.0)
+	s.assert.LessOrEqual(s.metricData.GetIterationDuration(s.scenario, 0.95), float64(25*time.Millisecond))
 	return s
 }
 
 func (s *RunTestStage) there_is_a_metric_called(metricName string) *RunTestStage {
 	err := retry.Do(func() error {
-		metricNames := fakePrometheus.GetMetricNames()
+		metricNames := s.metricData.GetMetricNames()
 		for _, mn := range metricNames {
 			if mn == metricName {
 				return nil
@@ -557,7 +575,7 @@ func (s *RunTestStage) there_is_a_metric_called(metricName string) *RunTestStage
 
 func (s *RunTestStage) the_iteration_metric_has_n_results(n int, result string) *RunTestStage {
 	err := retry.Do(func() error {
-		metricFamily := fakePrometheus.GetMetricFamily("form3_loadtest_iteration")
+		metricFamily := s.metricData.GetMetricFamily("form3_loadtest_iteration")
 		s.require.NotNil(metricFamily)
 		resultMetric := getMetricByResult(metricFamily, result)
 		s.require.NotNil(resultMetric)
@@ -571,10 +589,10 @@ func (s *RunTestStage) the_iteration_metric_has_n_results(n int, result string) 
 }
 
 func (s *RunTestStage) all_exported_metrics_contain_label(labelName string, labelValue string) *RunTestStage {
-	metricNames := fakePrometheus.GetMetricNames()
+	metricNames := s.metricData.GetMetricNames()
 
 	for _, name := range metricNames {
-		metricFamily := fakePrometheus.GetMetricFamily(name)
+		metricFamily := s.metricData.GetMetricFamily(name)
 		s.require.NotNil(metricFamily)
 
 		for _, metric := range metricFamily.GetMetric() {
@@ -630,6 +648,7 @@ func (s *RunTestStage) a_concurrent_constant_trigger_is_configured() *RunTestSta
 func (s *RunTestStage) a_fluentd_config_with_host_and_port(host, port string) *RunTestStage {
 	s.t.Setenv(envsettings.EnvFluentdHost, host)
 	s.t.Setenv(envsettings.EnvFluentdPort, port)
+	s.settings = envsettings.Get()
 
 	return s
 }
