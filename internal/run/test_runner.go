@@ -11,7 +11,6 @@ import (
 	"sync"
 	"sync/atomic"
 	"syscall"
-	"text/template"
 	"time"
 
 	"github.com/aholic/ggtimer"
@@ -24,6 +23,7 @@ import (
 	"github.com/form3tech-oss/f1/v2/internal/metrics"
 	"github.com/form3tech-oss/f1/v2/internal/options"
 	"github.com/form3tech-oss/f1/v2/internal/raterun"
+	"github.com/form3tech-oss/f1/v2/internal/run/templates"
 	"github.com/form3tech-oss/f1/v2/internal/trace"
 	"github.com/form3tech-oss/f1/v2/internal/trigger/api"
 	"github.com/form3tech-oss/f1/v2/pkg/f1/scenarios"
@@ -42,6 +42,10 @@ func NewRun(options options.RunOptions, t *api.Trigger, settings envsettings.Set
 		trigger:         t,
 		tracer:          tracer,
 	}
+
+	run.templates = templates.Parse()
+	run.result = Result{templates: run.templates}
+
 	if run.Settings.Prometheus.PushGateway != "" {
 		run.pusher = push.New(settings.Prometheus.PushGateway, "f1-"+options.Scenario).
 			Gatherer(prometheus.DefaultGatherer)
@@ -80,6 +84,7 @@ type Run struct {
 	Settings        envsettings.Settings
 	RateDescription string
 
+	templates      *templates.Templates
 	busyWorkers    int32
 	iteration      int32
 	failures       int32
@@ -93,14 +98,8 @@ type Run struct {
 	progressRunner raterun.Runner
 }
 
-var startTemplate = template.Must(template.New("result parse").
-	Funcs(templateFunctions).
-	Parse(`{u}{bold}{intensive_blue}F1 Load Tester{-}
-Running {yellow}{{.Options.Scenario}}{-} scenario for {{if .Options.MaxIterations}}up to {{.Options.MaxIterations}} iterations or up to {{end}}{{duration .Options.MaxDuration}} at a rate of {{.RateDescription}}.
-`))
-
 func (r *Run) Do(s *scenarios.Scenarios) (*Result, error) {
-	fmt.Print(renderTemplate(startTemplate, r))
+	fmt.Print(renderTemplate(r.templates.Start, r))
 	defer r.printSummary()
 	defer r.printLogOnFailure()
 
@@ -158,7 +157,7 @@ func (r *Run) configureLogging() error {
 
 	if !r.Options.Verbose {
 		r.result.LogFile = redirectLoggingToFile(r.Options.Scenario, r.Settings.LogFilePath)
-		welcomeMessage := renderTemplate(startTemplate, r)
+		welcomeMessage := renderTemplate(r.templates.Start, r)
 		log.Info(welcomeMessage)
 		fmt.Printf("Saving logs to %s\n\n", r.result.LogFile)
 	}
