@@ -274,7 +274,7 @@ func (r *Run) gatherMetrics() {
 		r.result.AddError(fmt.Errorf("gather metrics: %w", err))
 	}
 	for _, metric := range m {
-		if metric.GetName() == metrics.InterationMetricName {
+		if metric.GetName() == metrics.IterationMetricName {
 			for _, m := range metric.GetMetric() {
 				result := metrics.UnknownResult
 				stage := IterationStage
@@ -300,7 +300,7 @@ func (r *Run) gatherProgressMetrics(duration time.Duration) {
 	metrics.Instance().Progress.Reset()
 	r.result.ClearProgressMetrics()
 	for _, metric := range m {
-		if metric.GetName() == metrics.InterationMetricName {
+		if metric.GetName() == metrics.IterationMetricName {
 			for _, m := range metric.GetMetric() {
 				result := metrics.UnknownResult
 				stage := IterationStage

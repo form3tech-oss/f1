@@ -47,7 +47,7 @@ const (
 	metricSubsystem = "loadtest"
 )
 
-const InterationMetricName = "form3_loadtest_iteration"
+const IterationMetricName = "form3_loadtest_iteration"
 
 const (
 	TestNameLabel = "test"
