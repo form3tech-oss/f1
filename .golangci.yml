@@ -43,7 +43,6 @@ linters:
   - paralleltest
   - gomnd
   - goerr113
-  - gochecknoglobals
   - lll
   - prealloc
   - gocritic

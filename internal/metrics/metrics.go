@@ -63,6 +63,7 @@ type Metrics struct {
 	Progress         *prometheus.SummaryVec
 }
 
+//nolint:gochecknoglobals // metrics are best suited as globals
 var (
 	m    *Metrics
 	once sync.Once
