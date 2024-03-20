@@ -338,7 +338,7 @@ func (s *RunTestStage) the_results_should_show_n_successful_iterations(expected 
 }
 
 func (s *RunTestStage) the_number_of_dropped_iterations_should_be(expected uint64) *RunTestStage {
-	s.assert.Equal(expected, s.runResult.DroppedIterationCount)
+	s.assert.Equal(int(expected), int(s.runResult.DroppedIterationCount))
 	return s
 }
 
