@@ -14,9 +14,8 @@ type stage struct {
 }
 
 func parseStages(value string) ([]stage, error) {
-	var stages []stage
-
 	stageElements := strings.Split(value, ",")
+	stages := make([]stage, len(stageElements))
 
 	for i, stageElements := range stageElements {
 		stageElement := strings.Split(strings.TrimSpace(stageElements), ":")
@@ -34,10 +33,10 @@ func parseStages(value string) ([]stage, error) {
 			return nil, fmt.Errorf("unable to parse target %s in stage %d: %s", stageElement[1], i, stageElements)
 		}
 
-		stages = append(stages, stage{
+		stages[i] = stage{
 			endTarget: target,
 			duration:  duration,
-		})
+		}
 	}
 
 	return stages, nil

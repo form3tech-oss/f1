@@ -52,11 +52,16 @@ func Cmd(
 			triggerCmd.Flags().Bool("verbose-fail", false, "log output to stdout on failure")
 
 			triggerCmd.Flags().Bool("ignore-dropped", false, "dropped requests will not fail the run")
-			triggerCmd.Flags().DurationP("max-duration", "d", time.Second, "--max-duration 1s (stop after 1 second)")
-			triggerCmd.Flags().IntP("concurrency", "c", 100, "--concurrency 2 (allow at most 2 groups of iterations to run concurrently)")
-			triggerCmd.Flags().Int32P("max-iterations", "i", 0, "--max-iterations 100 (stop after 100 iterations, regardless of remaining duration)")
-			triggerCmd.Flags().Int("max-failures", 0, "--max-failures 10 (load test will fail if more than 10 errors occurred, default is 0)")
-			triggerCmd.Flags().Int("max-failures-rate", 0, "--max-failures-rate 5 (load test will fail if more than 5\\% requests failed, default is 0)")
+			triggerCmd.Flags().DurationP("max-duration", "d", time.Second,
+				"--max-duration 1s (stop after 1 second)")
+			triggerCmd.Flags().IntP("concurrency", "c", 100,
+				"--concurrency 2 (allow at most 2 groups of iterations to run concurrently)")
+			triggerCmd.Flags().Int32P("max-iterations", "i", 0,
+				"--max-iterations 100 (stop after 100 iterations, regardless of remaining duration)")
+			triggerCmd.Flags().Int("max-failures", 0,
+				"--max-failures 10 (load test will fail if more than 10 errors occurred, default is 0)")
+			triggerCmd.Flags().Int("max-failures-rate", 0,
+				"--max-failures-rate 5 (load test will fail if more than 5\\% requests failed, default is 0)")
 
 			triggerCmd.Flags().AddFlagSet(t.Flags)
 			runCmd.AddCommand(triggerCmd)

@@ -34,7 +34,12 @@ const (
 	IterationStage      = "iteration"
 )
 
-func NewRun(options options.RunOptions, t *api.Trigger, settings envsettings.Settings, tracer trace.Tracer) (*Run, error) {
+func NewRun(
+	options options.RunOptions,
+	t *api.Trigger,
+	settings envsettings.Settings,
+	tracer trace.Tracer,
+) (*Run, error) {
 	run := Run{
 		Options:         options,
 		Settings:        settings,
@@ -320,7 +325,13 @@ func (r *Run) gatherProgressMetrics(duration time.Duration) {
 	}
 }
 
-func (r *Run) runWorker(input <-chan int32, stop <-chan struct{}, wg *sync.WaitGroup, worker string, workDone chan<- bool) {
+func (r *Run) runWorker(
+	input <-chan int32,
+	stop <-chan struct{},
+	wg *sync.WaitGroup,
+	worker string,
+	workDone chan<- bool,
+) {
 	defer wg.Done()
 	r.tracer.Event("Started worker (%v)", worker)
 	for {
@@ -333,7 +344,12 @@ func (r *Run) runWorker(input <-chan int32, stop <-chan struct{}, wg *sync.WaitG
 			atomic.AddInt32(&r.busyWorkers, 1)
 
 			scenario := r.activeScenario.scenario
-			successful := r.activeScenario.Run(metrics.IterationResult, IterationStage, fmt.Sprintf("iteration %d", iteration), scenario.RunFn)
+			successful := r.activeScenario.Run(
+				metrics.IterationResult,
+				IterationStage,
+				fmt.Sprintf("iteration %d", iteration),
+				scenario.RunFn,
+			)
 			if !successful {
 				atomic.AddInt32(&r.failures, 1)
 			}

@@ -33,7 +33,12 @@ type Result struct {
 	LogFile                      string
 }
 
-func (r *Result) SetMetrics(result metrics.ResultType, stage string, count uint64, quantiles []*io_prometheus_client.Quantile) {
+func (r *Result) SetMetrics(
+	result metrics.ResultType,
+	stage string,
+	count uint64,
+	quantiles []*io_prometheus_client.Quantile,
+) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	if stage != IterationStage {
@@ -64,7 +69,13 @@ func (r *Result) ClearProgressMetrics() {
 	r.SuccessfulIterationDurations = map[float64]time.Duration{}
 }
 
-func (r *Result) IncrementMetrics(duration time.Duration, result metrics.ResultType, stage string, count uint64, quantiles []*io_prometheus_client.Quantile) {
+func (r *Result) IncrementMetrics(
+	duration time.Duration,
+	result metrics.ResultType,
+	stage string,
+	count uint64,
+	quantiles []*io_prometheus_client.Quantile,
+) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	if stage != IterationStage {

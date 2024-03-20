@@ -73,7 +73,8 @@ func parseConfigFile(fileContent []byte, now time.Time) (*runnableStages, error)
 		}
 		stagesTotalDuration += *validatedStage.Duration
 
-		if validatedConfigFile.Schedule.StageStart == nil || validatedConfigFile.Schedule.StageStart.Add(stagesTotalDuration).After(now) {
+		stageStart := validatedConfigFile.Schedule.StageStart
+		if stageStart == nil || stageStart.Add(stagesTotalDuration).After(now) {
 			parsedStage, err := validatedStage.parseStage(idx, validatedConfigFile.Default)
 			if err != nil {
 				return nil, err
@@ -102,7 +103,11 @@ func (s *Stage) parseStage(stageIdx int, defaults Stage) (*runnableStage, error)
 		if err != nil {
 			return nil, fmt.Errorf("validating constant stage: %w", err)
 		}
-		rates, err := constant.CalculateConstantRate(*validatedConstantStage.Jitter, *validatedConstantStage.Rate, *validatedConstantStage.Distribution)
+		rates, err := constant.CalculateConstantRate(
+			*validatedConstantStage.Jitter,
+			*validatedConstantStage.Rate,
+			*validatedConstantStage.Distribution,
+		)
 		if err != nil {
 			return nil, fmt.Errorf("calculating constant rate: %w", err)
 		}
@@ -118,7 +123,13 @@ func (s *Stage) parseStage(stageIdx int, defaults Stage) (*runnableStage, error)
 		if err != nil {
 			return nil, fmt.Errorf("validating ramp stage: %w", err)
 		}
-		rates, err := ramp.CalculateRampRate(*validatedRampStage.StartRate, *validatedRampStage.EndRate, *validatedRampStage.Distribution, *validatedRampStage.Duration, *validatedRampStage.Jitter)
+		rates, err := ramp.CalculateRampRate(
+			*validatedRampStage.StartRate,
+			*validatedRampStage.EndRate,
+			*validatedRampStage.Distribution,
+			*validatedRampStage.Duration,
+			*validatedRampStage.Jitter,
+		)
 		if err != nil {
 			return nil, fmt.Errorf("calculating ramp rate: %w", err)
 		}
@@ -134,7 +145,12 @@ func (s *Stage) parseStage(stageIdx int, defaults Stage) (*runnableStage, error)
 		if err != nil {
 			return nil, fmt.Errorf("validating staged stage: %w", err)
 		}
-		rates, err := staged.CalculateStagedRate(*validatedStagedStage.Jitter, *validatedStagedStage.IterationFrequency, *validatedStagedStage.Stages, *validatedStagedStage.Distribution)
+		rates, err := staged.CalculateStagedRate(
+			*validatedStagedStage.Jitter,
+			*validatedStagedStage.IterationFrequency,
+			*validatedStagedStage.Stages,
+			*validatedStagedStage.Distribution,
+		)
 		if err != nil {
 			return nil, fmt.Errorf("calculating staged rate: %w", err)
 		}

@@ -42,7 +42,8 @@ func New(fn RunFunction, rates []Rate) (*Instance, error) {
 type Instance struct {
 	terminateRunner chan bool
 	restartRates    chan bool
-	// function that is going to be run at specific timed intervals, according to current rate set at a specific moment in time
+	// function that is going to be run at specific timed intervals,
+	// according to current rate set at a specific moment in time
 	runFunction RunFunction
 	rates       []Rate
 	// index for the next rate in rates array

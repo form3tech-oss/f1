@@ -54,8 +54,10 @@ func (s *rateCalculator) Rate(now time.Time) int {
 	// interpolate
 	offset := now.Sub(s.start)
 	position := float64(offset) / float64(s.stages[s.current].duration)
-	rate := s.stages[s.current].startTarget + int(position*float64(s.stages[s.current].endTarget-s.stages[s.current].startTarget))
-	log.Debugf("Stage %d; Triggering %d. Offset: %d, Duration: %d, Position: %v\n", s.current, rate, offset, s.stages[s.current].duration, position)
+	rate := s.stages[s.current].startTarget +
+		int(position*float64(s.stages[s.current].endTarget-s.stages[s.current].startTarget))
+	log.Debugf("Stage %d; Triggering %d. Offset: %d, Duration: %d, Position: %v\n",
+		s.current, rate, offset, s.stages[s.current].duration, position)
 	return rate
 }
 

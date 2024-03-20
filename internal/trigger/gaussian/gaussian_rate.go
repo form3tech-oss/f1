@@ -20,15 +20,29 @@ const defaultVolume = 24 * 60 * 60
 
 func Rate() api.Builder {
 	flags := pflag.NewFlagSet("gaussian", pflag.ContinueOnError)
-	flags.Float64("volume", defaultVolume, "The desired volume to be achieved with the calculated load profile. Will be ignored if --peak-rate is also provided.")
-	flags.Duration("repeat", 24*time.Hour, "How often the cycle should repeat")
-	flags.Duration("iteration-frequency", 1*time.Second, "How frequently iterations should be started")
-	flags.String("weights", "", "Optional scaling factor to apply per repetition. This can be used for example with daily repetitions to set different weights per day of the week")
-	flags.Duration("peak", 14*time.Hour, "The offset within the repetition window when the load should reach its maximum. Default 14 hours (with 24 hour default repeat)")
-	flags.StringP("peak-rate", "r", "", "number of iterations per interval in peak time, in the form <request>/<duration> (e.g. 1/s). If --peak-rate is provided, the value given for --volume will be ignored.")
-	flags.Duration("standard-deviation", 150*time.Minute, "The standard deviation to use for the distribution of load")
-	flags.Float64P("jitter", "j", 0.0, "vary the rate randomly by up to jitter percent")
-	flags.String("distribution", "regular", "optional parameter to distribute the rate over steps of 100ms, which can be none|regular|random")
+	flags.Float64("volume", defaultVolume,
+		"The desired volume to be achieved with the calculated load profile. "+
+			"Will be ignored if --peak-rate is also provided.")
+	flags.Duration("repeat", 24*time.Hour,
+		"How often the cycle should repeat")
+	flags.Duration("iteration-frequency", 1*time.Second,
+		"How frequently iterations should be started")
+	flags.String("weights", "",
+		"Optional scaling factor to apply per repetition. "+
+			"This can be used for example with daily repetitions to set different weights per day of the week")
+	flags.Duration("peak", 14*time.Hour,
+		"The offset within the repetition window when the load should reach its maximum. "+
+			"Default 14 hours (with 24 hour default repeat)")
+	flags.StringP("peak-rate", "r", "",
+		"number of iterations per interval in peak time, "+
+			"in the form <request>/<duration> (e.g. 1/s). If --peak-rate is provided, "+
+			"the value given for --volume will be ignored.")
+	flags.Duration("standard-deviation", 150*time.Minute,
+		"The standard deviation to use for the distribution of load")
+	flags.Float64P("jitter", "j", 0.0,
+		"vary the rate randomly by up to jitter percent")
+	flags.String("distribution", "regular",
+		"optional parameter to distribute the rate over steps of 100ms, which can be none|regular|random")
 
 	return api.Builder{
 		Name:        "gaussian <scenario>",
@@ -93,7 +107,8 @@ func Rate() api.Builder {
 					Trigger: api.NewIterationWorker(rates.IterationDuration, rates.Rate, tracer),
 					DryRun:  rates.Rate,
 					Description: fmt.Sprintf(
-						"Gaussian distribution triggering %d iterations per %s, peaking at %s with standard deviation of %s%s, using distribution %s",
+						"Gaussian distribution triggering %d iterations per %s, "+
+							"peaking at %s with standard deviation of %s%s, using distribution %s",
 						int(volume),
 						repeat,
 						peak,
@@ -122,10 +137,12 @@ type Calculator struct {
 func CalculateGaussianRate(
 	volume, jitter float64,
 	repeat, frequency, peak, stddev time.Duration,
-	weights, distributionTypeArg string,
+	weightsArg, distributionTypeArg string,
 ) (*api.Rates, error) {
-	var weightsSlice []float64
-	for _, s := range strings.Split(weights, ",") {
+	weights := strings.Split(weightsArg, ",")
+	weightsSlice := make([]float64, 0, len(weights))
+
+	for _, s := range weights {
 		if s == "" {
 			continue
 		}
@@ -176,7 +193,14 @@ func (c *Calculator) For(now time.Time) int {
 	return int(floorRate)
 }
 
-func NewCalculator(peak time.Duration, stddev time.Duration, frequency time.Duration, weights []float64, volume float64, repeatWindow time.Duration) *Calculator {
+func NewCalculator(
+	peak time.Duration,
+	stddev time.Duration,
+	frequency time.Duration,
+	weights []float64,
+	volume float64,
+	repeatWindow time.Duration,
+) *Calculator {
 	variance := math.Pow(float64(stddev), 2)
 	multiplier := volume * float64(frequency)
 	gauss := gaussian.NewGaussian(float64(peak), variance)
