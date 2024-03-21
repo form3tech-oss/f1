@@ -221,7 +221,7 @@ func TestWeightedVolumes(t *testing.T) {
 
 			current := time.Now().Truncate(repeatEvery * time.Duration(len(test.weights)))
 
-			for i := 0; i < len(test.weights); i++ {
+			for i := range len(test.weights) {
 				fmt.Printf("Testing weight %d\n", i)
 				repetitionEnd := current.Add(repeatEvery)
 				repetitionTotal := 0.0

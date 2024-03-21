@@ -1,6 +1,6 @@
 module github.com/form3tech-oss/f1/v2
 
-go 1.21
+go 1.22
 
 require (
 	github.com/aholic/ggtimer v0.0.0-20150905131044-5d7b30837a52

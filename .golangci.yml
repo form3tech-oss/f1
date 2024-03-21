@@ -1,9 +1,7 @@
-# Using golangci-lint@v1.56.2
+# Using golangci-lint@v1.57.1
 run:
   timeout: 5m
   tests: true
-  skip-dirs:
-    - vendor$
 output:
   print-linter-name: true
 linters:
@@ -42,6 +40,10 @@ linters:
   # Project is not large enough to need duplicate code detection
   - dupl
 
+  # Linter has too many false positives at this point
+  # it was added for go 1.22
+  - copyloopvar
+
   # TODO
   - paralleltest
   - gomnd
@@ -68,6 +70,8 @@ linters-settings:
       - default
       - prefix(github.com/form3tech-oss/f1)
 issues:
+  exclude-dirs:
+    - vendor$
   max-issues-per-linter: 0
   max-same-issues: 0
   exclude-rules:

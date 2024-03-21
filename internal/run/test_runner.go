@@ -197,8 +197,9 @@ func (r *Run) run() {
 
 	r.busyWorkers = int32(0)
 	workDone := make(chan bool, workers)
-	for i := 0; i < workers; i++ {
-		wg.Add(1)
+
+	wg.Add(workers)
+	for i := range workers {
 		go r.runWorker(doWorkChannel, stopWorkers, wg, strconv.Itoa(i), workDone)
 	}
 

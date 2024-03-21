@@ -358,7 +358,7 @@ func (s *RunTestStage) distribution_duration_map_of_requests() map[time.Duration
 
 func (s *RunTestStage) there_should_be_x_requests_sent_over_y_intervals_of_z_ms(requests, intervals, ms int) *RunTestStage {
 	expectedDistribution := map[time.Duration]int32{}
-	for i := 0; i < intervals; i++ {
+	for i := range intervals {
 		key := time.Duration(i) * time.Duration(ms) * time.Millisecond
 		expectedDistribution[key] = int32(requests)
 	}

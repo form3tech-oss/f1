@@ -44,7 +44,7 @@ func newF1ScenarioStage(t *testing.T) (*f1ScenariosStage, *f1ScenariosStage, *f1
 		t: t,
 	}
 
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		n := newScenario(0, 0)
 		s.scenarios = append(s.scenarios, &n)
 	}

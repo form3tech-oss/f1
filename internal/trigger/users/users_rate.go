@@ -39,7 +39,7 @@ func Rate() api.Builder {
 
 func NewWorker(concurrency int) api.WorkTriggerer {
 	return func(workTriggered chan<- bool, stop <-chan bool, workDone <-chan bool, _ options.RunOptions) {
-		for i := 0; i < concurrency; i++ {
+		for range concurrency {
 			workTriggered <- true
 		}
 
