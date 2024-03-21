@@ -130,7 +130,7 @@ func TestRegularRateDistribution(t *testing.T) {
 
 			distributedIterationDuration, distributedRate := withRegularDistribution(test.iterationDuration, rateFn)
 			var result []int
-			for i := 0; i < len(test.expectedDistributedRates); i++ {
+			for range len(test.expectedDistributedRates) {
 				result = append(result, distributedRate(time.Now()))
 			}
 
@@ -163,9 +163,9 @@ func TestRegularRateDistributionWithVariableRate(t *testing.T) {
 	}
 
 	distributedIterationDuration, distributedRate := withRegularDistribution(iterationDuration, rateFn)
-	var result []int
-	for i := 0; i < len(expectedDistributedRates); i++ {
-		result = append(result, distributedRate(time.Now()))
+	result := make([]int, len(expectedDistributedRates))
+	for i := range len(expectedDistributedRates) {
+		result[i] = distributedRate(time.Now())
 	}
 
 	require.Equal(t, 100*time.Millisecond, distributedIterationDuration)
@@ -229,7 +229,7 @@ func TestRandomRateDistribution(t *testing.T) {
 
 			distributedIterationDuration, distributedRate := withRandomDistribution(test.iterationDuration, rateFn, randFn)
 			var result []int
-			for i := 0; i < len(test.expectedDistributedRates); i++ {
+			for range len(test.expectedDistributedRates) {
 				result = append(result, distributedRate(time.Now()))
 			}
 
@@ -260,9 +260,9 @@ func TestRandomRateDistributionWithVariableRate(t *testing.T) {
 	}
 
 	distributedIterationDuration, distributedRate := withRandomDistribution(iterationDuration, rateFn, randFn)
-	var result []int
-	for i := 0; i < len(expectedDistributedRates); i++ {
-		result = append(result, distributedRate(time.Now()))
+	result := make([]int, len(expectedDistributedRates))
+	for i := range len(expectedDistributedRates) {
+		result[i] = distributedRate(time.Now())
 	}
 
 	require.Equal(t, 100*time.Millisecond, distributedIterationDuration)
@@ -272,7 +272,7 @@ func TestRandomRateDistributionWithVariableRate(t *testing.T) {
 func repeatSlice(arr []int, times int) []int {
 	var newArr []int
 
-	for i := 0; i < times; i++ {
+	for range times {
 		newArr = append(newArr, arr...)
 	}
 

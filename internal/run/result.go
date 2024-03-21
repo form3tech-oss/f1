@@ -118,7 +118,7 @@ func (r *Result) Error() error {
 	}
 
 	errorStrings := make([]string, len(r.errors))
-	for i := 0; i < len(r.errors); i++ {
+	for i := range len(r.errors) {
 		errorStrings[i] = fmt.Sprintf("Error %d: %s", i, r.errors[i].Error())
 	}
 

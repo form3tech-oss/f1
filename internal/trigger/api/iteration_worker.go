@@ -11,7 +11,7 @@ import (
 func NewIterationWorker(iterationDuration time.Duration, rate RateFunction, tracer trace.Tracer) WorkTriggerer {
 	return func(workTriggered chan<- bool, stop <-chan bool, workDone <-chan bool, _ options.RunOptions) {
 		startRate := rate(time.Now())
-		for i := 0; i < startRate; i++ {
+		for range startRate {
 			workTriggered <- true
 		}
 
@@ -40,7 +40,7 @@ func NewIterationWorker(iterationDuration time.Duration, rate RateFunction, trac
 				}
 
 				iterationRate := rate(start)
-				for i := 0; i < iterationRate; i++ {
+				for range iterationRate {
 					tracer.SendingToChannel("workTriggered")
 					workTriggered <- true
 				}

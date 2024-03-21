@@ -238,7 +238,7 @@ func calculateVolume(peakTps string, peakTime, stddev time.Duration) (float64, e
 	c := stddev.Seconds()
 
 	var total float64
-	for i := 0; i < 3600*24; i++ {
+	for i := range 3600 * 24 {
 		total += gauss(a, b, c, float64(i))
 	}
 
