@@ -7,10 +7,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/chobie/go-gaussian"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
 
+	"github.com/form3tech-oss/f1/v2/internal/gaussian"
 	"github.com/form3tech-oss/f1/v2/internal/trace"
 	"github.com/form3tech-oss/f1/v2/internal/trigger/api"
 	"github.com/form3tech-oss/f1/v2/internal/trigger/rate"
@@ -65,11 +65,11 @@ func Rate() api.Builder {
 			if err != nil {
 				return nil, fmt.Errorf("getting flag: %w", err)
 			}
-			peak, err := flags.GetDuration("peak")
+			peakDuration, err := flags.GetDuration("peak")
 			if err != nil {
 				return nil, fmt.Errorf("getting flag: %w", err)
 			}
-			stddev, err := flags.GetDuration("standard-deviation")
+			stddevDuration, err := flags.GetDuration("standard-deviation")
 			if err != nil {
 				return nil, fmt.Errorf("getting flag: %w", err)
 			}
@@ -85,38 +85,51 @@ func Rate() api.Builder {
 			if err != nil {
 				return nil, fmt.Errorf("getting flag: %w", err)
 			}
-			jitterDesc := ""
-			if jitter != 0 {
-				jitterDesc = fmt.Sprintf(" with jitter of %.2f%%", jitter)
-			}
 			if peakRate != "" {
 				if volume != defaultVolume {
 					log.Warn("--peak-rate is provided, the value given for --volume will be ignored")
 				}
-				volume, err = calculateVolume(peakRate, peak, stddev)
+				volume, err = calculateVolume(peakRate, peakDuration, stddevDuration)
 				if err != nil {
 					return nil, err
 				}
 			}
-			rates, err := CalculateGaussianRate(volume, jitter, repeat, frequency, peak, stddev, weights, distributionTypeArg)
+
+			rates, err := CalculateGaussianRate(
+				volume,
+				jitter,
+				repeat,
+				frequency,
+				peakDuration,
+				stddevDuration,
+				weights,
+				distributionTypeArg,
+			)
 			if err != nil {
 				return nil, err
 			}
 
+			jitterDesc := ""
+			if jitter != 0 {
+				jitterDesc = fmt.Sprintf(" with jitter of %.2f%%", jitter)
+			}
+
+			description := fmt.Sprintf(
+				"Gaussian distribution triggering %d iterations per %s, "+
+					"peaking at %s with standard deviation of %s%s, using distribution %s",
+				int(volume),
+				repeat,
+				peakDuration,
+				stddevDuration,
+				jitterDesc,
+				distributionTypeArg,
+			)
+
 			return &api.Trigger{
-					Trigger: api.NewIterationWorker(rates.IterationDuration, rates.Rate, tracer),
-					DryRun:  rates.Rate,
-					Description: fmt.Sprintf(
-						"Gaussian distribution triggering %d iterations per %s, "+
-							"peaking at %s with standard deviation of %s%s, using distribution %s",
-						int(volume),
-						repeat,
-						peak,
-						stddev,
-						jitterDesc,
-						distributionTypeArg,
-					),
-					Duration: rates.Duration,
+					Trigger:     api.NewIterationWorker(rates.IterationDuration, rates.Rate, tracer),
+					DryRun:      rates.Rate,
+					Description: description,
+					Duration:    rates.Duration,
 				},
 				nil
 		},
@@ -124,11 +137,10 @@ func Rate() api.Builder {
 }
 
 type Calculator struct {
+	dist          *gaussian.Distribution
+	weights       []float64
 	repeatWindow  time.Duration
 	frequency     time.Duration
-	dist          *gaussian.Gaussian
-	weights       []float64
-	dailyVolume   float64
 	remainder     float64
 	multiplier    float64
 	averageWeight float64
@@ -153,7 +165,10 @@ func CalculateGaussianRate(
 		weightsSlice = append(weightsSlice, weight)
 	}
 
-	calculator := NewCalculator(peak, stddev, frequency, weightsSlice, volume, repeat)
+	calculator, err := NewCalculator(peak, stddev, frequency, weightsSlice, volume, repeat)
+	if err != nil {
+		return nil, fmt.Errorf("calculator: %w", err)
+	}
 
 	rateFn := api.WithJitter(calculator.For, jitter)
 	distributedIterationDuration, distributedRateFn, err := api.NewDistribution(distributionTypeArg, frequency, rateFn)
@@ -172,7 +187,7 @@ func (c *Calculator) For(now time.Time) int {
 	// this will be called every tick. Work out how many we should be sending now.
 	start := now.Truncate(c.repeatWindow)
 	slot := float64(now.Sub(start))
-	instantRate := c.dist.Pdf(slot)
+	instantRate := c.dist.PDF(slot)
 
 	rate := instantRate * c.multiplier
 
@@ -200,10 +215,12 @@ func NewCalculator(
 	weights []float64,
 	volume float64,
 	repeatWindow time.Duration,
-) *Calculator {
-	variance := math.Pow(float64(stddev), 2)
+) (*Calculator, error) {
 	multiplier := volume * float64(frequency)
-	gauss := gaussian.NewGaussian(float64(peak), variance)
+	gauss, err := gaussian.NewDistribution(float64(peak), float64(stddev))
+	if err != nil {
+		return nil, fmt.Errorf("gaussian: %w", err)
+	}
 
 	averageWeight := 1.0
 	if len(weights) > 0 {
@@ -215,38 +232,40 @@ func NewCalculator(
 	}
 
 	// account for large standard deviations or peaks beyond the window
-	coveredRegion := gauss.Cdf(float64(repeatWindow-frequency)) - gauss.Cdf(0)
+	coveredRegion := gauss.CDF(float64(repeatWindow-frequency)) - gauss.CDF(0)
 	multiplier /= coveredRegion
 
 	return &Calculator{
 		frequency:     frequency,
 		dist:          gauss,
-		dailyVolume:   volume,
 		weights:       weights,
 		averageWeight: averageWeight,
 		multiplier:    multiplier,
 		repeatWindow:  repeatWindow,
-	}
+	}, nil
 }
 
 func calculateVolume(peakTps string, peakTime, stddev time.Duration) (float64, error) {
-	a, err := parseRateToTPS(peakTps) // the desired peak TPS
+	amplitude, err := parseRateToTPS(peakTps) // the desired peak TPS
 	if err != nil {
 		return -1, err
 	}
-	b := peakTime.Seconds()
-	c := stddev.Seconds()
+	mean := peakTime.Seconds()
+	standardDeviation := stddev.Seconds()
 
-	var total float64
-	for i := range 3600 * 24 {
-		total += gauss(a, b, c, float64(i))
+	dist, err := gaussian.NewDistribution(mean, standardDeviation)
+	if err != nil {
+		return 0.0, fmt.Errorf("distribution: %w", err)
 	}
 
-	return math.Round(total), nil
-}
+	secondsInADay := 60 * 60 * 24
 
-func gauss(a, b, c, x float64) float64 {
-	return a * math.Exp(-(math.Pow(x-b, 2) / (2 * c * c)))
+	var total float64
+	for x := range secondsInADay {
+		total += dist.Exponent(float64(x))
+	}
+
+	return math.Round(amplitude * total), nil
 }
 
 func parseRateToTPS(rateArg string) (float64, error) {
