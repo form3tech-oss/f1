@@ -1,4 +1,4 @@
-# Using golangci-lint@v1.57.1
+# Using golangci-lint@v1.57.2
 run:
   timeout: 5m
   tests: true

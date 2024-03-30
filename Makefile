@@ -1,4 +1,4 @@
-GOLANGCI_VERSION := 1.57.1
+GOLANGCI_VERSION := 1.57.2
 
 .PHONY: test
 test:
