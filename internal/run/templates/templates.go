@@ -5,8 +5,6 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/hako/durafmt"
-
 	"github.com/form3tech-oss/f1/v2/internal/termcolor"
 )
 
@@ -79,11 +77,11 @@ func Parse() *Templates {
 			}
 			return count / uint64(duration/time.Second)
 		},
-		"durationSeconds": func(t time.Duration) time.Duration {
-			return t.Round(time.Second)
+		"durationSeconds": func(d time.Duration) time.Duration {
+			return d.Round(time.Second)
 		},
-		"duration": func(t time.Duration) string {
-			return durafmt.Parse(t).String()
+		"duration": func(d time.Duration) string {
+			return d.String()
 		},
 		"percent": func(val, total uint64) float64 {
 			return 100.0 * float64(val) / float64(total)

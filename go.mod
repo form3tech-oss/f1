@@ -7,7 +7,6 @@ require (
 	github.com/evalphobia/logrus_fluent v0.5.4
 	github.com/google/uuid v1.6.0
 	github.com/guptarohit/asciigraph v0.7.1
-	github.com/hako/durafmt v0.0.0-20210608085754-5c1018a4e16b
 	github.com/prometheus/client_golang v1.19.0
 	github.com/prometheus/client_model v0.6.0
 	github.com/prometheus/common v0.51.1
