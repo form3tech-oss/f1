@@ -48,7 +48,6 @@ linters:
   - paralleltest
   - gomnd
   - goerr113
-  - forbidigo
 
 linters-settings:
   tagliatelle:

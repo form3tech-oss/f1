@@ -8,6 +8,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/form3tech-oss/f1/v2/internal/chart"
+	"github.com/form3tech-oss/f1/v2/internal/console"
 	"github.com/form3tech-oss/f1/v2/internal/envsettings"
 	"github.com/form3tech-oss/f1/v2/internal/fluentd"
 	"github.com/form3tech-oss/f1/v2/internal/run"
@@ -43,14 +44,17 @@ func buildRootCmd(s *scenarios.Scenarios, settings envsettings.Settings, p *prof
 		tracer = trace.NewConsoleTracer(os.Stdout)
 	}
 
+	printer := console.NewPrinter(os.Stdout)
+
 	rootCmd.AddCommand(run.Cmd(
 		s,
 		builders,
 		settings,
 		fluentd.LoggingHook(settings.Fluentd.Host, settings.Fluentd.Port),
 		tracer,
+		printer,
 	))
-	rootCmd.AddCommand(chart.Cmd(builders, tracer))
+	rootCmd.AddCommand(chart.Cmd(builders, tracer, printer))
 	rootCmd.AddCommand(scenarios.Cmd(s))
 	rootCmd.AddCommand(completionsCmd(rootCmd))
 	return rootCmd, nil

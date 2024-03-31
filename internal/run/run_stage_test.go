@@ -21,6 +21,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/form3tech-oss/f1/v2/internal/console"
 	"github.com/form3tech-oss/f1/v2/internal/envsettings"
 	"github.com/form3tech-oss/f1/v2/internal/fluentd"
 	"github.com/form3tech-oss/f1/v2/internal/options"
@@ -75,6 +76,8 @@ type RunTestStage struct {
 	tracerWriter *io.PipeWriter
 	tracerReader *io.PipeReader
 
+	printer *console.Printer
+
 	settings envsettings.Settings
 
 	metricData *MetricData
@@ -95,6 +98,7 @@ func NewRunTestStage(t *testing.T) (*RunTestStage, *RunTestStage, *RunTestStage)
 		tracer:                 trace.NewConsoleTracer(io.Discard),
 		settings:               envsettings.Get(),
 		metricData:             NewMetricData(),
+		printer:                console.NewPrinter(io.Discard),
 	}
 
 	handler := FakePrometheusHandler(t, stage.metricData)
@@ -170,7 +174,7 @@ func (s *RunTestStage) i_execute_the_run_command() *RunTestStage {
 			MaxFailuresRate:     s.maxFailuresRate,
 			RegisterLogHookFunc: fluentd.LoggingHook(s.settings.Fluentd.Host, s.settings.Fluentd.Port),
 		},
-		s.build_trigger(), s.settings, s.tracer)
+		s.build_trigger(), s.settings, s.tracer, s.printer)
 	if err != nil {
 		s.runError = fmt.Errorf("run create: %w", err)
 		return s
@@ -398,7 +402,7 @@ func (s *RunTestStage) the_test_run_is_started() *RunTestStage {
 				MaxIterations:       s.maxIterations,
 				RegisterLogHookFunc: fluentd.LoggingHook("", ""),
 			},
-			s.build_trigger(), s.settings, s.tracer)
+			s.build_trigger(), s.settings, s.tracer, s.printer)
 		if err != nil {
 			s.runError = fmt.Errorf("new run: %w", err)
 			return
