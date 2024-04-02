@@ -1,5 +1,3 @@
-github.com/aholic/ggtimer v0.0.0-20150905131044-5d7b30837a52 h1:PuAAatjhSeWL+ybYPp3eAZ88we2mHZ/b4l/YUzIwpAw=
-github.com/aholic/ggtimer v0.0.0-20150905131044-5d7b30837a52/go.mod h1:dn/mVOaud2SCQOekwuqMOnheqP2Cu3cCYe/pN3TWNPA=
 github.com/avast/retry-go/v4 v4.5.1 h1:AxIx0HGi4VZ3I02jr78j5lZ3M6x1E0Ivxa6b0pUUh7o=
 github.com/avast/retry-go/v4 v4.5.1/go.mod h1:/sipNsvNB3RRuT5iNcb6h73nw3IBmXJ/H3XrCQYSOpc=
 github.com/beorn7/perks v1.0.1 h1:VlbKKnNfV8bJzeqoa4cOKqO6bYr3WgKZxO8Z16+hsOM=

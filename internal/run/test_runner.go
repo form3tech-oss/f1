@@ -13,7 +13,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/aholic/ggtimer"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/push"
 	log "github.com/sirupsen/logrus"
@@ -32,6 +31,8 @@ import (
 const (
 	NextIterationWindow = 10 * time.Millisecond
 	IterationStage      = "iteration"
+
+	metricsRefreshInterval = 5 * time.Second
 )
 
 func NewRun(
@@ -125,14 +126,26 @@ func (r *Run) Do(s *scenarios.Scenarios) (*Result, error) {
 	// set initial started timestamp so that the progress trackers work
 	r.result.RecordStarted()
 	r.progressRunner.Run()
-	metricsTick := ggtimer.NewTicker(5*time.Second, func(time.Time) {
-		r.pushMetrics()
-	})
+
+	metricsCloseCh := make(chan struct{})
+	go func() {
+		t := time.NewTicker(metricsRefreshInterval)
+		defer t.Stop()
+
+		for {
+			select {
+			case <-t.C:
+				r.pushMetrics()
+			case <-metricsCloseCh:
+				return
+			}
+		}
+	}()
 
 	r.run()
 
 	r.progressRunner.Terminate()
-	metricsTick.Close()
+	close(metricsCloseCh)
 	r.gatherMetrics()
 
 	return &r.result, nil
