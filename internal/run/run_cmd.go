@@ -7,6 +7,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/form3tech-oss/f1/v2/internal/console"
 	"github.com/form3tech-oss/f1/v2/internal/envsettings"
 	"github.com/form3tech-oss/f1/v2/internal/logging"
 	"github.com/form3tech-oss/f1/v2/internal/options"
@@ -21,6 +22,7 @@ func Cmd(
 	settings envsettings.Settings,
 	hookFunc logging.RegisterLogHookFunc,
 	tracer trace.Tracer,
+	printer *console.Printer,
 ) *cobra.Command {
 	runCmd := &cobra.Command{
 		Use:   "run <subcommand>",
@@ -32,7 +34,7 @@ func Cmd(
 			triggerCmd := &cobra.Command{
 				Use:   t.Name,
 				Short: t.Description,
-				RunE:  runCmdExecute(s, t, settings, hookFunc, tracer),
+				RunE:  runCmdExecute(s, t, settings, hookFunc, tracer, printer),
 				Args:  cobra.MatchAll(cobra.ExactArgs(1)),
 			}
 			triggerCmd.Flags().BoolP("verbose", "v", false, "enables log output to stdout")
@@ -44,7 +46,7 @@ func Cmd(
 			triggerCmd := &cobra.Command{
 				Use:       t.Name,
 				Short:     t.Description,
-				RunE:      runCmdExecute(s, t, settings, hookFunc, tracer),
+				RunE:      runCmdExecute(s, t, settings, hookFunc, tracer, printer),
 				Args:      cobra.MatchAll(cobra.ExactArgs(1)),
 				ValidArgs: s.GetScenarioNames(),
 			}
@@ -77,6 +79,7 @@ func runCmdExecute(
 	settings envsettings.Settings,
 	hookFunc logging.RegisterLogHookFunc,
 	tracer trace.Tracer,
+	printer *console.Printer,
 ) func(cmd *cobra.Command, args []string) error {
 	return func(cmd *cobra.Command, args []string) error {
 		cmd.SilenceUsage = true
@@ -150,7 +153,7 @@ func runCmdExecute(
 			MaxFailuresRate:     maxFailuresRate,
 			RegisterLogHookFunc: hookFunc,
 			IgnoreDropped:       ignoreDropped,
-		}, trig, settings, tracer)
+		}, trig, settings, tracer, printer)
 		if err != nil {
 			return fmt.Errorf("new run: %w", err)
 		}

@@ -77,7 +77,7 @@ func (f *F1) execute(args []string) error {
 // function.
 func (f *F1) Execute() {
 	if err := f.execute(nil); err != nil {
-		fmt.Println(err)
+		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 }

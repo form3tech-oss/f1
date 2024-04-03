@@ -9,12 +9,13 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/wcharczuk/go-chart/v2"
 
+	"github.com/form3tech-oss/f1/v2/internal/console"
 	"github.com/form3tech-oss/f1/v2/internal/support/errorh"
 	"github.com/form3tech-oss/f1/v2/internal/trace"
 	"github.com/form3tech-oss/f1/v2/internal/trigger/api"
 )
 
-func Cmd(builders []api.Builder, tracer trace.Tracer) *cobra.Command {
+func Cmd(builders []api.Builder, tracer trace.Tracer, printer *console.Printer) *cobra.Command {
 	chartCmd := &cobra.Command{
 		Use:   "chart <subcommand>",
 		Short: "plots a chart of the test scenarios that would be triggered over time with the provided run function",
@@ -24,7 +25,7 @@ func Cmd(builders []api.Builder, tracer trace.Tracer) *cobra.Command {
 		triggerCmd := &cobra.Command{
 			Use:   t.Name,
 			Short: t.Description,
-			RunE:  chartCmdExecute(t, tracer),
+			RunE:  chartCmdExecute(t, tracer, printer),
 		}
 		triggerCmd.Flags().String("chart-start", time.Now().Format(time.RFC3339), "Optional start time for the chart")
 		triggerCmd.Flags().Duration("chart-duration", 10*time.Minute, "Duration for the chart")
@@ -36,7 +37,11 @@ func Cmd(builders []api.Builder, tracer trace.Tracer) *cobra.Command {
 	return chartCmd
 }
 
-func chartCmdExecute(t api.Builder, tracer trace.Tracer) func(cmd *cobra.Command, args []string) error {
+func chartCmdExecute(
+	t api.Builder,
+	tracer trace.Tracer,
+	printer *console.Printer,
+) func(cmd *cobra.Command, args []string) error {
 	return func(cmd *cobra.Command, _ []string) error {
 		cmd.SilenceUsage = true
 
@@ -79,7 +84,7 @@ func chartCmdExecute(t api.Builder, tracer trace.Tracer) func(cmd *cobra.Command
 			times = append(times, current)
 		}
 
-		fmt.Println(asciigraph.Plot(rates, asciigraph.Height(15), asciigraph.Width(width)))
+		printer.Println(asciigraph.Plot(rates, asciigraph.Height(15), asciigraph.Width(width)))
 
 		if filename == "" {
 			return nil
@@ -123,7 +128,7 @@ func chartCmdExecute(t api.Builder, tracer trace.Tracer) func(cmd *cobra.Command
 		if err != nil {
 			return fmt.Errorf("rendering graph: %w", err)
 		}
-		fmt.Printf("Detailed chart written to %s\n", filename)
+		printer.Printf("Detailed chart written to %s\n", filename)
 		return nil
 	}
 }

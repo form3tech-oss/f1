@@ -17,6 +17,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/push"
 	log "github.com/sirupsen/logrus"
 
+	"github.com/form3tech-oss/f1/v2/internal/console"
 	"github.com/form3tech-oss/f1/v2/internal/envsettings"
 	"github.com/form3tech-oss/f1/v2/internal/logging"
 	"github.com/form3tech-oss/f1/v2/internal/metrics"
@@ -40,6 +41,7 @@ func NewRun(
 	t *api.Trigger,
 	settings envsettings.Settings,
 	tracer trace.Tracer,
+	printer *console.Printer,
 ) (*Run, error) {
 	run := Run{
 		Options:         options,
@@ -47,6 +49,7 @@ func NewRun(
 		RateDescription: t.Description,
 		trigger:         t,
 		tracer:          tracer,
+		printer:         printer,
 	}
 
 	run.templates = templates.Parse()
@@ -73,7 +76,7 @@ func NewRun(
 
 	progressRunner, _ := raterun.New(func(rate time.Duration, _ time.Time) {
 		run.gatherProgressMetrics(rate)
-		fmt.Println(run.result.Progress())
+		run.printer.Println(run.result.Progress())
 	}, []raterun.Rate{
 		{Start: time.Nanosecond, Rate: time.Second},
 		{Start: time.Minute, Rate: time.Second * 10},
@@ -86,26 +89,26 @@ func NewRun(
 }
 
 type Run struct {
-	Options         options.RunOptions
+	printer         *console.Printer
+	tracer          trace.Tracer
+	progressRunner  raterun.Runner
+	interrupt       chan os.Signal
+	templates       *templates.Templates
+	activeScenario  *ActiveScenario
+	trigger         *api.Trigger
+	pusher          *push.Pusher
+	result          Result
 	Settings        envsettings.Settings
+	Options         options.RunOptions
 	RateDescription string
-
-	templates      *templates.Templates
-	busyWorkers    int32
-	iteration      int32
-	failures       int32
-	result         Result
-	activeScenario *ActiveScenario
-	interrupt      chan os.Signal
-	trigger        *api.Trigger
-	tracer         trace.Tracer
-	pusher         *push.Pusher
-	notifyDropped  sync.Once
-	progressRunner raterun.Runner
+	notifyDropped   sync.Once
+	busyWorkers     int32
+	iteration       int32
+	failures        int32
 }
 
 func (r *Run) Do(s *scenarios.Scenarios) (*Result, error) {
-	fmt.Print(renderTemplate(r.templates.Start, r))
+	r.printer.Print(renderTemplate(r.templates.Start, r))
 	defer r.printSummary()
 	defer r.printLogOnFailure()
 
@@ -154,7 +157,7 @@ func (r *Run) Do(s *scenarios.Scenarios) (*Result, error) {
 func (r *Run) reportSetupFailure() *Result {
 	r.fail("setup failed")
 	r.pushMetrics()
-	fmt.Println(r.result.Setup())
+	r.printer.Println(r.result.Setup())
 	return &r.result
 }
 
@@ -164,7 +167,7 @@ func (r *Run) teardownActiveScenario() {
 		r.fail("teardown failed")
 	}
 	r.pushMetrics()
-	fmt.Println(r.result.Teardown())
+	r.printer.Println(r.result.Teardown())
 }
 
 func (r *Run) configureLogging() error {
@@ -177,7 +180,7 @@ func (r *Run) configureLogging() error {
 		r.result.LogFile = redirectLoggingToFile(r.Options.Scenario, r.Settings.LogFilePath)
 		welcomeMessage := renderTemplate(r.templates.Start, r)
 		log.Info(welcomeMessage)
-		fmt.Printf("Saving logs to %s\n\n", r.result.LogFile)
+		r.printer.Printf("Saving logs to %s\n\n", r.result.LogFile)
 	}
 
 	return nil
@@ -185,7 +188,7 @@ func (r *Run) configureLogging() error {
 
 func (r *Run) printSummary() {
 	summary := r.result.String()
-	fmt.Println(summary)
+	r.printer.Println(summary)
 	if !r.Options.Verbose {
 		log.Info(summary)
 		log.StandardLogger().SetOutput(os.Stdout)
@@ -236,7 +239,7 @@ func (r *Run) run() {
 		elapsed := <-durationElapsed.C
 		r.tracer.ReceivedFromChannel("C")
 		if elapsed {
-			fmt.Println(r.result.MaxDurationElapsed())
+			r.printer.Println(r.result.MaxDurationElapsed())
 		}
 		log.Info("Stopping worker")
 		stopTrigger <- true
@@ -249,7 +252,7 @@ func (r *Run) run() {
 		r.tracer.Event("Run loop ")
 		select {
 		case <-r.interrupt:
-			fmt.Println(r.result.Interrupted())
+			r.printer.Println(r.result.Interrupted())
 			r.progressRunner.RestartRate()
 			// stop listening to interrupts - second interrupt will terminate immediately
 			signal.Stop(r.interrupt)
@@ -278,7 +281,7 @@ func (r *Run) doWork(doWorkChannel chan<- int32, durationElapsed *CancellableTim
 	if r.Options.MaxIterations > 0 && iteration > r.Options.MaxIterations {
 		r.tracer.Event("Max iterations exceeded Calling Cancel on iteration  '%v' .", iteration)
 		if durationElapsed.Cancel() {
-			fmt.Println(r.result.MaxIterationsReached())
+			r.printer.Println(r.result.MaxIterationsReached())
 		}
 		r.tracer.Event("Max iterations exceeded Called Cancel on iteration  '%v' .", iteration)
 	} else if r.Options.MaxIterations <= 0 || iteration <= r.Options.MaxIterations {
