@@ -4,7 +4,6 @@ go 1.22
 
 require (
 	github.com/avast/retry-go/v4 v4.5.1
-	github.com/chobie/go-gaussian v0.0.0-20150107165016-53c09d90eeaf
 	github.com/evalphobia/logrus_fluent v0.5.4
 	github.com/google/uuid v1.6.0
 	github.com/guptarohit/asciigraph v0.6.0

@@ -2,12 +2,10 @@ package gaussian
 
 import (
 	"fmt"
-	"math"
 	"strconv"
 	"testing"
 	"time"
 
-	"github.com/guptarohit/asciigraph"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -16,10 +14,10 @@ import (
 
 func TestTotalVolumes(t *testing.T) {
 	for i, test := range []struct {
+		weights   []float64
 		peak      time.Duration
 		stddev    time.Duration
 		frequency time.Duration
-		weights   []float64
 		volume    float64
 		repeat    time.Duration
 		jitter    float64
@@ -162,31 +160,21 @@ func TestTotalVolumes(t *testing.T) {
 		},
 	} {
 		t.Run(fmt.Sprintf("%d: %f every %s, stddev: %s, peak: %s, jitter %f", i, test.volume, test.frequency.String(), test.stddev, test.peak, test.jitter), func(t *testing.T) {
-			c := NewCalculator(test.peak, test.stddev, test.frequency, test.weights, test.volume, test.repeat)
+			c, err := NewCalculator(test.peak, test.stddev, test.frequency, test.weights, test.volume, test.repeat)
+			require.NoError(t, err)
+
 			total := 0.0
 			current := time.Now().Truncate(test.repeat)
 			end := current.Add(test.repeat)
 
 			calculate := api.WithJitter(c.For, test.jitter)
-			var rates []float64
 			for ; current.Before(end); current = current.Add(test.frequency) {
 				rate := calculate(current)
-				rates = append(rates, float64(rate))
 				total += float64(rate)
 			}
 
-			fmt.Println(
-				asciigraph.Plot(
-					rates,
-					asciigraph.Height(15),
-					asciigraph.Width(160),
-					asciigraph.Caption("Rate per "+test.frequency.String()),
-				),
-			)
-			diff := math.Abs(total - test.volume)
-			fmt.Printf("Configured for volume %f, triggered %f. Difference of %f (%f%%)\n", test.volume, total, diff, 100*diff/test.volume)
-			acceptableErrorPercent := 0.1
-			assert.Less(t, diff, test.volume*acceptableErrorPercent/100, "volumes differ by > %f%%", acceptableErrorPercent*100)
+			// allow for less than 0.0015% difference
+			require.InDelta(t, test.volume, total, 0.0015*test.volume)
 		})
 	}
 }
@@ -194,8 +182,8 @@ func TestTotalVolumes(t *testing.T) {
 func TestWeightedVolumes(t *testing.T) {
 	for i, test := range []struct {
 		weights        []float64
-		volume         int
 		expectedTotals []int
+		volume         int
 	}{
 		{
 			volume:         1000000,
@@ -211,9 +199,13 @@ func TestWeightedVolumes(t *testing.T) {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
 			iterationDuration := 10 * time.Second
 			repeatEvery := 10 * time.Minute
-			c := NewCalculator(repeatEvery/2, 1*time.Minute, iterationDuration, test.weights, float64(test.volume), repeatEvery)
+
+			c, err := NewCalculator(repeatEvery/2, 1*time.Minute, iterationDuration, test.weights, float64(test.volume), repeatEvery)
+			require.NoError(t, err)
+
 			total := 0.0
 			require.Equal(t, len(test.weights), len(test.expectedTotals))
+
 			expectedTotal := 0
 			for _, t := range test.expectedTotals {
 				expectedTotal += t
@@ -222,7 +214,6 @@ func TestWeightedVolumes(t *testing.T) {
 			current := time.Now().Truncate(repeatEvery * time.Duration(len(test.weights)))
 
 			for i := range len(test.weights) {
-				fmt.Printf("Testing weight %d\n", i)
 				repetitionEnd := current.Add(repeatEvery)
 				repetitionTotal := 0.0
 				for ; current.Before(repetitionEnd); current = current.Add(iterationDuration) {
@@ -230,10 +221,8 @@ func TestWeightedVolumes(t *testing.T) {
 					total += float64(rate)
 					repetitionTotal += float64(rate)
 				}
-				diff := math.Abs(repetitionTotal - float64(test.expectedTotals[i]))
-				fmt.Printf("Configured for volume %d, triggered %f. Difference of %f (%f%%)\n", test.expectedTotals[i], repetitionTotal, diff, 100*diff/float64(test.expectedTotals[i]))
-				acceptableErrorPercent := 0.1
-				assert.Less(t, diff, float64(test.expectedTotals[i])*acceptableErrorPercent/100.0, "volumes differ by > %f%%", acceptableErrorPercent*100.0)
+
+				require.InDelta(t, test.expectedTotals[i], int(repetitionTotal), 1)
 			}
 			require.Equal(t, expectedTotal, test.volume*len(test.weights))
 		})
@@ -249,6 +238,14 @@ func Test_calculateVolume(t *testing.T) {
 		want     float64
 		wantErr  bool
 	}{
+		{
+			name:     "1400TPS",
+			peakTps:  "1400/s",
+			stddev:   4 * time.Hour,
+			peakTime: 14 * time.Hour,
+			want:     50208044,
+			wantErr:  false,
+		},
 		{
 			name:     "50TPS",
 			peakTps:  "50/s",
@@ -325,13 +322,11 @@ func Test_calculateVolume(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := calculateVolume(tt.peakTps, tt.peakTime, tt.stddev)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("calculateVolume() error = %v, wantErr %v", err, tt.wantErr)
-				return
+			if tt.wantErr {
+				require.Error(t, err)
 			}
-			if got != tt.want {
-				t.Errorf("calculateVolume() = %v, want %v", got, tt.want)
-			}
+
+			assert.Equal(t, int64(tt.want), int64(got))
 		})
 	}
 }
