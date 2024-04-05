@@ -100,15 +100,15 @@ func Parse() *Templates {
 		"{light_black}":    termcolor.BrightBlack,
 	}
 
-	start := template.Must(template.New("result parse").
+	start := template.Must(template.New("start").
 		Funcs(templateFunctions).
 		Parse(applyReplacements(startTemplate, replacements)))
 
-	result := template.Must(template.New("result parse").
+	result := template.Must(template.New("result").
 		Funcs(templateFunctions).
 		Parse(applyReplacements(resultTemplate, replacements)))
 
-	progress := template.Must(template.New("result parse").
+	progress := template.Must(template.New("progress").
 		Funcs(templateFunctions).
 		Parse(applyReplacements(progressTemplate, replacements)))
 

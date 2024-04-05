@@ -19,7 +19,7 @@ func ParseRate(rateArg string) (int, time.Duration, error) {
 			return rate, unit, fmt.Errorf("unable to parse rate %s: %w", rateArg, err)
 		}
 		if rate < 0 {
-			return rate, unit, fmt.Errorf("invalid rate arg %s", rateArg)
+			return rate, unit, fmt.Errorf("rate %s can't be negative", rateArg)
 		}
 		unitArg := (rateArg)[strings.Index(rateArg, "/")+1:]
 		if !isNumeric(unitArg[0:1]) {
@@ -36,7 +36,7 @@ func ParseRate(rateArg string) (int, time.Duration, error) {
 			return rate, unit, fmt.Errorf("unable to parse rate %s: %w", rateArg, err)
 		}
 		if rate < 0 {
-			return rate, unit, fmt.Errorf("invalid rate arg %s", rateArg)
+			return rate, unit, fmt.Errorf("rate %s can't be negative", rateArg)
 		}
 		unit = 1 * time.Second
 	}

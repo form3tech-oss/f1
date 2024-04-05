@@ -13,6 +13,7 @@ import (
 	"github.com/form3tech-oss/f1/v2/internal/options"
 	"github.com/form3tech-oss/f1/v2/internal/trace"
 	"github.com/form3tech-oss/f1/v2/internal/trigger/api"
+	"github.com/form3tech-oss/f1/v2/internal/triggerflags"
 	"github.com/form3tech-oss/f1/v2/pkg/f1/scenarios"
 )
 
@@ -30,44 +31,34 @@ func Cmd(
 	}
 
 	for _, t := range builders {
-		if t.IgnoreCommonFlags {
-			triggerCmd := &cobra.Command{
-				Use:   t.Name,
-				Short: t.Description,
-				RunE:  runCmdExecute(s, t, settings, hookFunc, tracer, printer),
-				Args:  cobra.MatchAll(cobra.ExactArgs(1)),
-			}
-			triggerCmd.Flags().BoolP("verbose", "v", false, "enables log output to stdout")
-			triggerCmd.Flags().Bool("verbose-fail", false, "log output to stdout on failure")
-
-			triggerCmd.Flags().AddFlagSet(t.Flags)
-			runCmd.AddCommand(triggerCmd)
-		} else {
-			triggerCmd := &cobra.Command{
-				Use:       t.Name,
-				Short:     t.Description,
-				RunE:      runCmdExecute(s, t, settings, hookFunc, tracer, printer),
-				Args:      cobra.MatchAll(cobra.ExactArgs(1)),
-				ValidArgs: s.GetScenarioNames(),
-			}
-			triggerCmd.Flags().BoolP("verbose", "v", false, "enables log output to stdout")
-			triggerCmd.Flags().Bool("verbose-fail", false, "log output to stdout on failure")
-
-			triggerCmd.Flags().Bool("ignore-dropped", false, "dropped requests will not fail the run")
-			triggerCmd.Flags().DurationP("max-duration", "d", time.Second,
-				"--max-duration 1s (stop after 1 second)")
-			triggerCmd.Flags().IntP("concurrency", "c", 100,
-				"--concurrency 2 (allow at most 2 groups of iterations to run concurrently)")
-			triggerCmd.Flags().Int32P("max-iterations", "i", 0,
-				"--max-iterations 100 (stop after 100 iterations, regardless of remaining duration)")
-			triggerCmd.Flags().Int("max-failures", 0,
-				"--max-failures 10 (load test will fail if more than 10 errors occurred, default is 0)")
-			triggerCmd.Flags().Int("max-failures-rate", 0,
-				"--max-failures-rate 5 (load test will fail if more than 5\\% requests failed, default is 0)")
-
-			triggerCmd.Flags().AddFlagSet(t.Flags)
-			runCmd.AddCommand(triggerCmd)
+		triggerCmd := &cobra.Command{
+			Use:   t.Name,
+			Short: t.Description,
+			RunE:  runCmdExecute(s, t, settings, hookFunc, tracer, printer),
+			Args:  cobra.MatchAll(cobra.ExactArgs(1)),
 		}
+
+		triggerCmd.Flags().BoolP(triggerflags.FlagVerbose, "v", false, "enables log output to stdout")
+		triggerCmd.Flags().Bool(triggerflags.FlagVerboseFail, false, "log output to stdout on failure")
+
+		if !t.IgnoreCommonFlags {
+			triggerCmd.ValidArgs = s.GetScenarioNames()
+
+			triggerCmd.Flags().Bool(triggerflags.FlagIgnoreDropped, false, "dropped requests will not fail the run")
+			triggerCmd.Flags().DurationP(triggerflags.FlagMaxDuration, "d", time.Second,
+				"--max-duration 1s (stop after 1 second)")
+			triggerCmd.Flags().IntP(triggerflags.FlagConcurrency, "c", 100,
+				"--concurrency 2 (allow at most 2 groups of iterations to run concurrently)")
+			triggerCmd.Flags().Int32P(triggerflags.FlagMaxIterations, "i", 0,
+				"--max-iterations 100 (stop after 100 iterations, regardless of remaining duration)")
+			triggerCmd.Flags().Int(triggerflags.FlagMaxFailures, 0,
+				"--max-failures 10 (load test will fail if more than 10 errors occurred, default is 0)")
+			triggerCmd.Flags().Int(triggerflags.FlagMaxFailuresRate, 0,
+				"--max-failures-rate 5 (load test will fail if more than 5\\% requests failed, default is 0)")
+		}
+
+		triggerCmd.Flags().AddFlagSet(t.Flags)
+		runCmd.AddCommand(triggerCmd)
 	}
 
 	return runCmd
@@ -106,40 +97,44 @@ func runCmdExecute(
 			ignoreDropped = trig.Options.IgnoreDropped
 		} else {
 			scenarioName = args[0]
-			duration, err = cmd.Flags().GetDuration("max-duration")
+			duration, err = cmd.Flags().GetDuration(triggerflags.FlagMaxDuration)
 			if err != nil {
-				return fmt.Errorf("invalid max-duration value: %w", err)
+				return fmt.Errorf("getting flag: %w", err)
 			}
-			concurrency, err = cmd.Flags().GetInt("concurrency")
-			if err != nil || concurrency < 1 {
-				return fmt.Errorf("invalid concurrency value: %w", err)
-			}
-			maxIterations, err = cmd.Flags().GetInt32("max-iterations")
+			concurrency, err = cmd.Flags().GetInt(triggerflags.FlagConcurrency)
 			if err != nil {
-				return fmt.Errorf("invalid max-iterations value: %w", err)
+				return fmt.Errorf("getting flag: %w", err)
 			}
-			maxFailures, err = cmd.Flags().GetInt("max-failures")
-			if err != nil {
-				return fmt.Errorf("invalid max-failures value: %w", err)
+			if concurrency < 1 {
+				return fmt.Errorf("concurrency %d can't be less than 1", concurrency)
 			}
-			maxFailuresRate, err = cmd.Flags().GetInt("max-failures-rate")
+
+			maxIterations, err = cmd.Flags().GetInt32(triggerflags.FlagMaxIterations)
 			if err != nil {
-				return fmt.Errorf("invalid max-failures-rate value: %w", err)
+				return fmt.Errorf("getting flag: %w", err)
 			}
-			ignoreDropped, err = cmd.Flags().GetBool("ignore-dropped")
+			maxFailures, err = cmd.Flags().GetInt(triggerflags.FlagMaxFailures)
 			if err != nil {
-				return fmt.Errorf("invalid ignore-dropped value: %w", err)
+				return fmt.Errorf("getting flag: %w", err)
+			}
+			maxFailuresRate, err = cmd.Flags().GetInt(triggerflags.FlagMaxFailuresRate)
+			if err != nil {
+				return fmt.Errorf("getting flag: %w", err)
+			}
+			ignoreDropped, err = cmd.Flags().GetBool(triggerflags.FlagIgnoreDropped)
+			if err != nil {
+				return fmt.Errorf("getting flag: %w", err)
 			}
 		}
 
-		verbose, err := cmd.Flags().GetBool("verbose")
+		verbose, err := cmd.Flags().GetBool(triggerflags.FlagVerbose)
 		if err != nil {
-			return fmt.Errorf("invalid verbose value: %w", err)
+			return fmt.Errorf("getting flag: %w", err)
 		}
 
-		verboseFail, err := cmd.Flags().GetBool("verbose-fail")
+		verboseFail, err := cmd.Flags().GetBool(triggerflags.FlagVerboseFail)
 		if err != nil {
-			return fmt.Errorf("invalid verbose-fail value: %w", err)
+			return fmt.Errorf("getting flag: %w", err)
 		}
 
 		run, err := NewRun(options.RunOptions{

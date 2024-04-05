@@ -15,6 +15,12 @@ import (
 	"github.com/form3tech-oss/f1/v2/internal/trigger/api"
 )
 
+const (
+	flagChartStart    = "chart-start"
+	flagChartDuration = "chart-duration"
+	flagFilename      = "filename"
+)
+
 func Cmd(builders []api.Builder, tracer trace.Tracer, printer *console.Printer) *cobra.Command {
 	chartCmd := &cobra.Command{
 		Use:   "chart <subcommand>",
@@ -27,9 +33,9 @@ func Cmd(builders []api.Builder, tracer trace.Tracer, printer *console.Printer) 
 			Short: t.Description,
 			RunE:  chartCmdExecute(t, tracer, printer),
 		}
-		triggerCmd.Flags().String("chart-start", time.Now().Format(time.RFC3339), "Optional start time for the chart")
-		triggerCmd.Flags().Duration("chart-duration", 10*time.Minute, "Duration for the chart")
-		triggerCmd.Flags().String("filename", "", fmt.Sprintf("Filename for optional detailed chart, e.g. %s.png", t.Name))
+		triggerCmd.Flags().String(flagChartStart, time.Now().Format(time.RFC3339), "Optional start time for the chart")
+		triggerCmd.Flags().Duration(flagChartDuration, 10*time.Minute, "Duration for the chart")
+		triggerCmd.Flags().String(flagFilename, "", fmt.Sprintf("Filename for optional detailed chart, e.g. %s.png", t.Name))
 		triggerCmd.Flags().AddFlagSet(t.Flags)
 		chartCmd.AddCommand(triggerCmd)
 	}
@@ -45,7 +51,7 @@ func chartCmdExecute(
 	return func(cmd *cobra.Command, _ []string) error {
 		cmd.SilenceUsage = true
 
-		startString, err := cmd.Flags().GetString("chart-start")
+		startString, err := cmd.Flags().GetString(flagChartStart)
 		if err != nil {
 			return fmt.Errorf("getting flag: %w", err)
 		}
@@ -53,11 +59,11 @@ func chartCmdExecute(
 		if err != nil {
 			return fmt.Errorf("parsing start time: %w", err)
 		}
-		duration, err := cmd.Flags().GetDuration("chart-duration")
+		duration, err := cmd.Flags().GetDuration(flagChartDuration)
 		if err != nil {
 			return fmt.Errorf("getting flag: %w", err)
 		}
-		filename, err := cmd.Flags().GetString("filename")
+		filename, err := cmd.Flags().GetString(flagFilename)
 		if err != nil {
 			return fmt.Errorf("getting flag: %w", err)
 		}
