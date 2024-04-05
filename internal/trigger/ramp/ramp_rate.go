@@ -10,49 +10,55 @@ import (
 	"github.com/form3tech-oss/f1/v2/internal/trace"
 	"github.com/form3tech-oss/f1/v2/internal/trigger/api"
 	"github.com/form3tech-oss/f1/v2/internal/trigger/rate"
+	"github.com/form3tech-oss/f1/v2/internal/triggerflags"
+)
+
+const (
+	flagStartRate    = "start-rate"
+	flagEndRate      = "end-rate"
+	flagRampDuration = "ramp-duration"
 )
 
 func Rate() api.Builder {
 	flags := pflag.NewFlagSet("ramp", pflag.ContinueOnError)
-	flags.StringP("start-rate", "s", "1/s",
+	flags.StringP(flagStartRate, "s", "1/s",
 		"number of iterations to start per interval, in the form <request>/<duration>")
-	flags.StringP("end-rate", "e", "1/s",
+	flags.StringP(flagEndRate, "e", "1/s",
 		"number of iterations to end per interval, in the form <request>/<duration>")
-	flags.DurationP("ramp-duration", "r", 1*time.Second,
+	flags.DurationP(flagRampDuration, "r", 1*time.Second,
 		"ramp duration, if not provided then --max-duration will be used")
-	flags.Float64P("jitter", "j", 0.0,
-		"vary the rate randomly by up to jitter percent")
-	flags.String("distribution", "regular",
-		"optional parameter to distribute the rate over steps of 100ms, which can be none|regular|random")
+
+	triggerflags.JitterFlag(flags)
+	triggerflags.DistributionFlag(flags)
 
 	return api.Builder{
 		Name:        "ramp <scenario>",
 		Description: "ramp up or down requests for a certain duration",
 		Flags:       flags,
 		New: func(flags *pflag.FlagSet, tracer trace.Tracer) (*api.Trigger, error) {
-			startRateArg, err := flags.GetString("start-rate")
+			startRateArg, err := flags.GetString(flagStartRate)
 			if err != nil {
 				return nil, fmt.Errorf("getting flag: %w", err)
 			}
-			endRateArg, err := flags.GetString("end-rate")
+			endRateArg, err := flags.GetString(flagEndRate)
 			if err != nil {
 				return nil, fmt.Errorf("getting flag: %w", err)
 			}
-			duration, err := flags.GetDuration("ramp-duration")
+			duration, err := flags.GetDuration(flagRampDuration)
 			if err != nil {
 				return nil, fmt.Errorf("getting flag: %w", err)
 			}
 			if duration == 0 {
-				duration, err = flags.GetDuration("max-duration")
+				duration, err = flags.GetDuration(triggerflags.FlagMaxDuration)
 				if err != nil {
 					return nil, fmt.Errorf("getting flag: %w", err)
 				}
 			}
-			jitterArg, err := flags.GetFloat64("jitter")
+			jitterArg, err := flags.GetFloat64(triggerflags.FlagJitter)
 			if err != nil {
 				return nil, fmt.Errorf("getting flag: %w", err)
 			}
-			distributionTypeArg, err := flags.GetString("distribution")
+			distributionTypeArg, err := flags.GetString(triggerflags.FlagDistribution)
 			if err != nil {
 				return nil, fmt.Errorf("getting flag: %w", err)
 			}
@@ -118,7 +124,7 @@ func CalculateRampRate(
 
 	jitterRateFn := api.WithJitter(rateFn, jitterArg)
 	distributedIterationDuration, distributedRateFn, err := api.NewDistribution(
-		distributionTypeArg, startUnit, jitterRateFn,
+		api.DistributionType(distributionTypeArg), startUnit, jitterRateFn,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("new distribution: %w", err)

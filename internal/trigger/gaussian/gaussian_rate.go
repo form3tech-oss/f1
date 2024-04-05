@@ -14,46 +14,56 @@ import (
 	"github.com/form3tech-oss/f1/v2/internal/trace"
 	"github.com/form3tech-oss/f1/v2/internal/trigger/api"
 	"github.com/form3tech-oss/f1/v2/internal/trigger/rate"
+	"github.com/form3tech-oss/f1/v2/internal/triggerflags"
 )
 
 const defaultVolume = 24 * 60 * 60
 
+const (
+	flagVolume             = "volume"
+	flagRepeat             = "repeat"
+	flagIterationFrequency = "iteration-frequency"
+	flagWeights            = "weights"
+	flagPeak               = "peak"
+	flagPeakRate           = "peak-rate"
+	flagStandardDeviation  = "standard-deviation"
+)
+
 func Rate() api.Builder {
 	flags := pflag.NewFlagSet("gaussian", pflag.ContinueOnError)
-	flags.Float64("volume", defaultVolume,
+	flags.Float64(flagVolume, defaultVolume,
 		"The desired volume to be achieved with the calculated load profile. "+
 			"Will be ignored if --peak-rate is also provided.")
-	flags.Duration("repeat", 24*time.Hour,
+	flags.Duration(flagRepeat, 24*time.Hour,
 		"How often the cycle should repeat")
-	flags.Duration("iteration-frequency", 1*time.Second,
+	flags.Duration(flagIterationFrequency, 1*time.Second,
 		"How frequently iterations should be started")
-	flags.String("weights", "",
+	flags.String(flagWeights, "",
 		"Optional scaling factor to apply per repetition. "+
 			"This can be used for example with daily repetitions to set different weights per day of the week")
-	flags.Duration("peak", 14*time.Hour,
+	flags.Duration(flagPeak, 14*time.Hour,
 		"The offset within the repetition window when the load should reach its maximum. "+
 			"Default 14 hours (with 24 hour default repeat)")
-	flags.StringP("peak-rate", "r", "",
+	flags.StringP(flagPeakRate, "r", "",
 		"number of iterations per interval in peak time, "+
 			"in the form <request>/<duration> (e.g. 1/s). If --peak-rate is provided, "+
 			"the value given for --volume will be ignored.")
-	flags.Duration("standard-deviation", 150*time.Minute,
+	flags.Duration(flagStandardDeviation, 150*time.Minute,
 		"The standard deviation to use for the distribution of load")
-	flags.Float64P("jitter", "j", 0.0,
-		"vary the rate randomly by up to jitter percent")
-	flags.String("distribution", "regular",
-		"optional parameter to distribute the rate over steps of 100ms, which can be none|regular|random")
+
+	triggerflags.JitterFlag(flags)
+	triggerflags.DistributionFlag(flags)
 
 	return api.Builder{
 		Name:        "gaussian <scenario>",
 		Description: "distributes load to match a desired monthly volume",
 		Flags:       flags,
 		New: func(flags *pflag.FlagSet, tracer trace.Tracer) (*api.Trigger, error) {
-			volume, err := flags.GetFloat64("volume")
+			volume, err := flags.GetFloat64(flagVolume)
 			if err != nil {
 				return nil, fmt.Errorf("getting flag: %w", err)
 			}
-			repeat, err := flags.GetDuration("repeat")
+			repeat, err := flags.GetDuration(flagRepeat)
 			if err != nil {
 				return nil, fmt.Errorf("getting flag: %w", err)
 			}
@@ -61,27 +71,27 @@ func Rate() api.Builder {
 			if err != nil {
 				return nil, fmt.Errorf("getting flag: %w", err)
 			}
-			weights, err := flags.GetString("weights")
+			weights, err := flags.GetString(flagWeights)
 			if err != nil {
 				return nil, fmt.Errorf("getting flag: %w", err)
 			}
-			peakDuration, err := flags.GetDuration("peak")
+			peakDuration, err := flags.GetDuration(flagPeak)
 			if err != nil {
 				return nil, fmt.Errorf("getting flag: %w", err)
 			}
-			stddevDuration, err := flags.GetDuration("standard-deviation")
+			stddevDuration, err := flags.GetDuration(flagStandardDeviation)
 			if err != nil {
 				return nil, fmt.Errorf("getting flag: %w", err)
 			}
-			jitter, err := flags.GetFloat64("jitter")
+			jitter, err := flags.GetFloat64(triggerflags.FlagJitter)
 			if err != nil {
 				return nil, fmt.Errorf("getting flag: %w", err)
 			}
-			distributionTypeArg, err := flags.GetString("distribution")
+			distributionTypeArg, err := flags.GetString(triggerflags.FlagDistribution)
 			if err != nil {
 				return nil, fmt.Errorf("getting flag: %w", err)
 			}
-			peakRate, err := flags.GetString("peak-rate")
+			peakRate, err := flags.GetString(flagPeakRate)
 			if err != nil {
 				return nil, fmt.Errorf("getting flag: %w", err)
 			}
@@ -171,7 +181,9 @@ func CalculateGaussianRate(
 	}
 
 	rateFn := api.WithJitter(calculator.For, jitter)
-	distributedIterationDuration, distributedRateFn, err := api.NewDistribution(distributionTypeArg, frequency, rateFn)
+	distributedIterationDuration, distributedRateFn, err := api.NewDistribution(
+		api.DistributionType(distributionTypeArg), frequency, rateFn,
+	)
 	if err != nil {
 		return nil, fmt.Errorf("new distribution: %w", err)
 	}

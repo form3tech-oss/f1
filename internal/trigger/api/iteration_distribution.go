@@ -7,18 +7,26 @@ import (
 	"time"
 )
 
+type DistributionType string
+
+const (
+	NoneDistribution    DistributionType = "none"
+	RegularDistribution DistributionType = "regular"
+	RandomDistribution  DistributionType = "random"
+)
+
 func NewDistribution(
-	distributionTypeArg string,
+	distributionTypeArg DistributionType,
 	iterationDuration time.Duration,
 	rateFn RateFunction,
 ) (time.Duration, RateFunction, error) {
 	switch distributionTypeArg {
-	case "none":
+	case NoneDistribution:
 		return iterationDuration, rateFn, nil
-	case "regular":
+	case RegularDistribution:
 		distributedIterationDuration, distributedRateFn := withRegularDistribution(iterationDuration, rateFn)
 		return distributedIterationDuration, distributedRateFn, nil
-	case "random":
+	case RandomDistribution:
 		randomFn := rand.Intn
 		distributedIterationDuration, distributedRateFn := withRandomDistribution(iterationDuration, rateFn, randomFn)
 		return distributedIterationDuration, distributedRateFn, nil

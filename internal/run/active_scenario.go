@@ -61,5 +61,5 @@ func (s *ActiveScenario) Run(metric metrics.MetricType, stage, iter string, f fu
 }
 
 func (s *ActiveScenario) RecordDroppedIteration() {
-	s.m.Record(metrics.IterationResult, s.scenario.Name, IterationStage, "dropped", 0)
+	s.m.Record(metrics.IterationResult, s.scenario.Name, IterationStage, metrics.DroppedResult, 0)
 }
