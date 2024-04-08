@@ -15,7 +15,6 @@ import (
 	"time"
 
 	"github.com/avast/retry-go/v4"
-	"github.com/google/uuid"
 	"github.com/prometheus/client_golang/prometheus"
 	io_prometheus_client "github.com/prometheus/client_model/go"
 	"github.com/prometheus/common/expfmt"
@@ -229,7 +228,7 @@ func (s *RunTestStage) the_command_should_fail() *RunTestStage {
 }
 
 func (s *RunTestStage) a_test_scenario_that_always_fails() *RunTestStage {
-	s.scenario = uuid.New().String()
+	s.scenario = "scenario_that_always_fails"
 	s.f1.Add(s.scenario, func(t *f1_testing.T) f1_testing.RunFn {
 		t.Cleanup(func() {
 			atomic.AddInt32(s.setupTeardownCount, 1)
@@ -245,7 +244,7 @@ func (s *RunTestStage) a_test_scenario_that_always_fails() *RunTestStage {
 }
 
 func (s *RunTestStage) a_test_scenario_that_always_panics() *RunTestStage {
-	s.scenario = uuid.New().String()
+	s.scenario = "scenario_that_always_panics"
 	s.f1.Add(s.scenario, func(t *f1_testing.T) f1_testing.RunFn {
 		t.Cleanup(func() {
 			atomic.AddInt32(s.setupTeardownCount, 1)
@@ -254,14 +253,14 @@ func (s *RunTestStage) a_test_scenario_that_always_panics() *RunTestStage {
 			t.Cleanup(func() {
 				atomic.AddInt32(s.iterationTeardownCount, 1)
 			})
-			panic("aaargh!")
+			panic("test panic in scenario iteration")
 		}
 	})
 	return s
 }
 
 func (s *RunTestStage) a_test_scenario_that_always_fails_an_assertion() *RunTestStage {
-	s.scenario = uuid.New().String()
+	s.scenario = "scenario_that_always_fails_an_assertion"
 	s.f1.Add(s.scenario, func(t *f1_testing.T) f1_testing.RunFn {
 		t.Cleanup(func() {
 			atomic.AddInt32(s.setupTeardownCount, 1)
@@ -277,7 +276,7 @@ func (s *RunTestStage) a_test_scenario_that_always_fails_an_assertion() *RunTest
 }
 
 func (s *RunTestStage) a_test_scenario_that_always_fails_setup() *RunTestStage {
-	s.scenario = uuid.New().String()
+	s.scenario = "scenario_that_always_fails_setup"
 	s.f1.Add(s.scenario, func(t *f1_testing.T) f1_testing.RunFn {
 		t.Cleanup(func() {
 			atomic.AddInt32(s.setupTeardownCount, 1)
@@ -289,7 +288,7 @@ func (s *RunTestStage) a_test_scenario_that_always_fails_setup() *RunTestStage {
 }
 
 func (s *RunTestStage) a_scenario_where_each_iteration_takes(duration time.Duration) *RunTestStage {
-	s.scenario = uuid.New().String()
+	s.scenario = "scenario_where_each_iteration_takes_" + duration.String()
 	s.f1.Add(s.scenario, func(t *f1_testing.T) f1_testing.RunFn {
 		t.Cleanup(func() {
 			atomic.AddInt32(s.setupTeardownCount, 1)
@@ -318,7 +317,7 @@ func (s *RunTestStage) iteration_teardown_is_called_n_times(n int32) *RunTestSta
 }
 
 func (s *RunTestStage) a_test_scenario_that_fails_intermittently() *RunTestStage {
-	s.scenario = uuid.New().String()
+	s.scenario = "scenario_that_fails_intermittently"
 	s.f1.Add(s.scenario, func(t *f1_testing.T) f1_testing.RunFn {
 		t.Cleanup(func() {
 			atomic.AddInt32(s.setupTeardownCount, 1)
@@ -535,7 +534,7 @@ func (s *RunTestStage) metrics_are_pushed_to_prometheus() *RunTestStage {
 }
 
 func (s *RunTestStage) a_scenario_where_the_final_iteration_takes_100ms() *RunTestStage {
-	s.scenario = uuid.New().String()
+	s.scenario = "scenario_where_the_final_iteration_takes_100ms"
 	s.f1.Add(s.scenario, func(t *f1_testing.T) f1_testing.RunFn {
 		t.Cleanup(func() {
 			atomic.AddInt32(s.setupTeardownCount, 1)
