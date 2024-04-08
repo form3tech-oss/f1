@@ -13,7 +13,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/push"
 	log "github.com/sirupsen/logrus"
 
@@ -40,6 +39,7 @@ func NewRun(
 	options options.RunOptions,
 	t *api.Trigger,
 	settings envsettings.Settings,
+	metricsInstane *metrics.Metrics,
 	tracer trace.Tracer,
 	printer *console.Printer,
 ) (*Run, error) {
@@ -48,6 +48,7 @@ func NewRun(
 		Settings:        settings,
 		RateDescription: t.Description,
 		trigger:         t,
+		metrics:         metricsInstane,
 		tracer:          tracer,
 		printer:         printer,
 	}
@@ -57,7 +58,7 @@ func NewRun(
 
 	if run.Settings.Prometheus.PushGateway != "" {
 		run.pusher = push.New(settings.Prometheus.PushGateway, "f1-"+options.Scenario).
-			Gatherer(prometheus.DefaultGatherer)
+			Gatherer(run.metrics.Registry)
 
 		if run.Settings.Prometheus.Namespace != "" {
 			run.pusher = run.pusher.Grouping("namespace", run.Settings.Prometheus.Namespace)
@@ -91,6 +92,7 @@ func NewRun(
 type Run struct {
 	printer         *console.Printer
 	tracer          trace.Tracer
+	metrics         *metrics.Metrics
 	progressRunner  raterun.Runner
 	interrupt       chan os.Signal
 	templates       *templates.Templates
@@ -116,9 +118,9 @@ func (r *Run) Do(s *scenarios.Scenarios) (*Result, error) {
 		return nil, fmt.Errorf("configure logging: %w", err)
 	}
 
-	metrics.Instance().Reset()
+	r.metrics.Reset()
 
-	r.activeScenario = NewActiveScenario(s.GetScenario(r.Options.Scenario))
+	r.activeScenario = NewActiveScenario(s.GetScenario(r.Options.Scenario), r.metrics)
 	r.pushMetrics()
 	defer r.teardownActiveScenario()
 
@@ -291,7 +293,7 @@ func (r *Run) doWork(doWorkChannel chan<- int32, durationElapsed *CancellableTim
 }
 
 func (r *Run) gatherMetrics() {
-	m, err := prometheus.DefaultGatherer.Gather()
+	m, err := r.metrics.Registry.Gather()
 	if err != nil {
 		r.result.AddError(fmt.Errorf("gather metrics: %w", err))
 	}
@@ -315,11 +317,11 @@ func (r *Run) gatherMetrics() {
 }
 
 func (r *Run) gatherProgressMetrics(duration time.Duration) {
-	m, err := metrics.Instance().ProgressRegistry.Gather()
+	m, err := r.metrics.ProgressRegistry.Gather()
 	if err != nil {
 		r.result.AddError(fmt.Errorf("gather metrics: %w", err))
 	}
-	metrics.Instance().Progress.Reset()
+	r.metrics.Progress.Reset()
 	r.result.ClearProgressMetrics()
 	for _, metric := range m {
 		if metric.GetName() == metrics.IterationMetricName {

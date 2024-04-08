@@ -1,6 +1,7 @@
 package metrics
 
 import (
+	"errors"
 	"sync"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -12,34 +13,6 @@ const (
 	SetupResult MetricType = iota
 	IterationResult
 	TeardownResult
-)
-
-type ResultType string
-
-func (r ResultType) String() string {
-	return string(r)
-}
-
-func ResultTypeFromString(result string) ResultType {
-	switch result {
-	case SucessResult.String():
-		return SucessResult
-	case FailedResult.String():
-		return FailedResult
-	case DroppedResult.String():
-		return DroppedResult
-	case UnknownResult.String():
-		return UnknownResult
-	default:
-		return UnknownResult
-	}
-}
-
-const (
-	SucessResult  ResultType = "success"
-	FailedResult  ResultType = "fail"
-	DroppedResult ResultType = "dropped"
-	UnknownResult ResultType = "unknown"
 )
 
 const (
@@ -60,67 +33,77 @@ type Metrics struct {
 	Iteration        *prometheus.SummaryVec
 	Teardown         *prometheus.SummaryVec
 	ProgressRegistry *prometheus.Registry
+	Registry         *prometheus.Registry
 	Progress         *prometheus.SummaryVec
 }
 
-//nolint:gochecknoglobals // metrics are best suited as globals
+//nolint:gochecknoglobals // removing the global Instance is a breaking change
 var (
 	m    *Metrics
 	once sync.Once
 )
 
-func Instance() *Metrics {
-	once.Do(func() {
-		percentileObjectives := map[float64]float64{
-			0.5: 0.05, 0.75: 0.05, 0.9: 0.01, 0.95: 0.001, 0.99: 0.001, 0.9999: 0.00001, 1.0: 0.00001,
-		}
-		m = &Metrics{
-			Setup: prometheus.NewSummaryVec(prometheus.SummaryOpts{
-				Namespace:  metricNamespace,
-				Subsystem:  metricSubsystem,
-				Name:       "setup",
-				Help:       "Duration of setup functions.",
-				Objectives: percentileObjectives,
-			}, []string{TestNameLabel, ResultLabel}),
-			Iteration: prometheus.NewSummaryVec(prometheus.SummaryOpts{
-				Namespace:  metricNamespace,
-				Subsystem:  metricSubsystem,
-				Name:       "iteration",
-				Help:       "Duration of iteration functions.",
-				Objectives: percentileObjectives,
-			}, []string{TestNameLabel, StageLabel, ResultLabel}),
-			Progress: prometheus.NewSummaryVec(prometheus.SummaryOpts{
-				Namespace:  metricNamespace,
-				Subsystem:  metricSubsystem,
-				Name:       "iteration",
-				Help:       "Duration of iteration functions.",
-				Objectives: percentileObjectives,
-			}, []string{TestNameLabel, StageLabel, ResultLabel}),
-			Teardown: prometheus.NewSummaryVec(prometheus.SummaryOpts{
-				Namespace:  metricNamespace,
-				Subsystem:  metricSubsystem,
-				Name:       "teardown",
-				Help:       "Duration of teardown functions.",
-				Objectives: percentileObjectives,
-			}, []string{TestNameLabel, ResultLabel}),
-		}
-		prometheus.MustRegister(
-			m.Setup,
-			m.Iteration,
-			m.Teardown,
-		)
-
-		m.ProgressRegistry = prometheus.NewRegistry()
-		m.ProgressRegistry.MustRegister(m.Progress)
-	})
-	return m
+func buildMetrics() *Metrics {
+	percentileObjectives := map[float64]float64{
+		0.5: 0.05, 0.75: 0.05, 0.9: 0.01, 0.95: 0.001, 0.99: 0.001, 0.9999: 0.00001, 1.0: 0.00001,
+	}
+	return &Metrics{
+		Setup: prometheus.NewSummaryVec(prometheus.SummaryOpts{
+			Namespace:  metricNamespace,
+			Subsystem:  metricSubsystem,
+			Name:       "setup",
+			Help:       "Duration of setup functions.",
+			Objectives: percentileObjectives,
+		}, []string{TestNameLabel, ResultLabel}),
+		Iteration: prometheus.NewSummaryVec(prometheus.SummaryOpts{
+			Namespace:  metricNamespace,
+			Subsystem:  metricSubsystem,
+			Name:       "iteration",
+			Help:       "Duration of iteration functions.",
+			Objectives: percentileObjectives,
+		}, []string{TestNameLabel, StageLabel, ResultLabel}),
+		Progress: prometheus.NewSummaryVec(prometheus.SummaryOpts{
+			Namespace:  metricNamespace,
+			Subsystem:  metricSubsystem,
+			Name:       "iteration",
+			Help:       "Duration of iteration functions.",
+			Objectives: percentileObjectives,
+		}, []string{TestNameLabel, StageLabel, ResultLabel}),
+		Teardown: prometheus.NewSummaryVec(prometheus.SummaryOpts{
+			Namespace:  metricNamespace,
+			Subsystem:  metricSubsystem,
+			Name:       "teardown",
+			Help:       "Duration of teardown functions.",
+			Objectives: percentileObjectives,
+		}, []string{TestNameLabel, ResultLabel}),
+	}
 }
 
-func Result(failed bool) ResultType {
-	if failed {
-		return FailedResult
-	}
-	return SucessResult
+func NewInstance(registry, progressRegistry *prometheus.Registry) *Metrics {
+	i := buildMetrics()
+	i.Registry = registry
+	i.ProgressRegistry = progressRegistry
+
+	i.Registry.MustRegister(
+		i.Setup,
+		i.Iteration,
+		i.Teardown,
+	)
+	i.ProgressRegistry.MustRegister(i.Progress)
+
+	return i
+}
+
+func Instance() *Metrics {
+	once.Do(func() {
+		defaultRegistry, ok := prometheus.DefaultRegisterer.(*prometheus.Registry)
+		if !ok {
+			panic(errors.New("casting prometheus.DefaultRegisterer to Registry"))
+		}
+
+		m = NewInstance(defaultRegistry, prometheus.NewRegistry())
+	})
+	return m
 }
 
 func (metrics *Metrics) Reset() {

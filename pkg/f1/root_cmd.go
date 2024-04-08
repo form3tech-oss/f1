@@ -11,6 +11,7 @@ import (
 	"github.com/form3tech-oss/f1/v2/internal/console"
 	"github.com/form3tech-oss/f1/v2/internal/envsettings"
 	"github.com/form3tech-oss/f1/v2/internal/fluentd"
+	"github.com/form3tech-oss/f1/v2/internal/metrics"
 	"github.com/form3tech-oss/f1/v2/internal/run"
 	"github.com/form3tech-oss/f1/v2/internal/trace"
 	"github.com/form3tech-oss/f1/v2/internal/trigger"
@@ -45,12 +46,14 @@ func buildRootCmd(s *scenarios.Scenarios, settings envsettings.Settings, p *prof
 	}
 
 	printer := console.NewPrinter(os.Stdout)
+	metricsInstance := metrics.Instance()
 
 	rootCmd.AddCommand(run.Cmd(
 		s,
 		builders,
 		settings,
 		fluentd.LoggingHook(settings.Fluentd.Host, settings.Fluentd.Port),
+		metricsInstance,
 		tracer,
 		printer,
 	))
