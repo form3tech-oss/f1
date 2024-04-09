@@ -18,13 +18,13 @@ type ActiveScenario struct {
 	Teardown func()
 }
 
-func NewActiveScenario(scenario *scenarios.Scenario) *ActiveScenario {
+func NewActiveScenario(scenario *scenarios.Scenario, metricsInstance *metrics.Metrics) *ActiveScenario {
 	t, teardown := testing.NewT("setup", scenario.Name)
 
 	s := &ActiveScenario{
 		scenario: scenario,
 		id:       uuid.New().String(),
-		m:        metrics.Instance(),
+		m:        metricsInstance,
 		t:        t,
 		Teardown: teardown,
 	}

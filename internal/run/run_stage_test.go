@@ -16,6 +16,7 @@ import (
 
 	"github.com/avast/retry-go/v4"
 	"github.com/google/uuid"
+	"github.com/prometheus/client_golang/prometheus"
 	io_prometheus_client "github.com/prometheus/client_model/go"
 	"github.com/prometheus/common/expfmt"
 	"github.com/stretchr/testify/assert"
@@ -24,6 +25,7 @@ import (
 	"github.com/form3tech-oss/f1/v2/internal/console"
 	"github.com/form3tech-oss/f1/v2/internal/envsettings"
 	"github.com/form3tech-oss/f1/v2/internal/fluentd"
+	"github.com/form3tech-oss/f1/v2/internal/metrics"
 	"github.com/form3tech-oss/f1/v2/internal/options"
 	"github.com/form3tech-oss/f1/v2/internal/run"
 	"github.com/form3tech-oss/f1/v2/internal/trace"
@@ -81,6 +83,7 @@ type RunTestStage struct {
 	settings envsettings.Settings
 
 	metricData *MetricData
+	metrics    *metrics.Metrics
 }
 
 func NewRunTestStage(t *testing.T) (*RunTestStage, *RunTestStage, *RunTestStage) {
@@ -99,6 +102,7 @@ func NewRunTestStage(t *testing.T) (*RunTestStage, *RunTestStage, *RunTestStage)
 		settings:               envsettings.Get(),
 		metricData:             NewMetricData(),
 		printer:                console.NewPrinter(io.Discard),
+		metrics:                metrics.NewInstance(prometheus.NewRegistry(), prometheus.NewRegistry()),
 	}
 
 	handler := FakePrometheusHandler(t, stage.metricData)
@@ -174,7 +178,7 @@ func (s *RunTestStage) i_execute_the_run_command() *RunTestStage {
 			MaxFailuresRate:     s.maxFailuresRate,
 			RegisterLogHookFunc: fluentd.LoggingHook(s.settings.Fluentd.Host, s.settings.Fluentd.Port),
 		},
-		s.build_trigger(), s.settings, s.tracer, s.printer)
+		s.build_trigger(), s.settings, s.metrics, s.tracer, s.printer)
 	if err != nil {
 		s.runError = fmt.Errorf("run create: %w", err)
 		return s
@@ -402,7 +406,7 @@ func (s *RunTestStage) the_test_run_is_started() *RunTestStage {
 				MaxIterations:       s.maxIterations,
 				RegisterLogHookFunc: fluentd.LoggingHook("", ""),
 			},
-			s.build_trigger(), s.settings, s.tracer, s.printer)
+			s.build_trigger(), s.settings, s.metrics, s.tracer, s.printer)
 		if err != nil {
 			s.runError = fmt.Errorf("new run: %w", err)
 			return
