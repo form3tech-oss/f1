@@ -3,8 +3,6 @@ package run
 import (
 	"time"
 
-	"github.com/google/uuid"
-
 	"github.com/form3tech-oss/f1/v2/internal/metrics"
 	"github.com/form3tech-oss/f1/v2/pkg/f1/scenarios"
 	"github.com/form3tech-oss/f1/v2/pkg/f1/testing"
@@ -12,7 +10,6 @@ import (
 
 type ActiveScenario struct {
 	scenario *scenarios.Scenario
-	id       string
 	m        *metrics.Metrics
 	t        *testing.T
 	Teardown func()
@@ -23,7 +20,6 @@ func NewActiveScenario(scenario *scenarios.Scenario, metricsInstance *metrics.Me
 
 	s := &ActiveScenario{
 		scenario: scenario,
-		id:       uuid.New().String(),
 		m:        metricsInstance,
 		t:        t,
 		Teardown: teardown,
