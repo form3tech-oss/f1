@@ -5,13 +5,10 @@ import (
 	"time"
 )
 
-// TestSimpleFlow is equivalent to a single run from TestParameterised. It's useful for debugging individual test runs
 func TestSimpleFlow(t *testing.T) {
-	// t.Skip("Duplicate of Parameterised test. Useful for manual testing when adding new tests or debugging, so leaving in place")
 	given, when, then := NewRunTestStage(t)
 
 	test := TestParam{
-		name:                   "basic test",
 		constantRate:           "10/100ms",
 		testDuration:           100 * time.Millisecond,
 		concurrency:            100,
@@ -60,12 +57,12 @@ type TestParam struct {
 	constantRate              string
 	testDuration              time.Duration
 	expectedRunTime           time.Duration
-	expectedCompletedTests    int32
+	expectedCompletedTests    uint32
 	concurrency               int
 	iterationDuration         time.Duration
 	expectedDroppedIterations uint64
 	expectedFailure           bool
-	maxIterations             int32
+	maxIterations             uint32
 	maxFailures               int
 	maxFailuresRate           int
 	stages                    string
@@ -558,7 +555,7 @@ func TestFinalRunMetrics(t *testing.T) {
 	given.
 		a_rate_of("100/100ms").and().
 		a_duration_of(450 * time.Millisecond).and().
-		a_scenario_where_the_final_iteration_takes_100ms()
+		a_scenario_where_iteration_n_takes_100ms(400)
 
 	when.i_execute_the_run_command()
 

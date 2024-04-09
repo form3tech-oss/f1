@@ -18,15 +18,13 @@ import (
 // reporting methods, such as the variations of Log and Error, may be called simultaneously from
 // multiple goroutines.
 type T struct {
-	// "iteration " + iteration number or "setup"
-	Iteration string
-	// logger with user and iteration tags
-	logger         *log.Logger
-	failed         int64
-	teardownFailed int64
+	logger         *log.Logger // logger with user and iteration tags
 	require        *require.Assertions
+	Iteration      string // "iteration " + iteration number or "setup"
 	Scenario       string
 	teardownStack  []func()
+	failed         atomic.Bool
+	teardownFailed atomic.Bool
 	tearingDown    bool
 }
 
@@ -61,9 +59,9 @@ func (t *T) Name() string {
 // goroutines.
 func (t *T) FailNow() {
 	if t.tearingDown {
-		atomic.StoreInt64(&t.teardownFailed, int64(1))
+		t.teardownFailed.Store(true)
 	} else {
-		atomic.StoreInt64(&t.failed, int64(1))
+		t.failed.Store(true)
 	}
 
 	runtime.Goexit()
@@ -72,9 +70,9 @@ func (t *T) FailNow() {
 // Fail marks the function as having failed but continues execution.
 func (t *T) Fail() {
 	if t.tearingDown {
-		atomic.StoreInt64(&t.teardownFailed, int64(1))
+		t.teardownFailed.Store(true)
 	} else {
-		atomic.StoreInt64(&t.failed, int64(1))
+		t.failed.Store(true)
 	}
 }
 
@@ -116,11 +114,11 @@ func (t *T) Logf(format string, args ...interface{}) {
 
 // Failed reports whether the function has failed.
 func (t *T) Failed() bool {
-	return atomic.LoadInt64(&t.failed) == int64(1)
+	return t.failed.Load()
 }
 
 func (t *T) TeardownFailed() bool {
-	return atomic.LoadInt64(&t.teardownFailed) == int64(1)
+	return t.teardownFailed.Load()
 }
 
 // Time records a metric for the duration of the given function

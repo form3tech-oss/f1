@@ -28,7 +28,7 @@ type Schedule struct {
 type Limits struct {
 	MaxDuration     *time.Duration `yaml:"max-duration"`
 	Concurrency     *int           `yaml:"concurrency"`
-	MaxIterations   *int32         `yaml:"max-iterations"`
+	MaxIterations   *uint32        `yaml:"max-iterations"`
 	MaxFailures     *int           `yaml:"max-failures"`
 	MaxFailuresRate *int           `yaml:"max-failures-rate"`
 	IgnoreDropped   *bool          `yaml:"ignore-dropped"`

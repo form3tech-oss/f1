@@ -12,7 +12,7 @@ type RunOptions struct {
 	Concurrency         int
 	Verbose             bool
 	VerboseFail         bool
-	MaxIterations       int32
+	MaxIterations       uint32
 	MaxFailures         int
 	MaxFailuresRate     int
 	RegisterLogHookFunc logging.RegisterLogHookFunc
