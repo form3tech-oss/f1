@@ -104,9 +104,9 @@ type Run struct {
 	Options         options.RunOptions
 	RateDescription string
 	notifyDropped   sync.Once
-	busyWorkers     int32
-	iteration       int32
-	failures        int32
+	busyWorkers     atomic.Int32
+	iteration       atomic.Uint32
+	failures        atomic.Uint32
 }
 
 func (r *Run) Do(s *scenarios.Scenarios) (*Result, error) {
@@ -207,13 +207,13 @@ func (r *Run) run() {
 
 	// Build a worker group to process the iterations.
 	workers := r.Options.Concurrency
-	doWorkChannel := make(chan int32, workers)
+	doWorkChannel := make(chan uint32, workers)
 	stopWorkers := make(chan struct{})
 
 	wg := &sync.WaitGroup{}
 	defer wg.Wait()
 
-	r.busyWorkers = int32(0)
+	r.busyWorkers.Store(0)
 	workDone := make(chan bool, workers)
 
 	wg.Add(workers)
@@ -270,8 +270,8 @@ func (r *Run) run() {
 	}
 }
 
-func (r *Run) doWork(doWorkChannel chan<- int32, durationElapsed *CancellableTimer) {
-	if atomic.LoadInt32(&r.busyWorkers) >= int32(r.Options.Concurrency) {
+func (r *Run) doWork(doWorkChannel chan<- uint32, durationElapsed *CancellableTimer) {
+	if r.busyWorkers.Load() >= int32(r.Options.Concurrency) {
 		r.activeScenario.RecordDroppedIteration()
 		r.notifyDropped.Do(func() {
 			// only log once.
@@ -279,7 +279,7 @@ func (r *Run) doWork(doWorkChannel chan<- int32, durationElapsed *CancellableTim
 		})
 		return
 	}
-	iteration := atomic.AddInt32(&r.iteration, 1)
+	iteration := r.iteration.Add(1)
 	if r.Options.MaxIterations > 0 && iteration > r.Options.MaxIterations {
 		r.tracer.Event("Max iterations exceeded Calling Cancel on iteration  '%v' .", iteration)
 		if durationElapsed.Cancel() {
@@ -345,7 +345,7 @@ func (r *Run) gatherProgressMetrics(duration time.Duration) {
 }
 
 func (r *Run) runWorker(
-	input <-chan int32,
+	iterationInput <-chan uint32,
 	stop <-chan struct{},
 	wg *sync.WaitGroup,
 	worker string,
@@ -358,9 +358,9 @@ func (r *Run) runWorker(
 		case <-stop:
 			r.tracer.Event("Stopping worker (%v)", worker)
 			return
-		case iteration := <-input:
+		case iteration := <-iterationInput:
 			r.tracer.Event("Received work (%v) from Channel 'doWork' iteration (%v)", worker, iteration)
-			atomic.AddInt32(&r.busyWorkers, 1)
+			r.busyWorkers.Add(1)
 
 			scenario := r.activeScenario.scenario
 			successful := r.activeScenario.Run(
@@ -370,9 +370,9 @@ func (r *Run) runWorker(
 				scenario.RunFn,
 			)
 			if !successful {
-				atomic.AddInt32(&r.failures, 1)
+				r.failures.Add(1)
 			}
-			atomic.AddInt32(&r.busyWorkers, -1)
+			r.busyWorkers.Add(-1)
 
 			// if we need to stop - no one is listening for workDone,
 			// so it will block forever. check the stop channel to stop the worker

@@ -44,7 +44,7 @@ type Options struct {
 	Concurrency     int
 	Verbose         bool
 	VerboseFail     bool
-	MaxIterations   int32
+	MaxIterations   uint32
 	MaxFailures     int
 	MaxFailuresRate int
 	IgnoreDropped   bool
