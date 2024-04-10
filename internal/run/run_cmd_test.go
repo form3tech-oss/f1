@@ -6,6 +6,8 @@ import (
 )
 
 func TestSimpleFlow(t *testing.T) {
+	t.Parallel()
+
 	given, when, then := NewRunTestStage(t)
 
 	test := TestParam{
@@ -75,6 +77,8 @@ type TestParam struct {
 }
 
 func TestParameterised(t *testing.T) {
+	t.Parallel()
+
 	for _, test := range []TestParam{
 		{
 			name:                   "basic test",
@@ -368,6 +372,8 @@ func TestParameterised(t *testing.T) {
 		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
 			given, when, then := NewRunTestStage(t)
 
 			given.
@@ -400,6 +406,8 @@ func TestParameterised(t *testing.T) {
 }
 
 func TestNoneDistribution(t *testing.T) {
+	t.Parallel()
+
 	given, when, then := NewRunTestStage(t)
 
 	given.
@@ -418,6 +426,8 @@ func TestNoneDistribution(t *testing.T) {
 }
 
 func TestRegularDistribution(t *testing.T) {
+	t.Parallel()
+
 	given, when, then := NewRunTestStage(t)
 
 	given.
@@ -436,6 +446,8 @@ func TestRegularDistribution(t *testing.T) {
 }
 
 func TestRandomDistribution(t *testing.T) {
+	t.Parallel()
+
 	given, when, then := NewRunTestStage(t)
 
 	given.
@@ -454,6 +466,8 @@ func TestRandomDistribution(t *testing.T) {
 }
 
 func TestRunScenarioThatFailsSetup(t *testing.T) {
+	t.Parallel()
+
 	given, when, then := NewRunTestStage(t)
 
 	given.
@@ -468,6 +482,8 @@ func TestRunScenarioThatFailsSetup(t *testing.T) {
 }
 
 func TestRunScenarioThatFails(t *testing.T) {
+	t.Parallel()
+
 	given, when, then := NewRunTestStage(t)
 
 	given.
@@ -484,6 +500,8 @@ func TestRunScenarioThatFails(t *testing.T) {
 }
 
 func TestRunScenarioThatPanics(t *testing.T) {
+	t.Parallel()
+
 	given, when, then := NewRunTestStage(t)
 
 	given.
@@ -500,6 +518,8 @@ func TestRunScenarioThatPanics(t *testing.T) {
 }
 
 func TestRunScenarioThatFailsAnAssertion(t *testing.T) {
+	t.Parallel()
+
 	given, when, then := NewRunTestStage(t)
 
 	given.
@@ -516,6 +536,8 @@ func TestRunScenarioThatFailsAnAssertion(t *testing.T) {
 }
 
 func TestRunScenarioThatFailsOccasionally(t *testing.T) {
+	t.Parallel()
+
 	given, when, then := NewRunTestStage(t)
 	given.
 		a_test_scenario_that_fails_intermittently().and().
@@ -534,6 +556,8 @@ func TestRunScenarioThatFailsOccasionally(t *testing.T) {
 }
 
 func TestInterruptedRun(t *testing.T) {
+	t.Parallel()
+
 	given, when, then := NewRunTestStage(t)
 	given.
 		a_rate_of("5/10ms").and().
@@ -551,6 +575,8 @@ func TestInterruptedRun(t *testing.T) {
 }
 
 func TestFinalRunMetrics(t *testing.T) {
+	t.Parallel()
+
 	given, when, then := NewRunTestStage(t)
 	given.
 		a_rate_of("100/100ms").and().
@@ -566,6 +592,8 @@ func TestFinalRunMetrics(t *testing.T) {
 }
 
 func TestSetupMetricsAreRecorded(t *testing.T) {
+	t.Parallel()
+
 	given, when, then := NewRunTestStage(t)
 
 	given.
@@ -580,6 +608,8 @@ func TestSetupMetricsAreRecorded(t *testing.T) {
 }
 
 func TestGroupedLabels(t *testing.T) {
+	t.Parallel()
+
 	given, when, then := NewRunTestStage(t)
 
 	given.
@@ -595,6 +625,8 @@ func TestGroupedLabels(t *testing.T) {
 }
 
 func TestFailureCounts(t *testing.T) {
+	t.Parallel()
+
 	given, when, then := NewRunTestStage(t)
 
 	given.
@@ -613,6 +645,8 @@ func TestFailureCounts(t *testing.T) {
 }
 
 func TestParameterisedMaxFailures(t *testing.T) {
+	t.Parallel()
+
 	for _, test := range []TestParam{
 		{
 			name:            "pass with 5 max failures",
@@ -664,6 +698,8 @@ func TestParameterisedMaxFailures(t *testing.T) {
 		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
 			given, when, then := NewRunTestStage(t)
 
 			given.
@@ -685,6 +721,8 @@ func TestParameterisedMaxFailures(t *testing.T) {
 }
 
 func TestTracing(t *testing.T) {
+	t.Parallel()
+
 	given, when, then := NewRunTestStage(t)
 
 	given.
@@ -697,6 +735,8 @@ func TestTracing(t *testing.T) {
 }
 
 func TestFluentd_InvalidPort(t *testing.T) {
+	t.Parallel()
+
 	given, when, then := NewRunTestStage(t)
 
 	given.

@@ -45,7 +45,6 @@ linters:
   - copyloopvar
 
   # TODO
-  - paralleltest
   - gomnd
   - goerr113
 

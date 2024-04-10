@@ -5,6 +5,8 @@ import (
 )
 
 func TestChartConstant(t *testing.T) {
+	t.Parallel()
+
 	given, when, then := NewChartTestStage(t)
 
 	given.
@@ -19,6 +21,8 @@ func TestChartConstant(t *testing.T) {
 }
 
 func TestChartConstantNoJitter(t *testing.T) {
+	t.Parallel()
+
 	given, when, then := NewChartTestStage(t)
 
 	given.
@@ -32,6 +36,8 @@ func TestChartConstantNoJitter(t *testing.T) {
 }
 
 func TestChartStaged(t *testing.T) {
+	t.Parallel()
+
 	given, when, then := NewChartTestStage(t)
 
 	given.
@@ -45,6 +51,8 @@ func TestChartStaged(t *testing.T) {
 }
 
 func TestChartGaussian(t *testing.T) {
+	t.Parallel()
+
 	given, when, then := NewChartTestStage(t)
 
 	given.
@@ -59,6 +67,8 @@ func TestChartGaussian(t *testing.T) {
 }
 
 func TestChartGaussianWithJitter(t *testing.T) {
+	t.Parallel()
+
 	given, when, then := NewChartTestStage(t)
 
 	given.
@@ -74,6 +84,8 @@ func TestChartGaussianWithJitter(t *testing.T) {
 }
 
 func TestChartRamp(t *testing.T) {
+	t.Parallel()
+
 	given, when, then := NewChartTestStage(t)
 
 	given.
@@ -87,6 +99,8 @@ func TestChartRamp(t *testing.T) {
 }
 
 func TestChartFileConfig(t *testing.T) {
+	t.Parallel()
+
 	given, when, then := NewChartTestStage(t)
 
 	given.

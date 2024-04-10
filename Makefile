@@ -2,7 +2,7 @@ GOLANGCI_VERSION := 1.57.2
 
 .PHONY: test
 test:
-	go test ./... -v -race -failfast -p 1 -count=1 -mod=readonly
+	go test ./... -v -race -failfast -parallel 1 -count=1 -mod=readonly
 
 .PHONY: tools/golangci-lint
 tools/golangci-lint:
