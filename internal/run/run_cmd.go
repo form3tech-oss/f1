@@ -155,7 +155,7 @@ func runCmdExecute(
 		if err != nil {
 			return fmt.Errorf("new run: %w", err)
 		}
-		result, err := run.Do(s)
+		result, err := run.Do(cmd.Context(), s)
 		if err != nil {
 			return fmt.Errorf("internal error on run: %w", err)
 		}
