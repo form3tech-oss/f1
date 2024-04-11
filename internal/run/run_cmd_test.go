@@ -33,8 +33,8 @@ func TestSimpleFlow(t *testing.T) {
 		a_end_rate_of(test.endRate).and().
 		a_ramp_duration_of(test.rampDuration)
 
-	when.i_start_a_timer().and().
-		i_execute_the_run_command()
+	when.a_timer_is_started().and().
+		the_run_command_is_executed()
 
 	then.
 		the_command_finished_with_failure_of(test.expectedFailure).and().
@@ -391,8 +391,8 @@ func TestParameterised(t *testing.T) {
 				a_end_rate_of(test.endRate).and().
 				a_ramp_duration_of(test.rampDuration)
 
-			when.i_start_a_timer().and().
-				i_execute_the_run_command()
+			when.a_timer_is_started().and().
+				the_run_command_is_executed()
 
 			then.
 				the_command_finished_with_failure_of(test.expectedFailure).and().
@@ -419,8 +419,8 @@ func TestNoneDistribution(t *testing.T) {
 		an_iteration_limit_of(1000).and().
 		a_scenario_where_each_iteration_takes(1 * time.Millisecond)
 
-	when.i_start_a_timer().and().
-		i_execute_the_run_command()
+	when.a_timer_is_started().and().
+		the_run_command_is_executed()
 
 	then.there_should_be_x_requests_sent_over_y_intervals_of_z_ms(10, 1, 1000)
 }
@@ -439,8 +439,8 @@ func TestRegularDistribution(t *testing.T) {
 		an_iteration_limit_of(1000).and().
 		a_scenario_where_each_iteration_takes(1 * time.Millisecond)
 
-	when.i_start_a_timer().and().
-		i_execute_the_run_command()
+	when.a_timer_is_started().and().
+		the_run_command_is_executed()
 
 	then.there_should_be_x_requests_sent_over_y_intervals_of_z_ms(1, 5, 100)
 }
@@ -459,8 +459,8 @@ func TestRandomDistribution(t *testing.T) {
 		an_iteration_limit_of(1000).and().
 		a_scenario_where_each_iteration_takes(1 * time.Millisecond)
 
-	when.i_start_a_timer().and().
-		i_execute_the_run_command()
+	when.a_timer_is_started().and().
+		the_run_command_is_executed()
 
 	then.the_requests_are_not_sent_all_at_once()
 }
@@ -475,7 +475,7 @@ func TestRunScenarioThatFailsSetup(t *testing.T) {
 		a_rate_of("1/s").and().
 		a_duration_of(1 * time.Second)
 
-	when.i_execute_the_run_command()
+	when.the_run_command_is_executed()
 
 	then.the_command_should_fail().and().
 		metrics_are_pushed_to_prometheus()
@@ -491,7 +491,7 @@ func TestRunScenarioThatFails(t *testing.T) {
 		a_rate_of("1").and().
 		a_duration_of(1 * time.Second)
 
-	when.i_execute_the_run_command()
+	when.the_run_command_is_executed()
 
 	then.the_command_should_fail().and().
 		setup_teardown_is_called().and().
@@ -509,7 +509,7 @@ func TestRunScenarioThatPanics(t *testing.T) {
 		a_rate_of("1").and().
 		a_duration_of(1 * time.Second)
 
-	when.i_execute_the_run_command()
+	when.the_run_command_is_executed()
 
 	then.the_command_should_fail().and().
 		setup_teardown_is_called().and().
@@ -527,7 +527,7 @@ func TestRunScenarioThatFailsAnAssertion(t *testing.T) {
 		a_rate_of("1").and().
 		a_duration_of(1 * time.Second)
 
-	when.i_execute_the_run_command()
+	when.the_run_command_is_executed()
 
 	then.the_command_should_fail().and().
 		setup_teardown_is_called().and().
@@ -547,7 +547,7 @@ func TestRunScenarioThatFailsOccasionally(t *testing.T) {
 		a_duration_of(500 * time.Millisecond).and().
 		a_distribution_type("none")
 
-	when.i_execute_the_run_command()
+	when.the_run_command_is_executed()
 
 	then.the_results_should_show_n_failures(50).and().
 		the_results_should_show_n_successful_iterations(50).and().
@@ -559,19 +559,21 @@ func TestInterruptedRun(t *testing.T) {
 	t.Parallel()
 
 	given, when, then := NewRunTestStage(t)
+
 	given.
+		a_timer_is_started().
 		a_rate_of("5/10ms").and().
 		a_duration_of(5 * time.Second).and().
 		a_scenario_where_each_iteration_takes(0 * time.Second).and().
 		a_distribution_type("none")
 
 	when.
-		the_test_run_is_started().and().
-		the_test_run_is_interrupted()
+		the_run_command_is_executed_and_cancelled_after(500 * time.Millisecond)
 
 	then.
-		setup_teardown_is_called_within_50ms().and().
-		metrics_are_pushed_to_prometheus()
+		setup_teardown_is_called_within(600 * time.Millisecond).and().
+		metrics_are_pushed_to_prometheus().and().
+		there_is_a_metric_called("form3_loadtest_iteration")
 }
 
 func TestFinalRunMetrics(t *testing.T) {
@@ -583,7 +585,7 @@ func TestFinalRunMetrics(t *testing.T) {
 		a_duration_of(450 * time.Millisecond).and().
 		a_scenario_where_iteration_n_takes_100ms(400)
 
-	when.i_execute_the_run_command()
+	when.the_run_command_is_executed()
 
 	then.
 		metrics_are_pushed_to_prometheus().and().
@@ -600,7 +602,7 @@ func TestSetupMetricsAreRecorded(t *testing.T) {
 		a_rate_of("1/s").and().
 		a_scenario_where_each_iteration_takes(1 * time.Millisecond)
 
-	when.i_execute_the_run_command()
+	when.the_run_command_is_executed()
 
 	then.
 		metrics_are_pushed_to_prometheus().and().
@@ -616,7 +618,7 @@ func TestGroupedLabels(t *testing.T) {
 		a_rate_of("10/s").and().
 		a_scenario_where_each_iteration_takes(1 * time.Millisecond)
 
-	when.i_execute_the_run_command()
+	when.the_run_command_is_executed()
 
 	then.
 		metrics_are_pushed_to_prometheus().and().
@@ -635,7 +637,7 @@ func TestFailureCounts(t *testing.T) {
 		a_test_scenario_that_fails_intermittently().and().
 		a_distribution_type("none")
 
-	when.i_execute_the_run_command()
+	when.the_run_command_is_executed()
 
 	then.
 		metrics_are_pushed_to_prometheus().and().
@@ -710,7 +712,7 @@ func TestParameterisedMaxFailures(t *testing.T) {
 				a_test_scenario_that_fails_intermittently().and().
 				a_distribution_type("none")
 
-			when.i_execute_the_run_command()
+			when.the_run_command_is_executed()
 
 			then.
 				the_iteration_metric_has_n_results(5, "success").and().
@@ -729,7 +731,7 @@ func TestTracing(t *testing.T) {
 		tracing_is_enabled().and().
 		a_concurrent_constant_trigger_is_configured().and()
 
-	when.i_execute_the_run_command()
+	when.the_run_command_is_executed()
 
 	then.the_trace_output_should_be_present()
 }
@@ -743,7 +745,7 @@ func TestFluentd_InvalidPort(t *testing.T) {
 		a_fluentd_config_with_host_and_port("host", "port").and().
 		a_concurrent_constant_trigger_is_configured()
 
-	when.i_execute_the_run_command()
+	when.the_run_command_is_executed()
 
 	then.run_fails_with_error_containing("parsing fluentd port")
 }

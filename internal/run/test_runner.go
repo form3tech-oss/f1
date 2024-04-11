@@ -1,16 +1,15 @@
 package run
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
 	stdlog "log"
 	"os"
-	"os/signal"
 	"strconv"
 	"sync"
 	"sync/atomic"
-	"syscall"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus/push"
@@ -25,6 +24,7 @@ import (
 	"github.com/form3tech-oss/f1/v2/internal/run/templates"
 	"github.com/form3tech-oss/f1/v2/internal/trace"
 	"github.com/form3tech-oss/f1/v2/internal/trigger/api"
+	"github.com/form3tech-oss/f1/v2/internal/xcontext"
 	"github.com/form3tech-oss/f1/v2/pkg/f1/scenarios"
 )
 
@@ -94,7 +94,6 @@ type Run struct {
 	tracer          trace.Tracer
 	metrics         *metrics.Metrics
 	progressRunner  raterun.Runner
-	interrupt       chan os.Signal
 	templates       *templates.Templates
 	activeScenario  *ActiveScenario
 	trigger         *api.Trigger
@@ -109,7 +108,7 @@ type Run struct {
 	failures        atomic.Uint32
 }
 
-func (r *Run) Do(s *scenarios.Scenarios) (*Result, error) {
+func (r *Run) Do(ctx context.Context, s *scenarios.Scenarios) (*Result, error) {
 	r.printer.Print(renderTemplate(r.templates.Start, r))
 	defer r.printSummary()
 	defer r.printLogOnFailure()
@@ -121,11 +120,14 @@ func (r *Run) Do(s *scenarios.Scenarios) (*Result, error) {
 	r.metrics.Reset()
 
 	r.activeScenario = NewActiveScenario(s.GetScenario(r.Options.Scenario), r.metrics)
-	r.pushMetrics()
-	defer r.teardownActiveScenario()
+	r.pushMetrics(ctx)
+
+	// run teardown even if the context is cancelled
+	teardownContext := xcontext.Detach(ctx)
+	defer r.teardownActiveScenario(teardownContext)
 
 	if r.activeScenario.t.Failed() {
-		return r.reportSetupFailure(), nil
+		return r.reportSetupFailure(ctx), nil
 	}
 
 	// set initial started timestamp so that the progress trackers work
@@ -140,14 +142,16 @@ func (r *Run) Do(s *scenarios.Scenarios) (*Result, error) {
 		for {
 			select {
 			case <-t.C:
-				r.pushMetrics()
+				r.pushMetrics(ctx)
+			case <-ctx.Done():
+				return
 			case <-metricsCloseCh:
 				return
 			}
 		}
 	}()
 
-	r.run()
+	r.run(ctx)
 
 	r.progressRunner.Terminate()
 	close(metricsCloseCh)
@@ -156,19 +160,19 @@ func (r *Run) Do(s *scenarios.Scenarios) (*Result, error) {
 	return &r.result, nil
 }
 
-func (r *Run) reportSetupFailure() *Result {
+func (r *Run) reportSetupFailure(ctx context.Context) *Result {
 	r.fail("setup failed")
-	r.pushMetrics()
+	r.pushMetrics(ctx)
 	r.printer.Println(r.result.Setup())
 	return &r.result
 }
 
-func (r *Run) teardownActiveScenario() {
+func (r *Run) teardownActiveScenario(ctx context.Context) {
 	r.activeScenario.Teardown()
 	if r.activeScenario.t.TeardownFailed() {
 		r.fail("teardown failed")
 	}
-	r.pushMetrics()
+	r.pushMetrics(ctx)
 	r.printer.Println(r.result.Teardown())
 }
 
@@ -198,13 +202,7 @@ func (r *Run) printSummary() {
 	}
 }
 
-func (r *Run) run() {
-	// handle ctrl-c interrupts
-	r.interrupt = make(chan os.Signal, 1)
-	signal.Notify(r.interrupt, os.Interrupt, syscall.SIGTERM)
-	defer signal.Stop(r.interrupt)
-	defer close(r.interrupt)
-
+func (r *Run) run(ctx context.Context) {
 	// Build a worker group to process the iterations.
 	workers := r.Options.Concurrency
 	doWorkChannel := make(chan uint32, workers)
@@ -253,11 +251,10 @@ func (r *Run) run() {
 	for {
 		r.tracer.Event("Run loop ")
 		select {
-		case <-r.interrupt:
+		case <-ctx.Done():
 			r.printer.Println(r.result.Interrupted())
 			r.progressRunner.RestartRate()
 			// stop listening to interrupts - second interrupt will terminate immediately
-			signal.Stop(r.interrupt)
 			durationElapsed.Cancel()
 		case <-workTriggered:
 			r.tracer.ReceivedFromChannel("workTriggered")
@@ -391,11 +388,11 @@ func (r *Run) fail(message string) {
 	r.result.AddError(errors.New(message))
 }
 
-func (r *Run) pushMetrics() {
+func (r *Run) pushMetrics(ctx context.Context) {
 	if r.pusher == nil {
 		return
 	}
-	err := r.pusher.Push()
+	err := r.pusher.PushContext(ctx)
 	if err != nil {
 		log.Errorf("unable to push metrics to prometheus: %v", err)
 	}

@@ -2,7 +2,7 @@ package run_test
 
 import (
 	"bytes"
-	"errors"
+	"context"
 	"fmt"
 	"io"
 	"math"
@@ -10,7 +10,6 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
-	"syscall"
 	"testing"
 	"time"
 
@@ -49,6 +48,7 @@ type RunTestStage struct {
 	startTime              time.Time
 	t                      *testing.T
 	scenario               string
+	runInstance            *run.Run
 	runResult              *run.Result
 	runError               error
 	concurrency            int
@@ -168,7 +168,7 @@ func (s *RunTestStage) a_ramp_duration_of(rampDuration string) *RunTestStage {
 	return s
 }
 
-func (s *RunTestStage) i_execute_the_run_command() *RunTestStage {
+func (s *RunTestStage) setupRun() {
 	r, err := run.NewRun(
 		options.RunOptions{
 			Scenario:            s.scenario,
@@ -182,10 +182,15 @@ func (s *RunTestStage) i_execute_the_run_command() *RunTestStage {
 		s.build_trigger(), s.settings, s.metrics, s.tracer, s.printer)
 	if err != nil {
 		s.runError = fmt.Errorf("run create: %w", err)
-		return s
 	}
+	s.runInstance = r
+}
 
-	s.runResult, err = r.Do(s.f1.GetScenarios())
+func (s *RunTestStage) the_run_command_is_executed() *RunTestStage {
+	s.setupRun()
+
+	var err error
+	s.runResult, err = s.runInstance.Do(context.TODO(), s.f1.GetScenarios())
 	if err != nil {
 		s.runError = fmt.Errorf("run do: %w", err)
 		return s
@@ -194,7 +199,23 @@ func (s *RunTestStage) i_execute_the_run_command() *RunTestStage {
 	return s
 }
 
-func (s *RunTestStage) i_start_a_timer() *RunTestStage {
+func (s *RunTestStage) the_run_command_is_executed_and_cancelled_after(duration time.Duration) *RunTestStage {
+	s.setupRun()
+
+	var err error
+	ctx, cancel := context.WithTimeout(context.TODO(), duration)
+	defer cancel()
+
+	s.runResult, err = s.runInstance.Do(ctx, s.f1.GetScenarios())
+	if err != nil {
+		s.runError = fmt.Errorf("run do: %w", err)
+		return s
+	}
+
+	return s
+}
+
+func (s *RunTestStage) a_timer_is_started() *RunTestStage {
 	s.startTime = time.Now()
 	return s
 }
@@ -387,27 +408,6 @@ func (s *RunTestStage) an_iteration_limit_of(iterations uint32) *RunTestStage {
 	return s
 }
 
-func (s *RunTestStage) the_test_run_is_started() *RunTestStage {
-	go func() {
-		r, err := run.NewRun(
-			options.RunOptions{
-				Scenario:            s.scenario,
-				MaxDuration:         s.duration,
-				Concurrency:         s.concurrency,
-				MaxIterations:       s.maxIterations,
-				RegisterLogHookFunc: fluentd.LoggingHook("", ""),
-			},
-			s.build_trigger(), s.settings, s.metrics, s.tracer, s.printer)
-		if err != nil {
-			s.runError = fmt.Errorf("new run: %w", err)
-			return
-		}
-
-		s.runResult, s.runError = r.Do(s.f1.GetScenarios())
-	}()
-	return s
-}
-
 func (s *RunTestStage) build_trigger() *api.Trigger {
 	var t *api.Trigger
 	var err error
@@ -482,21 +482,11 @@ func (s *RunTestStage) build_trigger() *api.Trigger {
 	return t
 }
 
-func (s *RunTestStage) the_test_run_is_interrupted() *RunTestStage {
-	time.Sleep(50 * time.Millisecond)
-	require.NoError(s.t, syscall.Kill(syscall.Getpid(), syscall.SIGTERM))
-	return s
-}
+func (s *RunTestStage) setup_teardown_is_called_within(duration time.Duration) *RunTestStage {
+	s.setup_teardown_is_called()
 
-func (s *RunTestStage) setup_teardown_is_called_within_50ms() *RunTestStage {
-	err := retry.Do(func() error {
-		if s.setupTeardownCount.Load() == 0 {
-			return errors.New("no teardown yet")
-		}
-		return nil
-	}, retry.Delay(10*time.Millisecond), retry.Attempts(5))
-	s.require.NoError(err)
-	s.assert.GreaterOrEqual(s.setupTeardownCount.Load(), uint32(1))
+	s.assert.WithinDuration(s.startTime, time.Now(), duration)
+
 	return s
 }
 
