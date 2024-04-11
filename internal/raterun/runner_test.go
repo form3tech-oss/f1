@@ -1,3 +1,4 @@
+//nolint:paralleltest // incompatible with individual leak checks
 package raterun
 
 import (
@@ -65,5 +66,6 @@ func Test_RunnerLeaksWhenNotTerminated(t *testing.T) {
 		time_passes(time.Millisecond * 1600)
 
 	then.a_go_leak_is_found().and().
-		runner_is_terminated()
+		runner_is_terminated().and().
+		a_go_leak_is_not_found()
 }

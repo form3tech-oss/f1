@@ -3,6 +3,8 @@ package f1_test
 import "testing"
 
 func TestCombineScenarios(t *testing.T) {
+	t.Parallel()
+
 	given, when, then := newF1ScenarioStage(t)
 
 	given.

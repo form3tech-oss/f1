@@ -644,9 +644,8 @@ func (s *RunTestStage) a_concurrent_constant_trigger_is_configured() *RunTestSta
 }
 
 func (s *RunTestStage) a_fluentd_config_with_host_and_port(host, port string) *RunTestStage {
-	s.t.Setenv(envsettings.EnvFluentdHost, host)
-	s.t.Setenv(envsettings.EnvFluentdPort, port)
-	s.settings = envsettings.Get()
+	s.settings.Fluentd.Host = host
+	s.settings.Fluentd.Port = port
 
 	return s
 }

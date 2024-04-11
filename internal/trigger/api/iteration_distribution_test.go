@@ -9,6 +9,8 @@ import (
 )
 
 func TestRegularRateDistribution(t *testing.T) {
+	t.Parallel()
+
 	for i, test := range []struct {
 		iterationDuration        time.Duration
 		rate                     int
@@ -126,6 +128,8 @@ func TestRegularRateDistribution(t *testing.T) {
 		},
 	} {
 		t.Run(fmt.Sprintf("%d: iteration duration %s, rate %d", i, test.iterationDuration, test.rate), func(t *testing.T) {
+			t.Parallel()
+
 			rateFn := func(time.Time) int { return test.rate }
 
 			distributedIterationDuration, distributedRate := withRegularDistribution(test.iterationDuration, rateFn)
@@ -141,6 +145,8 @@ func TestRegularRateDistribution(t *testing.T) {
 }
 
 func TestRegularRateDistributionWithSmallIterationDuration(t *testing.T) {
+	t.Parallel()
+
 	iterationDuration := 10 * time.Millisecond
 	rateFn := func(time.Time) int { return 10_000 }
 
@@ -151,6 +157,8 @@ func TestRegularRateDistributionWithSmallIterationDuration(t *testing.T) {
 }
 
 func TestRegularRateDistributionWithVariableRate(t *testing.T) {
+	t.Parallel()
+
 	iterationDuration := 1 * time.Second
 	rates := []int{5, 15, 12, 8}
 	idx := -1
@@ -173,6 +181,8 @@ func TestRegularRateDistributionWithVariableRate(t *testing.T) {
 }
 
 func TestRandomRateDistribution(t *testing.T) {
+	t.Parallel()
+
 	for i, test := range []struct {
 		iterationDuration        time.Duration
 		rate                     int
@@ -223,6 +233,8 @@ func TestRandomRateDistribution(t *testing.T) {
 		},
 	} {
 		t.Run(fmt.Sprintf("%d: iteration duration %s, rate %d", i, test.iterationDuration, test.rate), func(t *testing.T) {
+			t.Parallel()
+
 			rateFn := func(time.Time) int { return test.rate }
 			idx := -1
 			randFn := func(int) int { idx++; return test.randomValues[idx] }
@@ -240,6 +252,8 @@ func TestRandomRateDistribution(t *testing.T) {
 }
 
 func TestRandomRateDistributionWithVariableRate(t *testing.T) {
+	t.Parallel()
+
 	iterationDuration := 1 * time.Second
 	rates := []int{5, 15, 12, 8}
 	idx := -1

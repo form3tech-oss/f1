@@ -13,6 +13,8 @@ import (
 )
 
 func TestTotalVolumes(t *testing.T) {
+	t.Parallel()
+
 	for i, test := range []struct {
 		weights   []float64
 		peak      time.Duration
@@ -160,6 +162,8 @@ func TestTotalVolumes(t *testing.T) {
 		},
 	} {
 		t.Run(fmt.Sprintf("%d: %f every %s, stddev: %s, peak: %s, jitter %f", i, test.volume, test.frequency.String(), test.stddev, test.peak, test.jitter), func(t *testing.T) {
+			t.Parallel()
+
 			c, err := NewCalculator(test.peak, test.stddev, test.frequency, test.weights, test.volume, test.repeat)
 			require.NoError(t, err)
 
@@ -180,6 +184,8 @@ func TestTotalVolumes(t *testing.T) {
 }
 
 func TestWeightedVolumes(t *testing.T) {
+	t.Parallel()
+
 	for i, test := range []struct {
 		weights        []float64
 		expectedTotals []int
@@ -197,6 +203,8 @@ func TestWeightedVolumes(t *testing.T) {
 		},
 	} {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
+			t.Parallel()
+
 			iterationDuration := 10 * time.Second
 			repeatEvery := 10 * time.Minute
 
@@ -230,6 +238,8 @@ func TestWeightedVolumes(t *testing.T) {
 }
 
 func Test_calculateVolume(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name     string
 		peakTps  string
@@ -321,6 +331,8 @@ func Test_calculateVolume(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			got, err := calculateVolume(tt.peakTps, tt.peakTime, tt.stddev)
 			if tt.wantErr {
 				require.Error(t, err)

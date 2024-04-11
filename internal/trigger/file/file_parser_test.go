@@ -8,6 +8,8 @@ import (
 )
 
 func TestFileRate_SingleStages(t *testing.T) {
+	t.Parallel()
+
 	for _, test := range []testData{
 		{
 			testName: "Constant mode",
@@ -380,6 +382,8 @@ stages:
 		},
 	} {
 		t.Run(test.testName, func(t *testing.T) {
+			t.Parallel()
+
 			now, _ := time.Parse(time.RFC3339, "2020-12-10T10:00:00+00:00")
 
 			stagesToRun, err := parseConfigFile([]byte(test.fileContent), now)
@@ -409,6 +413,8 @@ stages:
 }
 
 func TestFileRate_FileErrors(t *testing.T) {
+	t.Parallel()
+
 	for _, test := range []struct {
 		fileContent, expectedError string
 	}{
@@ -643,6 +649,8 @@ invalid file content
 		},
 	} {
 		t.Run(test.expectedError, func(t *testing.T) {
+			t.Parallel()
+
 			now, _ := time.Parse(time.RFC3339, "2020-12-10T10:00:00+00:00")
 
 			runnableStages, err := parseConfigFile([]byte(test.fileContent), now)

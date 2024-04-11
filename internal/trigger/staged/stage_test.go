@@ -9,6 +9,8 @@ import (
 )
 
 func TestParseStages_With_Valid_String(t *testing.T) {
+	t.Parallel()
+
 	value := "0s:1,10s:1,20s:20,1m:50,1h:200"
 	expected := []stage{
 		{
@@ -44,6 +46,8 @@ func TestParseStages_With_Valid_String(t *testing.T) {
 }
 
 func TestParseStages_Error_Too_Many_Elements(t *testing.T) {
+	t.Parallel()
+
 	value := "0s:1:2"
 	stages, err := parseStages(value)
 	require.Error(t, err)
@@ -51,6 +55,8 @@ func TestParseStages_Error_Too_Many_Elements(t *testing.T) {
 }
 
 func TestParseStages_Error_Bad_Duration(t *testing.T) {
+	t.Parallel()
+
 	value := "0BB:1"
 	stages, err := parseStages(value)
 	require.Error(t, err)
@@ -58,6 +64,8 @@ func TestParseStages_Error_Bad_Duration(t *testing.T) {
 }
 
 func TestParseStages_Error_Bad_Target(t *testing.T) {
+	t.Parallel()
+
 	value := "1s:BB"
 	stages, err := parseStages(value)
 	require.Error(t, err)

@@ -9,6 +9,8 @@ import (
 )
 
 func TestProvidingCustomLogFilePathWithDirectoryThatDoesExist(t *testing.T) {
+	t.Parallel()
+
 	logPath := "/does-not-exist/my-scenario.log"
 	expected := getGeneratedLogFilePath("my-scenario")
 
@@ -19,6 +21,8 @@ func TestProvidingCustomLogFilePathWithDirectoryThatDoesExist(t *testing.T) {
 }
 
 func TestProvidingCustomLogFilePathWithDirectoryThatDoesNotExistResultsInGeneratedLogFile(t *testing.T) {
+	t.Parallel()
+
 	expected := filepath.Join(os.TempDir(), "my-scenario.log")
 
 	actual := getLogFilePath("my-scenario", expected)
@@ -28,6 +32,8 @@ func TestProvidingCustomLogFilePathWithDirectoryThatDoesNotExistResultsInGenerat
 }
 
 func TestProvidingCustomLogFilePathWhichIsEmptyResultsInGeneratedLogFile(t *testing.T) {
+	t.Parallel()
+
 	expected := getGeneratedLogFilePath("my-scenario")
 
 	actual := getLogFilePath("my-scenario", "")
