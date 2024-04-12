@@ -454,7 +454,7 @@ func TestRandomDistribution(t *testing.T) {
 		a_trigger_type_of(Constant).and().
 		a_rate_of("10/s").and().
 		a_distribution_type("random").and().
-		a_duration_of(500 * time.Millisecond).and().
+		a_duration_of(1 * time.Second).and().
 		a_concurrency_of(50).and().
 		an_iteration_limit_of(1000).and().
 		a_scenario_where_each_iteration_takes(1 * time.Millisecond)
