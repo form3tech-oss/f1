@@ -2,6 +2,7 @@ package run
 
 import (
 	"fmt"
+	"io"
 	stdlog "log"
 	"os"
 	"path/filepath"
@@ -32,7 +33,7 @@ func getLogFilePath(scenario string, logPath string) string {
 	return getGeneratedLogFilePath(scenario)
 }
 
-func redirectLoggingToFile(scenario string, logPath string) string {
+func redirectLoggingToFile(scenario string, logPath string, output io.Writer) string {
 	logFilePath := getLogFilePath(scenario, logPath)
 
 	file, err := os.OpenFile(logFilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o600)
@@ -42,6 +43,6 @@ func redirectLoggingToFile(scenario string, logPath string) string {
 		log.Info("Failed to log to file, using default stderr")
 	}
 
-	stdlog.SetOutput(os.Stdout)
+	stdlog.SetOutput(output)
 	return logFilePath
 }

@@ -183,7 +183,7 @@ func (r *Run) configureLogging() error {
 	}
 
 	if !r.Options.Verbose {
-		r.result.LogFile = redirectLoggingToFile(r.Options.Scenario, r.Settings.LogFilePath)
+		r.result.LogFile = redirectLoggingToFile(r.Options.Scenario, r.Settings.LogFilePath, r.printer.Writer)
 		welcomeMessage := renderTemplate(r.templates.Start, r)
 		log.Info(welcomeMessage)
 		r.printer.Printf("Saving logs to %s\n\n", r.result.LogFile)
@@ -197,8 +197,8 @@ func (r *Run) printSummary() {
 	r.printer.Println(summary)
 	if !r.Options.Verbose {
 		log.Info(summary)
-		log.StandardLogger().SetOutput(os.Stdout)
-		stdlog.SetOutput(os.Stdout)
+		log.StandardLogger().SetOutput(r.printer.Writer)
+		stdlog.SetOutput(r.printer.Writer)
 	}
 }
 
@@ -423,7 +423,7 @@ func (r *Run) printResultLogs() error {
 	}()
 
 	if fd != nil {
-		if _, err := io.Copy(os.Stdout, fd); err != nil {
+		if _, err := io.Copy(r.printer.Writer, fd); err != nil {
 			return fmt.Errorf("printing logs: %w", err)
 		}
 	}
