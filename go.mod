@@ -2,6 +2,8 @@ module github.com/form3tech-oss/f1/v2
 
 go 1.22
 
+toolchain go1.22.0
+
 require (
 	github.com/avast/retry-go/v4 v4.5.1
 	github.com/evalphobia/logrus_fluent v0.5.4
