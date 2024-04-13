@@ -3,12 +3,12 @@ package errorh
 import (
 	"io"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 func Log(err error, message string) {
 	if err != nil {
-		log.WithError(err).Error(message)
+		logrus.WithError(err).Error(message)
 	}
 }
 

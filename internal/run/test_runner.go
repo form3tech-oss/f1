@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus/push"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 
 	"github.com/form3tech-oss/f1/v2/internal/console"
 	"github.com/form3tech-oss/f1/v2/internal/envsettings"
@@ -185,7 +185,7 @@ func (r *Run) configureLogging() error {
 	if !r.Options.Verbose {
 		r.result.LogFile = redirectLoggingToFile(r.Options.Scenario, r.Settings.LogFilePath, r.printer.Writer)
 		welcomeMessage := renderTemplate(r.templates.Start, r)
-		log.Info(welcomeMessage)
+		logrus.Info(welcomeMessage)
 		r.printer.Printf("Saving logs to %s\n\n", r.result.LogFile)
 	}
 
@@ -196,8 +196,8 @@ func (r *Run) printSummary() {
 	summary := r.result.String()
 	r.printer.Println(summary)
 	if !r.Options.Verbose {
-		log.Info(summary)
-		log.StandardLogger().SetOutput(r.printer.Writer)
+		logrus.Info(summary)
+		logrus.StandardLogger().SetOutput(r.printer.Writer)
 		stdlog.SetOutput(r.printer.Writer)
 	}
 }
@@ -241,7 +241,7 @@ func (r *Run) run(ctx context.Context) {
 		if elapsed {
 			r.printer.Println(r.result.MaxDurationElapsed())
 		}
-		log.Info("Stopping worker")
+		logrus.Info("Stopping worker")
 		stopTrigger <- true
 		close(stopWorkers)
 		wg.Wait()
@@ -272,7 +272,7 @@ func (r *Run) doWork(doWorkChannel chan<- uint32, durationElapsed *CancellableTi
 		r.activeScenario.RecordDroppedIteration()
 		r.notifyDropped.Do(func() {
 			// only log once.
-			log.Warn("Dropping requests as workers are too busy. Considering increasing `--concurrency` argument")
+			logrus.Warn("Dropping requests as workers are too busy. Considering increasing `--concurrency` argument")
 		})
 		return
 	}
@@ -394,7 +394,7 @@ func (r *Run) pushMetrics(ctx context.Context) {
 	}
 	err := r.pusher.PushContext(ctx)
 	if err != nil {
-		log.Errorf("unable to push metrics to prometheus: %v", err)
+		logrus.Errorf("unable to push metrics to prometheus: %v", err)
 	}
 }
 
@@ -404,7 +404,7 @@ func (r *Run) printLogOnFailure() {
 	}
 
 	if err := r.printResultLogs(); err != nil {
-		log.WithError(err).Error("error printing logs")
+		logrus.WithError(err).Error("error printing logs")
 	}
 }
 
@@ -418,7 +418,7 @@ func (r *Run) printResultLogs() error {
 			return
 		}
 		if err := fd.Close(); err != nil {
-			log.WithError(err).Error("error closing log file")
+			logrus.WithError(err).Error("error closing log file")
 		}
 	}()
 

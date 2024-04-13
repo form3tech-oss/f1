@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 
 	"github.com/form3tech-oss/f1/v2/internal/options"
 	"github.com/form3tech-oss/f1/v2/internal/trace"
@@ -71,7 +71,7 @@ func setEnvs(envs map[string]string) {
 	for key, value := range envs {
 		err := os.Setenv(key, value)
 		if err != nil {
-			log.WithError(err).Error("unable set environment variables for given scenario")
+			logrus.WithError(err).Error("unable set environment variables for given scenario")
 		}
 	}
 }
@@ -80,7 +80,7 @@ func unsetEnvs(envs map[string]string) {
 	for key := range envs {
 		err := os.Unsetenv(key)
 		if err != nil {
-			log.WithError(err).Error("unable unset environment variables for given scenario")
+			logrus.WithError(err).Error("unable unset environment variables for given scenario")
 		}
 	}
 }

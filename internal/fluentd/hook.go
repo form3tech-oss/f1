@@ -5,7 +5,7 @@ import (
 	"strconv"
 
 	"github.com/evalphobia/logrus_fluent"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 
 	"github.com/form3tech-oss/f1/v2/internal/logging"
 )
@@ -34,7 +34,7 @@ func LoggingHook(host, port string) logging.RegisterLogHookFunc {
 			return fmt.Errorf("creating fluent config: %w", err)
 		}
 
-		log.AddHook(hook)
+		logrus.AddHook(hook)
 		return nil
 	}
 }

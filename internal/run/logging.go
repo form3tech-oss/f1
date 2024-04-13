@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"time"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 func directoryExists(path string) bool {
@@ -38,9 +38,9 @@ func redirectLoggingToFile(scenario string, logPath string, output io.Writer) st
 
 	file, err := os.OpenFile(logFilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o600)
 	if err == nil {
-		log.StandardLogger().SetOutput(file)
+		logrus.StandardLogger().SetOutput(file)
 	} else {
-		log.Info("Failed to log to file, using default stderr")
+		logrus.Info("Failed to log to file, using default stderr")
 	}
 
 	stdlog.SetOutput(output)
