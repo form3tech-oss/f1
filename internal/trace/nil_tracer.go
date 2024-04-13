@@ -17,5 +17,11 @@ func (*NilTracer) SentToChannel(string) {
 func (*NilTracer) SendingToChannel(string) {
 }
 
-func (*NilTracer) Event(string, ...any) {
+func (*NilTracer) Event(string) {
+}
+
+func (*NilTracer) WorkerEvent(string, string) {
+}
+
+func (*NilTracer) IterationEvent(string, uint32) {
 }

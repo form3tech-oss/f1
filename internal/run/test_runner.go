@@ -278,13 +278,13 @@ func (r *Run) doWork(doWorkChannel chan<- uint32, durationElapsed *CancellableTi
 	}
 	iteration := r.iteration.Add(1)
 	if r.Options.MaxIterations > 0 && iteration > r.Options.MaxIterations {
-		r.tracer.Event("Max iterations exceeded Calling Cancel on iteration  '%v' .", iteration)
+		r.tracer.IterationEvent("Max iterations exceeded Calling Cancel", iteration)
 		if durationElapsed.Cancel() {
 			r.printer.Println(r.result.MaxIterationsReached())
 		}
-		r.tracer.Event("Max iterations exceeded Called Cancel on iteration  '%v' .", iteration)
+		r.tracer.IterationEvent("Max iterations exceeded Called Cancel", iteration)
 	} else if r.Options.MaxIterations <= 0 || iteration <= r.Options.MaxIterations {
-		r.tracer.Event("Within Max iterations So calling dowork() on iteration  '%v' .", iteration)
+		r.tracer.IterationEvent("Within Max iterations So calling dowork()", iteration)
 		doWorkChannel <- iteration
 	}
 }
@@ -349,14 +349,14 @@ func (r *Run) runWorker(
 	workDone chan<- bool,
 ) {
 	defer wg.Done()
-	r.tracer.Event("Started worker (%v)", worker)
+	r.tracer.WorkerEvent("Started worker", worker)
 	for {
 		select {
 		case <-stop:
-			r.tracer.Event("Stopping worker (%v)", worker)
+			r.tracer.WorkerEvent("Stopping worker", worker)
 			return
 		case iteration := <-iterationInput:
-			r.tracer.Event("Received work (%v) from Channel 'doWork' iteration (%v)", worker, iteration)
+			r.tracer.IterationEvent("Received work from Channel 'doWork'", iteration)
 			r.busyWorkers.Add(1)
 
 			scenario := r.activeScenario.scenario
@@ -379,7 +379,7 @@ func (r *Run) runWorker(
 				return
 			}
 
-			r.tracer.Event("Completed iteration (%v).", iteration)
+			r.tracer.IterationEvent("Completed iteration", iteration)
 		}
 	}
 }
