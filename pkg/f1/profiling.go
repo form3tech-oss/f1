@@ -3,7 +3,6 @@ package f1
 import (
 	"fmt"
 	"os"
-	"runtime"
 	"runtime/pprof"
 )
 
@@ -45,8 +44,6 @@ func (p *profiling) stop() error {
 			return fmt.Errorf("creating memprofile file '%s': %w", p.memProfileFileName, err)
 		}
 		defer f.Close()
-
-		runtime.GC() // get up-to-date statistics
 
 		if err := pprof.WriteHeapProfile(f); err != nil {
 			return fmt.Errorf("writing mem profile: %w", err)
