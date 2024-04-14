@@ -26,3 +26,7 @@ install-pkgsite:
 .PHONY: open-docs
 open-docs:
 	pkgsite -open .
+
+.PHONY: build-bench
+build-bench:
+	go build -o ./bin/f1-bench ./benchcmd
