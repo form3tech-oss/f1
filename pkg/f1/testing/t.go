@@ -31,7 +31,7 @@ type T struct {
 func NewT(iter, scenarioName string) (*T, func()) {
 	t := &T{
 		Iteration:     iter,
-		logger:        logrus.WithField("i", iter).WithField("scenario", scenarioName).Logger,
+		logger:        logrus.StandardLogger(),
 		Scenario:      scenarioName,
 		teardownStack: []func(){},
 	}
