@@ -6,7 +6,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/require"
 
 	"github.com/form3tech-oss/f1/v2/internal/metrics"
@@ -18,7 +18,7 @@ import (
 // reporting methods, such as the variations of Log and Error, may be called simultaneously from
 // multiple goroutines.
 type T struct {
-	logger         *log.Logger // logger with user and iteration tags
+	logger         *logrus.Logger // logger with user and iteration tags
 	require        *require.Assertions
 	Iteration      string // "iteration " + iteration number or "setup"
 	Scenario       string
@@ -31,7 +31,7 @@ type T struct {
 func NewT(iter, scenarioName string) (*T, func()) {
 	t := &T{
 		Iteration:     iter,
-		logger:        log.WithField("i", iter).WithField("scenario", scenarioName).Logger,
+		logger:        logrus.StandardLogger(),
 		Scenario:      scenarioName,
 		teardownStack: []func(){},
 	}
@@ -39,7 +39,7 @@ func NewT(iter, scenarioName string) (*T, func()) {
 	return t, t.teardown
 }
 
-func (t *T) Logger() *log.Logger {
+func (t *T) Logger() *logrus.Logger {
 	return t.logger
 }
 

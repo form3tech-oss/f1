@@ -3,7 +3,7 @@ package staged
 import (
 	"time"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 type rateCalculator struct {
@@ -22,7 +22,7 @@ func newRateCalculator(stages []stage) *rateCalculator {
 
 func (s *rateCalculator) addRange(stages []stage) {
 	for _, stage := range stages {
-		log.Debugf("Stage %d: %s, %d -> %d\n", stage, stage.duration.String(), stage.startTarget, stage.endTarget)
+		logrus.Debugf("Stage %d: %s, %d -> %d\n", stage, stage.duration.String(), stage.startTarget, stage.endTarget)
 		s.add(stage)
 	}
 }
@@ -56,7 +56,7 @@ func (s *rateCalculator) Rate(now time.Time) int {
 	position := float64(offset) / float64(s.stages[s.current].duration)
 	rate := s.stages[s.current].startTarget +
 		int(position*float64(s.stages[s.current].endTarget-s.stages[s.current].startTarget))
-	log.Debugf("Stage %d; Triggering %d. Offset: %d, Duration: %d, Position: %v\n",
+	logrus.Debugf("Stage %d; Triggering %d. Offset: %d, Duration: %d, Position: %v\n",
 		s.current, rate, offset, s.stages[s.current].duration, position)
 	return rate
 }
