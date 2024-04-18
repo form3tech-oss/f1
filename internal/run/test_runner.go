@@ -363,7 +363,7 @@ func (r *Run) runWorker(
 			successful := r.activeScenario.Run(
 				metrics.IterationResult,
 				IterationStage,
-				fmt.Sprintf("iteration %d", iteration),
+				strconv.FormatUint(uint64(iteration), 10),
 				scenario.RunFn,
 			)
 			if !successful {
