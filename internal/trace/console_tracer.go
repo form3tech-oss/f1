@@ -26,22 +26,30 @@ func colorString(s string, c string) string {
 }
 
 func (t *ConsoleTracer) ReceivedFromChannel(name string) {
-	t.event("Received from Channel '%s'", name)
+	t.event(fmt.Sprintf("Received from Channel '%s'", name))
 }
 
 func (t *ConsoleTracer) SentToChannel(name string) {
-	t.event("Sent to Channel '%s'", name)
+	t.event(fmt.Sprintf("Sent to Channel '%s'", name))
 }
 
 func (t *ConsoleTracer) SendingToChannel(name string) {
-	t.event("Sending to Channel '%s'", name)
+	t.event(fmt.Sprintf("Sending to Channel '%s'", name))
 }
 
-func (t *ConsoleTracer) Event(message string, args ...any) {
-	t.event(message, args...)
+func (t *ConsoleTracer) Event(message string) {
+	t.event(message)
 }
 
-func (t *ConsoleTracer) event(message string, args ...any) {
+func (t *ConsoleTracer) IterationEvent(message string, iteration uint32) {
+	t.event(message + fmt.Sprintf(" (iteration: %d)", iteration))
+}
+
+func (t *ConsoleTracer) WorkerEvent(message string, worker string) {
+	t.event(message + fmt.Sprintf(" (worker: %s)", worker))
+}
+
+func (t *ConsoleTracer) event(message string) {
 	pc := make([]uintptr, 15)
 	n := runtime.Callers(3, pc)
 	frames := runtime.CallersFrames(pc[:n])
@@ -49,7 +57,7 @@ func (t *ConsoleTracer) event(message string, args ...any) {
 
 	keywords := []string{"channel", "Channel"}
 
-	fMessage := colorString(fmt.Sprintf(message, args...), termcolor.Yellow)
+	fMessage := colorString(message, termcolor.Yellow)
 
 	for _, s := range keywords {
 		fMessage = strings.Replace(fMessage, s, termcolor.Red+s+termcolor.Yellow, 1)
