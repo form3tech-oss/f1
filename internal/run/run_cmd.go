@@ -51,9 +51,9 @@ func Cmd(
 				"--max-duration 1s (stop after 1 second)")
 			triggerCmd.Flags().IntP(triggerflags.FlagConcurrency, "c", 100,
 				"--concurrency 2 (allow at most 2 groups of iterations to run concurrently)")
-			triggerCmd.Flags().Uint32P(triggerflags.FlagMaxIterations, "i", 0,
+			triggerCmd.Flags().Uint64P(triggerflags.FlagMaxIterations, "i", 0,
 				"--max-iterations 100 (stop after 100 iterations, regardless of remaining duration)")
-			triggerCmd.Flags().Int(triggerflags.FlagMaxFailures, 0,
+			triggerCmd.Flags().Uint64(triggerflags.FlagMaxFailures, 0,
 				"--max-failures 10 (load test will fail if more than 10 errors occurred, default is 0)")
 			triggerCmd.Flags().Int(triggerflags.FlagMaxFailuresRate, 0,
 				"--max-failures-rate 5 (load test will fail if more than 5\\% requests failed, default is 0)")
@@ -86,8 +86,8 @@ func runCmdExecute(
 		var scenarioName string
 		var duration time.Duration
 		var concurrency int
-		var maxIterations uint32
-		var maxFailures int
+		var maxIterations uint64
+		var maxFailures uint64
 		var maxFailuresRate int
 		var ignoreDropped bool
 		if t.IgnoreCommonFlags {
@@ -112,11 +112,11 @@ func runCmdExecute(
 				return fmt.Errorf("concurrency %d can't be less than 1", concurrency)
 			}
 
-			maxIterations, err = cmd.Flags().GetUint32(triggerflags.FlagMaxIterations)
+			maxIterations, err = cmd.Flags().GetUint64(triggerflags.FlagMaxIterations)
 			if err != nil {
 				return fmt.Errorf("getting flag: %w", err)
 			}
-			maxFailures, err = cmd.Flags().GetInt(triggerflags.FlagMaxFailures)
+			maxFailures, err = cmd.Flags().GetUint64(triggerflags.FlagMaxFailures)
 			if err != nil {
 				return fmt.Errorf("getting flag: %w", err)
 			}

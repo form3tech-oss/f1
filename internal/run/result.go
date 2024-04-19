@@ -23,7 +23,7 @@ type Result struct {
 	SuccessfulIterationDurations DurationPercentileMap
 	FailedIterationCount         uint64
 	FailedIterationDurations     DurationPercentileMap
-	MaxFailedIterations          int
+	MaxFailedIterations          uint64
 	MaxFailedIterationsRate      int
 	TestDuration                 time.Duration
 	IgnoreDropped                bool
@@ -146,7 +146,7 @@ func (r *Result) Failed() bool {
 	return r.Error() != nil ||
 		(!r.IgnoreDropped && r.DroppedIterationCount > 0) ||
 		(r.MaxFailedIterations == 0 && r.MaxFailedIterationsRate == 0 && r.FailedIterationCount > 0) ||
-		(r.MaxFailedIterations > 0 && r.FailedIterationCount > uint64(r.MaxFailedIterations)) ||
+		(r.MaxFailedIterations > 0 && r.FailedIterationCount > r.MaxFailedIterations) ||
 		(r.MaxFailedIterationsRate > 0 && (r.FailedIterationCount*100/r.Iterations() > uint64(r.MaxFailedIterationsRate)))
 }
 

@@ -104,8 +104,8 @@ type Run struct {
 	RateDescription string
 	notifyDropped   sync.Once
 	busyWorkers     atomic.Int32
-	iteration       atomic.Uint32
-	failures        atomic.Uint32
+	iteration       atomic.Uint64
+	failures        atomic.Uint64
 }
 
 func (r *Run) Do(ctx context.Context, s *scenarios.Scenarios) (*Result, error) {
@@ -205,7 +205,7 @@ func (r *Run) printSummary() {
 func (r *Run) run(ctx context.Context) {
 	// Build a worker group to process the iterations.
 	workers := r.Options.Concurrency
-	doWorkChannel := make(chan uint32, workers)
+	doWorkChannel := make(chan uint64, workers)
 	stopWorkers := make(chan struct{})
 
 	wg := &sync.WaitGroup{}
@@ -267,7 +267,7 @@ func (r *Run) run(ctx context.Context) {
 	}
 }
 
-func (r *Run) doWork(doWorkChannel chan<- uint32, durationElapsed *CancellableTimer) {
+func (r *Run) doWork(doWorkChannel chan<- uint64, durationElapsed *CancellableTimer) {
 	if r.busyWorkers.Load() >= int32(r.Options.Concurrency) {
 		r.activeScenario.RecordDroppedIteration()
 		r.notifyDropped.Do(func() {
@@ -342,7 +342,7 @@ func (r *Run) gatherProgressMetrics(duration time.Duration) {
 }
 
 func (r *Run) runWorker(
-	iterationInput <-chan uint32,
+	iterationInput <-chan uint64,
 	stop <-chan struct{},
 	wg *sync.WaitGroup,
 	worker string,
@@ -363,7 +363,7 @@ func (r *Run) runWorker(
 			successful := r.activeScenario.Run(
 				metrics.IterationResult,
 				IterationStage,
-				strconv.FormatUint(uint64(iteration), 10),
+				strconv.FormatUint(iteration, 10),
 				scenario.RunFn,
 			)
 			if !successful {

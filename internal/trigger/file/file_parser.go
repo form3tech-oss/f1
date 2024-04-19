@@ -28,8 +28,8 @@ type Schedule struct {
 type Limits struct {
 	MaxDuration     *time.Duration `yaml:"max-duration"`
 	Concurrency     *int           `yaml:"concurrency"`
-	MaxIterations   *uint32        `yaml:"max-iterations"`
-	MaxFailures     *int           `yaml:"max-failures"`
+	MaxIterations   *uint64        `yaml:"max-iterations"`
+	MaxFailures     *uint64        `yaml:"max-failures"`
 	MaxFailuresRate *int           `yaml:"max-failures-rate"`
 	IgnoreDropped   *bool          `yaml:"ignore-dropped"`
 }
@@ -217,7 +217,7 @@ func (c *ConfigFile) validateCommonFields() (*ConfigFile, error) {
 	}
 
 	if c.Limits.MaxFailures == nil {
-		maxFailures := 0
+		maxFailures := uint64(0)
 		c.Limits.MaxFailures = &maxFailures
 	}
 	if c.Limits.MaxFailuresRate == nil {

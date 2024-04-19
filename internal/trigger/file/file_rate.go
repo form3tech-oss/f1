@@ -20,8 +20,8 @@ type runnableStages struct {
 	stagesTotalDuration time.Duration
 	maxDuration         time.Duration
 	concurrency         int
-	maxIterations       uint32
-	maxFailures         int
+	maxIterations       uint64
+	maxFailures         uint64
 	maxFailuresRate     int
 	ignoreDropped       bool
 }

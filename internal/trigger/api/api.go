@@ -44,8 +44,8 @@ type Options struct {
 	Concurrency     int
 	Verbose         bool
 	VerboseFail     bool
-	MaxIterations   uint32
-	MaxFailures     int
+	MaxIterations   uint64
+	MaxFailures     uint64
 	MaxFailuresRate int
 	IgnoreDropped   bool
 	Scenario        string

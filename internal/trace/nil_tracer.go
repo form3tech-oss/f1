@@ -23,5 +23,5 @@ func (*NilTracer) Event(string) {
 func (*NilTracer) WorkerEvent(string, string) {
 }
 
-func (*NilTracer) IterationEvent(string, uint32) {
+func (*NilTracer) IterationEvent(string, uint64) {
 }

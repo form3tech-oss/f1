@@ -64,8 +64,8 @@ type TestParam struct {
 	iterationDuration         time.Duration
 	expectedDroppedIterations uint64
 	expectedFailure           bool
-	maxIterations             uint32
-	maxFailures               int
+	maxIterations             uint64
+	maxFailures               uint64
 	maxFailuresRate           int
 	stages                    string
 	iterationFrequency        string
