@@ -669,7 +669,7 @@ type testData struct {
 	expectedIterationDuration time.Duration
 	expectedMaxDuration       time.Duration
 	expectedIgnoreDropped     bool
-	expectedMaxIterations     uint32
+	expectedMaxIterations     uint64
 	expectedMaxFailures       int
 	expectedMaxFailuresRate   int
 	expectedConcurrency       int

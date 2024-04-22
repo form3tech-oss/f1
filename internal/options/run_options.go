@@ -7,14 +7,14 @@ import (
 )
 
 type RunOptions struct {
+	RegisterLogHookFunc logging.RegisterLogHookFunc
 	Scenario            string
 	MaxDuration         time.Duration
 	Concurrency         int
+	MaxIterations       uint64
+	MaxFailures         uint64
+	MaxFailuresRate     int
 	Verbose             bool
 	VerboseFail         bool
-	MaxIterations       uint32
-	MaxFailures         int
-	MaxFailuresRate     int
-	RegisterLogHookFunc logging.RegisterLogHookFunc
 	IgnoreDropped       bool
 }

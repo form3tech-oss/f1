@@ -6,5 +6,5 @@ type Tracer interface {
 	SentToChannel(name string)
 	Event(message string)
 	WorkerEvent(message string, worker string)
-	IterationEvent(message string, iteration uint32)
+	IterationEvent(message string, iteration uint64)
 }

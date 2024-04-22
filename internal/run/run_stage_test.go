@@ -56,8 +56,8 @@ type RunTestStage struct {
 	iterationTeardownCount atomic.Uint32
 	assert                 *assert.Assertions
 	rate                   string
-	maxIterations          uint32
-	maxFailures            int
+	maxIterations          uint64
+	maxFailures            uint64
 	maxFailuresRate        int
 	triggerType            TriggerType
 	stages                 string
@@ -138,7 +138,7 @@ func (s *RunTestStage) a_concurrency_of(concurrency int) *RunTestStage {
 	return s
 }
 
-func (s *RunTestStage) a_max_failures_of(maxFailures int) *RunTestStage {
+func (s *RunTestStage) a_max_failures_of(maxFailures uint64) *RunTestStage {
 	s.maxFailures = maxFailures
 	return s
 }
@@ -403,7 +403,7 @@ func (s *RunTestStage) the_command_finished_with_failure_of(expected bool) *RunT
 	return s
 }
 
-func (s *RunTestStage) an_iteration_limit_of(iterations uint32) *RunTestStage {
+func (s *RunTestStage) an_iteration_limit_of(iterations uint64) *RunTestStage {
 	s.maxIterations = iterations
 	return s
 }
