@@ -12,7 +12,6 @@ type MetricType int
 const (
 	SetupResult MetricType = iota
 	IterationResult
-	TeardownResult
 )
 
 const (
@@ -31,7 +30,6 @@ const (
 type Metrics struct {
 	Setup            *prometheus.SummaryVec
 	Iteration        *prometheus.SummaryVec
-	Teardown         *prometheus.SummaryVec
 	ProgressRegistry *prometheus.Registry
 	Registry         *prometheus.Registry
 	Progress         *prometheus.SummaryVec
@@ -69,13 +67,6 @@ func buildMetrics() *Metrics {
 			Help:       "Duration of iteration functions.",
 			Objectives: percentileObjectives,
 		}, []string{TestNameLabel, StageLabel, ResultLabel}),
-		Teardown: prometheus.NewSummaryVec(prometheus.SummaryOpts{
-			Namespace:  metricNamespace,
-			Subsystem:  metricSubsystem,
-			Name:       "teardown",
-			Help:       "Duration of teardown functions.",
-			Objectives: percentileObjectives,
-		}, []string{TestNameLabel, ResultLabel}),
 	}
 }
 
@@ -87,7 +78,6 @@ func NewInstance(registry, progressRegistry *prometheus.Registry) *Metrics {
 	i.Registry.MustRegister(
 		i.Setup,
 		i.Iteration,
-		i.Teardown,
 	)
 	i.ProgressRegistry.MustRegister(i.Progress)
 
@@ -109,7 +99,6 @@ func Instance() *Metrics {
 func (metrics *Metrics) Reset() {
 	metrics.Iteration.Reset()
 	metrics.Setup.Reset()
-	metrics.Teardown.Reset()
 }
 
 func (metrics *Metrics) Record(metric MetricType, name string, stage string, result ResultType, nanoseconds int64) {
@@ -119,7 +108,5 @@ func (metrics *Metrics) Record(metric MetricType, name string, stage string, res
 	case IterationResult:
 		metrics.Iteration.WithLabelValues(name, stage, result.String()).Observe(float64(nanoseconds))
 		metrics.Progress.WithLabelValues(name, stage, result.String()).Observe(float64(nanoseconds))
-	case TeardownResult:
-		metrics.Teardown.WithLabelValues(name, result.String()).Observe(float64(nanoseconds))
 	}
 }
