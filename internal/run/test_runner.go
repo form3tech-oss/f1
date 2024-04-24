@@ -279,9 +279,8 @@ func (r *Run) doWork(doWorkChannel chan<- uint64, durationElapsed *CancellableTi
 	iteration := r.iteration.Add(1)
 	if r.Options.MaxIterations > 0 && iteration > r.Options.MaxIterations {
 		r.tracer.IterationEvent("Max iterations exceeded Calling Cancel", iteration)
-		if durationElapsed.Cancel() {
-			r.printer.Println(r.result.MaxIterationsReached())
-		}
+		durationElapsed.Cancel()
+		r.printer.Println(r.result.MaxIterationsReached())
 		r.tracer.IterationEvent("Max iterations exceeded Called Cancel", iteration)
 	} else if r.Options.MaxIterations <= 0 || iteration <= r.Options.MaxIterations {
 		r.tracer.IterationEvent("Within Max iterations So calling dowork()", iteration)
