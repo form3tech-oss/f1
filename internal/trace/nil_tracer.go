@@ -20,7 +20,7 @@ func (*NilTracer) SendingToChannel(string) {
 func (*NilTracer) Event(string) {
 }
 
-func (*NilTracer) WorkerEvent(string, string) {
+func (*NilTracer) WorkerEvent(string, int) {
 }
 
 func (*NilTracer) IterationEvent(string, uint64) {
