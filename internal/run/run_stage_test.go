@@ -40,6 +40,7 @@ import (
 const (
 	fakePrometheusNamespace = "test-namespace"
 	fakePrometheusID        = "test-run-name"
+	iterationMetricFamily   = "form3_loadtest_iteration"
 )
 
 type RunTestStage struct {
@@ -245,8 +246,8 @@ func (s *RunTestStage) the_number_of_started_iterations_should_be(expected uint3
 }
 
 func (s *RunTestStage) the_command_should_fail() *RunTestStage {
-	s.assert.NotNil(s.runResult)
-	s.assert.True(s.runResult.Failed())
+	s.assert.NotNil(s.runResult, "run result is nil")
+	s.assert.True(s.runResult.Failed(), "command did not fail")
 	return s
 }
 
@@ -286,7 +287,7 @@ func (s *RunTestStage) a_test_scenario_that_always_fails_an_assertion() *RunTest
 		return func(iterationT *f1_testing.T) {
 			iterationT.Cleanup(s.iterationCleanup)
 
-			assert.Equal(iterationT, 3, 1+1)
+			assert.True(iterationT, false)
 		}
 	})
 	return s
@@ -322,12 +323,12 @@ func (s *RunTestStage) a_scenario_where_each_iteration_takes(duration time.Durat
 }
 
 func (s *RunTestStage) setup_teardown_is_called() *RunTestStage {
-	s.assert.Equal(uint32(1), s.setupTeardownCount.Load())
+	s.assert.Equal(1, int(s.setupTeardownCount.Load()), "setup teardown was not called")
 	return s
 }
 
 func (s *RunTestStage) iteration_teardown_is_called_n_times(n uint32) *RunTestStage {
-	s.assert.Equal(n, s.iterationTeardownCount.Load())
+	s.assert.Equal(int(n), int(s.iterationTeardownCount.Load()), "iteration teardown was not called expected times")
 	return s
 }
 
@@ -348,17 +349,17 @@ func (s *RunTestStage) a_test_scenario_that_fails_intermittently() *RunTestStage
 }
 
 func (s *RunTestStage) the_results_should_show_n_failures(expectedFailures uint64) *RunTestStage {
-	s.assert.Equal(expectedFailures, s.runResult.FailedIterationCount)
+	s.assert.Equal(int(expectedFailures), int(s.runResult.FailedIterationCount), "failure count does not match expected")
 	return s
 }
 
 func (s *RunTestStage) the_results_should_show_n_successful_iterations(expected uint64) *RunTestStage {
-	s.assert.Equal(expected, s.runResult.SuccessfulIterationCount)
+	s.assert.Equal(int(expected), int(s.runResult.SuccessfulIterationCount), "success count does not match expected")
 	return s
 }
 
 func (s *RunTestStage) the_number_of_dropped_iterations_should_be(expected uint64) *RunTestStage {
-	s.assert.Equal(int(expected), int(s.runResult.DroppedIterationCount))
+	s.assert.Equal(int(expected), int(s.runResult.DroppedIterationCount), "dropped count does not match expected")
 	return s
 }
 
@@ -393,7 +394,7 @@ func (s *RunTestStage) there_should_be_x_requests_sent_over_y_intervals_of_z_ms(
 func (s *RunTestStage) the_requests_are_not_sent_all_at_once() *RunTestStage {
 	distributionMap := s.distribution_duration_map_of_requests()
 
-	s.assert.Greater(len(distributionMap), 1)
+	s.assert.Greater(len(distributionMap), 1, "unexpected distribution: %v", distributionMap)
 
 	return s
 }
@@ -511,7 +512,7 @@ func (s *RunTestStage) a_distribution_type(distributionType string) *RunTestStag
 }
 
 func (s *RunTestStage) metrics_are_pushed_to_prometheus() *RunTestStage {
-	s.assert.False(s.metricData.Empty())
+	s.assert.False(s.metricData.Empty(), "metric data is empty")
 	return s
 }
 
@@ -563,10 +564,10 @@ func (s *RunTestStage) there_is_a_metric_called(metricName string) *RunTestStage
 
 func (s *RunTestStage) the_iteration_metric_has_n_results(n int, result string) *RunTestStage {
 	err := retry.Do(func() error {
-		metricFamily := s.metricData.GetMetricFamily("form3_loadtest_iteration")
-		s.require.NotNil(metricFamily)
+		metricFamily := s.metricData.GetMetricFamily(iterationMetricFamily)
+		s.require.NotNil(metricFamily, "metric family %s not found", iterationMetricFamily)
 		resultMetric := getMetricByResult(metricFamily, result)
-		s.require.NotNil(resultMetric)
+		s.require.NotNil(resultMetric, "result metric %s is empty", result)
 		if uint64(n) == resultMetric.GetSummary().GetSampleCount() {
 			return nil
 		}
