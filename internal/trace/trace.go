@@ -5,6 +5,6 @@ type Tracer interface {
 	SendingToChannel(name string)
 	SentToChannel(name string)
 	Event(message string)
-	WorkerEvent(message string, worker string)
+	WorkerEvent(message string, worker int)
 	IterationEvent(message string, iteration uint64)
 }

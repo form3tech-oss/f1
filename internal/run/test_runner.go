@@ -216,7 +216,7 @@ func (r *Run) run(ctx context.Context) {
 
 	wg.Add(workers)
 	for i := range workers {
-		go r.runWorker(doWorkChannel, stopWorkers, wg, strconv.Itoa(i), workDone)
+		go r.runWorker(doWorkChannel, stopWorkers, wg, i, workDone)
 	}
 
 	// if the trigger has a limited duration, restrict the run to that duration.
@@ -344,7 +344,7 @@ func (r *Run) runWorker(
 	iterationInput <-chan uint64,
 	stop <-chan struct{},
 	wg *sync.WaitGroup,
-	worker string,
+	worker int,
 	workDone chan<- bool,
 ) {
 	defer wg.Done()

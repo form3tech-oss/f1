@@ -45,8 +45,8 @@ func (t *ConsoleTracer) IterationEvent(message string, iteration uint64) {
 	t.event(message + fmt.Sprintf(" (iteration: %d)", iteration))
 }
 
-func (t *ConsoleTracer) WorkerEvent(message string, worker string) {
-	t.event(message + fmt.Sprintf(" (worker: %s)", worker))
+func (t *ConsoleTracer) WorkerEvent(message string, worker int) {
+	t.event(message + fmt.Sprintf(" (worker: %d)", worker))
 }
 
 func (t *ConsoleTracer) event(message string) {
