@@ -3,7 +3,7 @@ module github.com/form3tech-oss/f1/v2
 go 1.22.0
 
 require (
-	github.com/avast/retry-go/v4 v4.5.1
+	github.com/avast/retry-go/v4 v4.6.0
 	github.com/evalphobia/logrus_fluent v0.5.4
 	github.com/guptarohit/asciigraph v0.7.1
 	github.com/prometheus/client_golang v1.19.0
