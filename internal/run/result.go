@@ -35,15 +35,12 @@ type Result struct {
 
 func (r *Result) SetMetrics(
 	result metrics.ResultType,
-	stage string,
 	count uint64,
 	quantiles []*io_prometheus_client.Quantile,
 ) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	if stage != IterationStage {
-		return
-	}
+
 	r.RecentDuration = 1 * time.Second
 	switch result {
 	case metrics.SucessResult:
@@ -72,15 +69,11 @@ func (r *Result) ClearProgressMetrics() {
 func (r *Result) IncrementMetrics(
 	duration time.Duration,
 	result metrics.ResultType,
-	stage string,
 	count uint64,
 	quantiles []*io_prometheus_client.Quantile,
 ) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	if stage != IterationStage {
-		return
-	}
 	r.RecentDuration = duration
 	switch result {
 	case metrics.SucessResult:

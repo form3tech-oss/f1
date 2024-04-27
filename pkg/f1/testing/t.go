@@ -166,8 +166,7 @@ func (t *T) teardown() {
 }
 
 func recordTime(t *T, stageName string, start time.Time) {
-	metrics.Instance().Record(
-		metrics.IterationResult,
+	metrics.Instance().RecordIterationStage(
 		t.Scenario,
 		stageName,
 		metrics.Result(t.Failed()),

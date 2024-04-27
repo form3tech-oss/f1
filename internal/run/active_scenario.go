@@ -34,12 +34,12 @@ func NewActiveScenario(scenario *scenarios.Scenario, metricsInstance *metrics.Me
 
 	// wait for completion
 	<-done
-	s.m.Record(metrics.SetupResult, scenario.Name, "setup", metrics.Result(t.Failed()), time.Since(start).Nanoseconds())
+	s.m.RecordSetupResult(scenario.Name, metrics.Result(t.Failed()), time.Since(start).Nanoseconds())
 	return s
 }
 
 // Run performs a single iteration of the test. It returns `true` if the test was successful, `false` otherwise.
-func (s *ActiveScenario) Run(metric metrics.MetricType, stage, iter string, f func(t *testing.T)) bool {
+func (s *ActiveScenario) Run(iter string, f func(t *testing.T)) bool {
 	t, teardown := testing.NewT(iter, s.scenario.Name)
 	defer teardown()
 
@@ -52,10 +52,10 @@ func (s *ActiveScenario) Run(metric metrics.MetricType, stage, iter string, f fu
 
 	// wait for completion
 	<-done
-	s.m.Record(metric, s.scenario.Name, stage, metrics.Result(t.Failed()), time.Since(start).Nanoseconds())
+	s.m.RecordIterationResult(s.scenario.Name, metrics.Result(t.Failed()), time.Since(start).Nanoseconds())
 	return !t.Failed()
 }
 
 func (s *ActiveScenario) RecordDroppedIteration() {
-	s.m.Record(metrics.IterationResult, s.scenario.Name, IterationStage, metrics.DroppedResult, 0)
+	s.m.RecordIterationResult(s.scenario.Name, metrics.DroppedResult, 0)
 }
