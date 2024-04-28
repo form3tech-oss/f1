@@ -8,6 +8,20 @@ import (
 	"github.com/form3tech-oss/f1/v2/pkg/f1/testing"
 )
 
+type iterationState struct {
+	teardown func()
+	t        *testing.T
+	done     chan struct{}
+}
+
+func newIterationState(scenario string) *iterationState {
+	state := &iterationState{}
+	state.t, state.teardown = testing.NewT("", scenario)
+	state.done = make(chan struct{}, 1)
+
+	return state
+}
+
 type ActiveScenario struct {
 	scenario *scenarios.Scenario
 	m        *metrics.Metrics
@@ -26,7 +40,7 @@ func NewActiveScenario(scenario *scenarios.Scenario, metricsInstance *metrics.Me
 	}
 
 	start := time.Now()
-	done := make(chan struct{})
+	done := make(chan struct{}, 1)
 	go func() {
 		defer testing.CheckResults(t, done)
 		s.scenario.RunFn = s.scenario.ScenarioFn(t)
@@ -39,21 +53,21 @@ func NewActiveScenario(scenario *scenarios.Scenario, metricsInstance *metrics.Me
 }
 
 // Run performs a single iteration of the test. It returns `true` if the test was successful, `false` otherwise.
-func (s *ActiveScenario) Run(iter string, f func(t *testing.T)) bool {
-	t, teardown := testing.NewT(iter, s.scenario.Name)
-	defer teardown()
+func (s *ActiveScenario) Run(state *iterationState) bool {
+	defer state.teardown()
 
 	start := time.Now()
-	done := make(chan struct{})
 	go func() {
-		defer testing.CheckResults(t, done)
-		f(t)
+		defer testing.CheckResults(state.t, state.done)
+		s.scenario.RunFn(state.t)
 	}()
 
 	// wait for completion
-	<-done
-	s.m.RecordIterationResult(s.scenario.Name, metrics.Result(t.Failed()), time.Since(start).Nanoseconds())
-	return !t.Failed()
+	<-state.done
+
+	failed := state.t.Failed()
+	s.m.RecordIterationResult(s.scenario.Name, metrics.Result(failed), time.Since(start).Nanoseconds())
+	return !failed
 }
 
 func (s *ActiveScenario) RecordDroppedIteration() {
