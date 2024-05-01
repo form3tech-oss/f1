@@ -7,13 +7,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-type MetricType int
-
-const (
-	SetupResult MetricType = iota
-	IterationResult
-)
-
 const (
 	metricNamespace = "form3"
 	metricSubsystem = "loadtest"
@@ -26,6 +19,8 @@ const (
 	StageLabel    = "stage"
 	ResultLabel   = "result"
 )
+
+const IterationStage = "iteration"
 
 type Metrics struct {
 	Setup            *prometheus.SummaryVec
@@ -45,6 +40,10 @@ func buildMetrics() *Metrics {
 	percentileObjectives := map[float64]float64{
 		0.5: 0.05, 0.75: 0.05, 0.9: 0.01, 0.95: 0.001, 0.99: 0.001, 0.9999: 0.00001, 1.0: 0.00001,
 	}
+	progressPercentileObjectives := map[float64]float64{
+		0.5: 0.05, 0.95: 0.001, 1.0: 0.00001,
+	}
+
 	return &Metrics{
 		Setup: prometheus.NewSummaryVec(prometheus.SummaryOpts{
 			Namespace:  metricNamespace,
@@ -65,8 +64,8 @@ func buildMetrics() *Metrics {
 			Subsystem:  metricSubsystem,
 			Name:       "iteration",
 			Help:       "Duration of iteration functions.",
-			Objectives: percentileObjectives,
-		}, []string{TestNameLabel, StageLabel, ResultLabel}),
+			Objectives: progressPercentileObjectives,
+		}, []string{ResultLabel}),
 	}
 }
 
@@ -101,12 +100,15 @@ func (metrics *Metrics) Reset() {
 	metrics.Setup.Reset()
 }
 
-func (metrics *Metrics) Record(metric MetricType, name string, stage string, result ResultType, nanoseconds int64) {
-	switch metric {
-	case SetupResult:
-		metrics.Setup.WithLabelValues(name, result.String()).Observe(float64(nanoseconds))
-	case IterationResult:
-		metrics.Iteration.WithLabelValues(name, stage, result.String()).Observe(float64(nanoseconds))
-		metrics.Progress.WithLabelValues(name, stage, result.String()).Observe(float64(nanoseconds))
-	}
+func (metrics *Metrics) RecordSetupResult(name string, result ResultType, nanoseconds int64) {
+	metrics.Setup.WithLabelValues(name, result.String()).Observe(float64(nanoseconds))
+}
+
+func (metrics *Metrics) RecordIterationResult(name string, result ResultType, nanoseconds int64) {
+	metrics.Iteration.WithLabelValues(name, IterationStage, result.String()).Observe(float64(nanoseconds))
+	metrics.Progress.WithLabelValues(result.String()).Observe(float64(nanoseconds))
+}
+
+func (metrics *Metrics) RecordIterationStage(name string, stage string, result ResultType, nanoseconds int64) {
+	metrics.Iteration.WithLabelValues(name, stage, result.String()).Observe(float64(nanoseconds))
 }

@@ -30,7 +30,6 @@ import (
 
 const (
 	NextIterationWindow = 10 * time.Millisecond
-	IterationStage      = "iteration"
 
 	metricsRefreshInterval = 5 * time.Second
 )
@@ -297,7 +296,7 @@ func (r *Run) gatherMetrics() {
 		if metric.GetName() == metrics.IterationMetricName {
 			for _, m := range metric.GetMetric() {
 				result := metrics.UnknownResult
-				stage := IterationStage
+				stage := metrics.IterationStage
 				for _, label := range m.GetLabel() {
 					if label.GetName() == metrics.ResultLabel {
 						result = metrics.ResultTypeFromString(label.GetValue())
@@ -306,7 +305,10 @@ func (r *Run) gatherMetrics() {
 						stage = label.GetValue()
 					}
 				}
-				r.result.SetMetrics(result, stage, m.GetSummary().GetSampleCount(), m.GetSummary().GetQuantile())
+
+				if stage == metrics.IterationStage {
+					r.result.SetMetrics(result, m.GetSummary().GetSampleCount(), m.GetSummary().GetQuantile())
+				}
 			}
 		}
 	}
@@ -320,22 +322,17 @@ func (r *Run) gatherProgressMetrics(duration time.Duration) {
 	r.metrics.Progress.Reset()
 	r.result.ClearProgressMetrics()
 	for _, metric := range m {
-		if metric.GetName() == metrics.IterationMetricName {
-			for _, m := range metric.GetMetric() {
-				result := metrics.UnknownResult
-				stage := IterationStage
-				for _, label := range m.GetLabel() {
-					if label.GetName() == metrics.ResultLabel {
-						result = metrics.ResultTypeFromString(label.GetValue())
-					}
-					if label.GetName() == metrics.StageLabel {
-						stage = label.GetValue()
-					}
+		for _, m := range metric.GetMetric() {
+			result := metrics.UnknownResult
+			for _, label := range m.GetLabel() {
+				if label.GetName() == metrics.ResultLabel {
+					result = metrics.ResultTypeFromString(label.GetValue())
 				}
-				r.result.IncrementMetrics(
-					duration, result, stage, m.GetSummary().GetSampleCount(), m.GetSummary().GetQuantile(),
-				)
 			}
+
+			r.result.IncrementMetrics(
+				duration, result, m.GetSummary().GetSampleCount(), m.GetSummary().GetQuantile(),
+			)
 		}
 	}
 }
@@ -359,12 +356,7 @@ func (r *Run) runWorker(
 			r.busyWorkers.Add(1)
 
 			scenario := r.activeScenario.scenario
-			successful := r.activeScenario.Run(
-				metrics.IterationResult,
-				IterationStage,
-				strconv.FormatUint(iteration, 10),
-				scenario.RunFn,
-			)
+			successful := r.activeScenario.Run(strconv.FormatUint(iteration, 10), scenario.RunFn)
 			if !successful {
 				r.failures.Add(1)
 			}
