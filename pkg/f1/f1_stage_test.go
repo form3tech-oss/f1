@@ -83,9 +83,9 @@ func (s *f1Stage) the_f1_scenario_is_executed_with_constant_rate_and_args(args .
 	return s
 }
 
-func (s *f1Stage) an_uknown_f1_scenario_is_executed() *f1Stage {
+func (s *f1Stage) an_unknown_f1_scenario_is_executed() *f1Stage {
 	s.executeErr = s.f1.ExecuteWithArgs([]string{
-		"run", "constant", "uknownScenario",
+		"run", "constant", "unknownScenario",
 	})
 
 	return s

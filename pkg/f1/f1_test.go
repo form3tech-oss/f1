@@ -40,8 +40,8 @@ func TestMissingScenario(t *testing.T) {
 	_, when, then := newF1Stage(t)
 
 	when.
-		an_uknown_f1_scenario_is_executed()
+		an_unknown_f1_scenario_is_executed()
 
 	then.
-		the_execute_command_returns_an_error("scenario not defined: uknownScenario")
+		the_execute_command_returns_an_error("scenario not defined: unknownScenario")
 }
