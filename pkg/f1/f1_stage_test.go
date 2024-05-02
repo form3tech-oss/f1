@@ -24,6 +24,8 @@ type f1Stage struct {
 	errCh    chan error
 	scenario string
 	runCount atomic.Uint32
+
+	executeErr error
 }
 
 func newF1Stage(t *testing.T) (*f1Stage, *f1Stage, *f1Stage) {
@@ -77,6 +79,20 @@ func (s *f1Stage) the_f1_scenario_is_executed_with_constant_rate_and_args(args .
 		"run", "constant", s.scenario,
 	}, args...))
 	s.require.NoError(err, "error executing scenarios")
+
+	return s
+}
+
+func (s *f1Stage) an_uknown_f1_scenario_is_executed() *f1Stage {
+	s.executeErr = s.f1.ExecuteWithArgs([]string{
+		"run", "constant", "uknownScenario",
+	})
+
+	return s
+}
+
+func (s *f1Stage) the_execute_command_returns_an_error(message string) *f1Stage {
+	s.require.ErrorContains(s.executeErr, message)
 
 	return s
 }
