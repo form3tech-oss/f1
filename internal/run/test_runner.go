@@ -207,15 +207,19 @@ func (r *Run) run(ctx context.Context) {
 	doWorkChannel := make(chan uint64, workers)
 	stopWorkers := make(chan struct{})
 
-	wg := &sync.WaitGroup{}
-	defer wg.Wait()
-
 	r.busyWorkers.Store(0)
 	workDone := make(chan bool, workers)
 
+	iterationStatePool := make([]*iterationState, workers)
+	for i := range workers {
+		iterationStatePool[i] = newIterationState(r.Options.Scenario)
+	}
+
+	wg := &sync.WaitGroup{}
+	defer wg.Wait()
 	wg.Add(workers)
 	for i := range workers {
-		go r.runWorker(doWorkChannel, stopWorkers, wg, i, workDone)
+		go r.runWorker(doWorkChannel, stopWorkers, wg, i, workDone, iterationStatePool[i])
 	}
 
 	// if the trigger has a limited duration, restrict the run to that duration.
@@ -343,6 +347,7 @@ func (r *Run) runWorker(
 	wg *sync.WaitGroup,
 	worker int,
 	workDone chan<- bool,
+	iterationState *iterationState,
 ) {
 	defer wg.Done()
 	r.tracer.WorkerEvent("Started worker", worker)
@@ -355,8 +360,8 @@ func (r *Run) runWorker(
 			r.tracer.IterationEvent("Received work from Channel 'doWork'", iteration)
 			r.busyWorkers.Add(1)
 
-			scenario := r.activeScenario.scenario
-			successful := r.activeScenario.Run(strconv.FormatUint(iteration, 10), scenario.RunFn)
+			iterationState.t.Reset(strconv.FormatUint(iteration, 10))
+			successful := r.activeScenario.Run(iterationState)
 			if !successful {
 				r.failures.Add(1)
 			}

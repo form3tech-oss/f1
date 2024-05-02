@@ -20,7 +20,7 @@ import (
 type T struct {
 	logger         *logrus.Logger // logger with user and iteration tags
 	require        *require.Assertions
-	Iteration      string // "iteration " + iteration number or "setup"
+	Iteration      string // iteration number or "setup"
 	Scenario       string
 	teardownStack  []func()
 	failed         atomic.Bool
@@ -37,6 +37,14 @@ func NewT(iter, scenarioName string) (*T, func()) {
 	}
 	t.require = require.New(t)
 	return t, t.teardown
+}
+
+func (t *T) Reset(iter string) {
+	t.Iteration = iter
+	t.failed.Store(false)
+	t.teardownFailed.Store(false)
+	t.tearingDown = false
+	t.teardownStack = []func(){}
 }
 
 func (t *T) Logger() *logrus.Logger {
@@ -149,14 +157,14 @@ func CheckResults(t *T, done chan<- struct{}) {
 			t.Errorf("panic in '%s' scenario on %s: %v", t.Scenario, t.Iteration, r)
 		}
 	}
-	close(done)
+	done <- struct{}{}
 }
 
 func (t *T) teardown() {
 	t.tearingDown = true
 
 	for i := len(t.teardownStack) - 1; i >= 0; i-- {
-		done := make(chan struct{})
+		done := make(chan struct{}, 1)
 		go func() {
 			defer CheckResults(t, done)
 			t.teardownStack[i]()
