@@ -118,7 +118,11 @@ func (r *Run) Do(ctx context.Context, s *scenarios.Scenarios) (*Result, error) {
 
 	r.metrics.Reset()
 
-	r.activeScenario = NewActiveScenario(s.GetScenario(r.Options.Scenario), r.metrics)
+	scenario := s.GetScenario(r.Options.Scenario)
+	if scenario == nil {
+		return nil, fmt.Errorf("scenario not defined: %s", r.Options.Scenario)
+	}
+	r.activeScenario = NewActiveScenario(scenario, r.metrics)
 	r.pushMetrics(ctx)
 
 	// run teardown even if the context is cancelled
