@@ -3,7 +3,7 @@ package templates
 import (
 	"time"
 
-	"github.com/form3tech-oss/f1/v2/internal/metrics"
+	"github.com/form3tech-oss/f1/v2/internal/progress"
 )
 
 //nolint:lll // templates read better with long lines
@@ -18,10 +18,10 @@ const resultTemplate = `
 {{- end}}
 {{.IterationsStarted}} iterations started in {{duration .Duration}} ({{rate .Duration .IterationsStarted}}/second)
 {{- if .SuccessfulIterationCount}}
-{bold}Successful Iterations:{-} {green}{{.SuccessfulIterationCount}} ({{percent .SuccessfulIterationCount .Iterations | printf "%0.2f"}}%, {{rate .Duration .SuccessfulIterationCount}}/second){-} {{.SuccessfulIterationDurations.String}}
+{bold}Successful Iterations:{-} {green}{{.SuccessfulIterationCount}} ({{percent .SuccessfulIterationCount .Iterations | printf "%0.2f"}}%, {{rate .Duration .SuccessfulIterationCount}}/second){-} {{.SuccessfulIterationDurations}}
 {{- end}}
 {{- if .FailedIterationCount}}
-{bold}Failed Iterations:{-} {red}{{.FailedIterationCount}} ({{percent .FailedIterationCount .Iterations | printf "%0.2f"}}%, {{rate .Duration .FailedIterationCount}}){-} {{.FailedIterationDurations.String}}
+{bold}Failed Iterations:{-} {red}{{.FailedIterationCount}} ({{percent .FailedIterationCount .Iterations | printf "%0.2f"}}%, {{rate .Duration .FailedIterationCount}}){-} {{.FailedIterationDurations}}
 {{- end}}
 {{- if .DroppedIterationCount}}
 {bold}Dropped Iterations:{-} {yellow}{{.DroppedIterationCount}} ({{percent .DroppedIterationCount .Iterations | printf "%0.2f"}}%, {{rate .Duration .DroppedIterationCount}}){-} (consider increasing --concurrency setting)
@@ -30,10 +30,10 @@ const resultTemplate = `
 `
 
 type ResultData struct {
-	SuccessfulIterationDurations metrics.DurationPercentileMap
-	FailedIterationDurations     metrics.DurationPercentileMap
 	Error                        error
 	LogFile                      string
+	SuccessfulIterationDurations progress.IterationDurationsSnapshot
+	FailedIterationDurations     progress.IterationDurationsSnapshot
 	IterationsStarted            uint64
 	Duration                     time.Duration
 	SuccessfulIterationCount     uint64

@@ -7,94 +7,54 @@ import (
 	"sync"
 	"time"
 
-	io_prometheus_client "github.com/prometheus/client_model/go"
-
-	"github.com/form3tech-oss/f1/v2/internal/metrics"
 	"github.com/form3tech-oss/f1/v2/internal/options"
+	"github.com/form3tech-oss/f1/v2/internal/progress"
 	"github.com/form3tech-oss/f1/v2/internal/run/templates"
 )
 
 type Result struct {
-	startTime                    time.Time
-	failedIterationDurations     metrics.DurationPercentileMap
-	templates                    *templates.Templates
-	successfulIterationDurations metrics.DurationPercentileMap
-	LogFile                      string
-	errors                       []error
-	runOptions                   options.RunOptions
-	FailedIterationCount         uint64
-	DroppedIterationCount        uint64
-	recentSuccessfulIterations   uint64
-	recentDuration               time.Duration
-	SuccessfulIterationCount     uint64
-	TestDuration                 time.Duration
-	mu                           sync.RWMutex
+	startTime     time.Time
+	progressStats *progress.Stats
+	templates     *templates.Templates
+	LogFile       string
+	errors        []error
+	runOptions    options.RunOptions
+	snapshot      progress.Snapshot
+	TestDuration  time.Duration
+	mu            sync.RWMutex
 }
 
-func NewResult(runOptions options.RunOptions, templates *templates.Templates) Result {
+func NewResult(
+	runOptions options.RunOptions,
+	templates *templates.Templates,
+	progressStats *progress.Stats,
+) Result {
 	return Result{
-		runOptions: runOptions,
-		templates:  templates,
+		runOptions:    runOptions,
+		templates:     templates,
+		progressStats: progressStats,
 	}
 }
 
-func (r *Result) SetMetrics(
-	result metrics.ResultType,
-	count uint64,
-	quantiles []*io_prometheus_client.Quantile,
-) {
+func (r *Result) SnapshotProgress(period time.Duration) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	r.recentDuration = 1 * time.Second
-	switch result {
-	case metrics.SucessResult:
-		r.recentSuccessfulIterations = count - r.SuccessfulIterationCount
-		r.SuccessfulIterationCount = count
-		r.successfulIterationDurations = parseQuantiles(quantiles)
-		return
-	case metrics.FailedResult:
-		r.FailedIterationCount = count
-		r.failedIterationDurations = parseQuantiles(quantiles)
-		return
-	case metrics.DroppedResult:
-		r.DroppedIterationCount = count
-		return
-	case metrics.UnknownResult:
-	}
+	r.snapshot = r.progressStats.Snapshot(period)
 }
 
-func (r *Result) ClearProgressMetrics() {
+func (r *Result) GetTotals() {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	r.recentSuccessfulIterations = 0
-	r.successfulIterationDurations = map[float64]time.Duration{}
+
+	r.snapshot = r.progressStats.Total()
 }
 
-func (r *Result) IncrementMetrics(
-	duration time.Duration,
-	result metrics.ResultType,
-	count uint64,
-	quantiles []*io_prometheus_client.Quantile,
-) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	r.recentDuration = duration
-	switch result {
-	case metrics.SucessResult:
-		r.recentSuccessfulIterations = count
-		r.SuccessfulIterationCount += count
-		r.successfulIterationDurations = parseQuantiles(quantiles)
-		return
-	case metrics.FailedResult:
-		r.FailedIterationCount += count
-		r.failedIterationDurations = parseQuantiles(quantiles)
-		return
-	case metrics.DroppedResult:
-		r.DroppedIterationCount += count
-		return
-	case metrics.UnknownResult:
-	}
+func (r *Result) Snapshot() progress.Snapshot {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	return r.snapshot
 }
 
 func (r *Result) AddError(err error) *Result {
@@ -125,30 +85,22 @@ func (r *Result) Error() error {
 	return errors.New(strings.Join(errorStrings, "; "))
 }
 
-func parseQuantiles(quantiles []*io_prometheus_client.Quantile) metrics.DurationPercentileMap {
-	m := make(metrics.DurationPercentileMap)
-	for _, quantile := range quantiles {
-		m[quantile.GetQuantile()] = time.Duration(quantile.GetQuantile())
-	}
-	return m
-}
-
 func (r *Result) String() string {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
 	return r.templates.Result(templates.ResultData{
-		SuccessfulIterationCount:     r.SuccessfulIterationCount,
-		DroppedIterationCount:        r.DroppedIterationCount,
-		FailedIterationCount:         r.FailedIterationCount,
-		SuccessfulIterationDurations: r.successfulIterationDurations,
+		SuccessfulIterationCount:     r.snapshot.SuccessfulIterationDurations.Count,
+		DroppedIterationCount:        r.snapshot.DroppedIterationCount,
+		FailedIterationCount:         r.snapshot.FailedIterationDurations.Count,
+		SuccessfulIterationDurations: r.snapshot.SuccessfulIterationDurations,
 		Duration:                     r.duration(),
-		FailedIterationDurations:     r.failedIterationDurations,
+		FailedIterationDurations:     r.snapshot.FailedIterationDurations,
 		Error:                        r.Error(),
 		Failed:                       r.Failed(),
 		LogFile:                      r.LogFile,
-		Iterations:                   r.iterations(),
-		IterationsStarted:            r.iterationsStarted(),
+		Iterations:                   r.snapshot.Iterations(),
+		IterationsStarted:            r.snapshot.IterationsStarted(),
 	})
 }
 
@@ -159,10 +111,10 @@ func (r *Result) Failed() bool {
 	opts := r.runOptions
 
 	return r.Error() != nil ||
-		(!opts.IgnoreDropped && r.DroppedIterationCount > 0) ||
-		(opts.MaxFailures == 0 && opts.MaxFailuresRate == 0 && r.FailedIterationCount > 0) ||
-		(opts.MaxFailures > 0 && r.FailedIterationCount > opts.MaxFailures) ||
-		(opts.MaxFailuresRate > 0 && (r.FailedIterationCount*100/r.iterations() > uint64(opts.MaxFailuresRate)))
+		(!opts.IgnoreDropped && r.snapshot.DroppedIterationCount > 0) ||
+		(opts.MaxFailures == 0 && opts.MaxFailuresRate == 0 && r.snapshot.FailedIterationDurations.Count > 0) ||
+		(opts.MaxFailures > 0 && r.snapshot.FailedIterationDurations.Count > opts.MaxFailures) ||
+		(opts.MaxFailuresRate > 0 && (r.snapshot.FailedIterationsRate() > uint64(opts.MaxFailuresRate)))
 }
 
 func (r *Result) Progress() string {
@@ -170,13 +122,12 @@ func (r *Result) Progress() string {
 	defer r.mu.RUnlock()
 
 	return r.templates.Progress(templates.ProgressData{
-		SuccessfulIterationDurations: r.successfulIterationDurations,
-		Duration:                     r.duration(),
-		RecentSuccessfulIterations:   r.recentSuccessfulIterations,
-		RecentDuration:               r.recentDuration,
-		FailedIterationCount:         r.FailedIterationCount,
-		DroppedIterationCount:        r.DroppedIterationCount,
-		SuccessfulIterationCount:     r.SuccessfulIterationCount,
+		Duration:                              r.duration(),
+		SuccessfulIterationDurationsForPeriod: r.snapshot.SuccessfulIterationDurationsForPeriod,
+		Period:                                r.snapshot.Period,
+		FailedIterationCount:                  r.snapshot.FailedIterationDurations.Count,
+		DroppedIterationCount:                 r.snapshot.DroppedIterationCount,
+		SuccessfulIterationCount:              r.snapshot.SuccessfulIterationDurations.Count,
 	})
 }
 
@@ -225,6 +176,7 @@ func (r *Result) RecordStarted() {
 func (r *Result) RecordTestFinished() {
 	r.mu.Lock()
 	defer r.mu.Unlock()
+
 	r.TestDuration = time.Since(r.startTime)
 }
 
@@ -235,14 +187,6 @@ func (r *Result) MaxIterationsReached() string {
 	return r.templates.MaxIterationsReached(templates.MaxIterationsReachedData{
 		Duration: r.duration(),
 	})
-}
-
-func (r *Result) iterations() uint64 {
-	return r.FailedIterationCount + r.SuccessfulIterationCount + r.DroppedIterationCount
-}
-
-func (r *Result) iterationsStarted() uint64 {
-	return r.FailedIterationCount + r.SuccessfulIterationCount
 }
 
 func (r *Result) duration() time.Duration {

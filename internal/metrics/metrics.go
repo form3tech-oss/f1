@@ -23,11 +23,10 @@ const (
 const IterationStage = "iteration"
 
 type Metrics struct {
-	Setup            *prometheus.SummaryVec
-	Iteration        *prometheus.SummaryVec
-	ProgressRegistry *prometheus.Registry
-	Registry         *prometheus.Registry
-	Progress         *prometheus.SummaryVec
+	Setup                   *prometheus.SummaryVec
+	Iteration               *prometheus.SummaryVec
+	Registry                *prometheus.Registry
+	IterationMetricsEnabled bool
 }
 
 //nolint:gochecknoglobals // removing the global Instance is a breaking change
@@ -39,9 +38,6 @@ var (
 func buildMetrics() *Metrics {
 	percentileObjectives := map[float64]float64{
 		0.5: 0.05, 0.75: 0.05, 0.9: 0.01, 0.95: 0.001, 0.99: 0.001, 0.9999: 0.00001, 1.0: 0.00001,
-	}
-	progressPercentileObjectives := map[float64]float64{
-		0.5: 0.05, 0.95: 0.001, 1.0: 0.00001,
 	}
 
 	return &Metrics{
@@ -59,39 +55,34 @@ func buildMetrics() *Metrics {
 			Help:       "Duration of iteration functions.",
 			Objectives: percentileObjectives,
 		}, []string{TestNameLabel, StageLabel, ResultLabel}),
-		Progress: prometheus.NewSummaryVec(prometheus.SummaryOpts{
-			Namespace:  metricNamespace,
-			Subsystem:  metricSubsystem,
-			Name:       "iteration",
-			Help:       "Duration of iteration functions.",
-			Objectives: progressPercentileObjectives,
-		}, []string{ResultLabel}),
 	}
 }
 
-func NewInstance(registry, progressRegistry *prometheus.Registry) *Metrics {
+func NewInstance(registry *prometheus.Registry, iterationMetricsEnabled bool) *Metrics {
 	i := buildMetrics()
 	i.Registry = registry
-	i.ProgressRegistry = progressRegistry
 
 	i.Registry.MustRegister(
 		i.Setup,
 		i.Iteration,
 	)
-	i.ProgressRegistry.MustRegister(i.Progress)
+	i.IterationMetricsEnabled = iterationMetricsEnabled
 
 	return i
 }
 
-func Instance() *Metrics {
+func Init(iterationMetricsEnabled bool) {
 	once.Do(func() {
 		defaultRegistry, ok := prometheus.DefaultRegisterer.(*prometheus.Registry)
 		if !ok {
 			panic(errors.New("casting prometheus.DefaultRegisterer to Registry"))
 		}
-
-		m = NewInstance(defaultRegistry, prometheus.NewRegistry())
+		m = NewInstance(defaultRegistry, iterationMetricsEnabled)
 	})
+	m.IterationMetricsEnabled = iterationMetricsEnabled
+}
+
+func Instance() *Metrics {
 	return m
 }
 
@@ -105,10 +96,17 @@ func (metrics *Metrics) RecordSetupResult(name string, result ResultType, nanose
 }
 
 func (metrics *Metrics) RecordIterationResult(name string, result ResultType, nanoseconds int64) {
+	if !metrics.IterationMetricsEnabled {
+		return
+	}
+
 	metrics.Iteration.WithLabelValues(name, IterationStage, result.String()).Observe(float64(nanoseconds))
-	metrics.Progress.WithLabelValues(result.String()).Observe(float64(nanoseconds))
 }
 
 func (metrics *Metrics) RecordIterationStage(name string, stage string, result ResultType, nanoseconds int64) {
+	if !metrics.IterationMetricsEnabled {
+		return
+	}
+
 	metrics.Iteration.WithLabelValues(name, stage, result.String()).Observe(float64(nanoseconds))
 }
