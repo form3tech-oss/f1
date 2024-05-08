@@ -24,6 +24,7 @@ func Rate() api.Builder {
 			"During the stage, the number of concurrent iterations will ramp up or down to the target.")
 	flags.DurationP(flagIterationFrequency, "f", 1*time.Second,
 		"How frequently iterations should be started")
+	flags.String(flagStartTime, "", "Starting point of stage calculation, defaults to now")
 
 	triggerflags.JitterFlag(flags)
 	triggerflags.DistributionFlag(flags)
