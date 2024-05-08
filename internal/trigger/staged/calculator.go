@@ -49,7 +49,7 @@ func (s *rateCalculator) Rate(now time.Time) int {
 	if s.current > len(s.stages)-1 {
 		return 0
 	}
-	if now.Sub(s.start)+1 > s.stages[s.current].duration {
+	for s.current < len(s.stages) && now.Sub(s.start)+1 > s.stages[s.current].duration {
 		s.start = s.start.Add(s.stages[s.current].duration)
 		s.current++
 	}
@@ -61,7 +61,7 @@ func (s *rateCalculator) Rate(now time.Time) int {
 	position := float64(offset) / float64(s.stages[s.current].duration)
 	rate := s.stages[s.current].startTarget +
 		int(position*float64(s.stages[s.current].endTarget-s.stages[s.current].startTarget))
-	logrus.Debugf("Stage %d; Triggering %d. Offset: %d, Duration: %d, Position: %v\n",
+	logrus.Infof("Stage %d; Triggering %d. Offset: %d, Duration: %d, Position: %v\n",
 		s.current, rate, offset, s.stages[s.current].duration, position)
 	return rate
 }
