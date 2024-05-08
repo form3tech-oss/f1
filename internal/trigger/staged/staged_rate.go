@@ -14,6 +14,7 @@ import (
 const (
 	flagStages             = "stages"
 	flagIterationFrequency = "iterationFrequency"
+	flagStartTime          = "startTime"
 )
 
 func Rate() api.Builder {
@@ -48,8 +49,16 @@ func Rate() api.Builder {
 			if err != nil {
 				return nil, fmt.Errorf("getting flag: %w", err)
 			}
+			var startTime *time.Time
+			startTimeStr, err := params.GetString(flagStartTime)
+			if err != nil {
+				return nil, fmt.Errorf("getting flag: %w", err)
+			}
+			if parsedStartTime, err := time.Parse("2006-01-02T15:04:05+07:00", startTimeStr); err == nil {
+				startTime = &parsedStartTime
+			}
 
-			rates, err := CalculateStagedRate(jitterArg, frequency, stg, distributionTypeArg)
+			rates, err := CalculateStagedRate(jitterArg, frequency, stg, distributionTypeArg, startTime)
 			if err != nil {
 				return nil, err
 			}
@@ -72,13 +81,14 @@ func CalculateStagedRate(
 	frequency time.Duration,
 	stg string,
 	distributionTypeArg string,
+	startTime *time.Time,
 ) (*api.Rates, error) {
 	stages, err := parseStages(stg)
 	if err != nil {
 		return nil, fmt.Errorf("parsing stages: %w", err)
 	}
 
-	calculator := newRateCalculator(stages)
+	calculator := newRateCalculator(stages, startTime)
 	rateFn := api.WithJitter(calculator.Rate, jitterArg)
 	distributedIterationDuration, distributedRateFn, err := api.NewDistribution(
 		api.DistributionType(distributionTypeArg), frequency, rateFn,

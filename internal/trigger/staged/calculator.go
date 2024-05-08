@@ -12,11 +12,14 @@ type rateCalculator struct {
 	start   time.Time
 }
 
-func newRateCalculator(stages []stage) *rateCalculator {
+func newRateCalculator(stages []stage, start *time.Time) *rateCalculator {
 	calculator := rateCalculator{
 		current: -1,
 	}
 	calculator.addRange(stages)
+	if start != nil {
+		calculator.start = *start
+	}
 	return &calculator
 }
 
@@ -39,7 +42,9 @@ func (s *rateCalculator) add(newStage stage) {
 func (s *rateCalculator) Rate(now time.Time) int {
 	if s.current < 0 {
 		s.current = 0
-		s.start = now
+		if s.start.IsZero() {
+			s.start = now
+		}
 	}
 	if s.current > len(s.stages)-1 {
 		return 0
