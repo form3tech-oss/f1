@@ -1,4 +1,4 @@
-# Using golangci-lint@v1.57.2
+# Using golangci-lint@v1.58.0
 run:
   timeout: 5m
   tests: true
@@ -19,6 +19,8 @@ linters:
   - structcheck
   - varcheck
   - exhaustivestruct
+  - execinquery
+  - gomnd
 
   # Annoying style guides that are very subjective
   - funlen
@@ -45,8 +47,8 @@ linters:
   - copyloopvar
 
   # TODO
-  - gomnd
-  - goerr113
+  - mnd
+  - err113
 
 linters-settings:
   tagliatelle:
