@@ -12,11 +12,14 @@ type rateCalculator struct {
 	start   time.Time
 }
 
-func newRateCalculator(stages []stage) *rateCalculator {
+func newRateCalculator(stages []stage, start *time.Time) *rateCalculator {
 	calculator := rateCalculator{
 		current: -1,
 	}
 	calculator.addRange(stages)
+	if start != nil {
+		calculator.start = *start
+	}
 	return &calculator
 }
 
@@ -39,12 +42,14 @@ func (s *rateCalculator) add(newStage stage) {
 func (s *rateCalculator) Rate(now time.Time) int {
 	if s.current < 0 {
 		s.current = 0
-		s.start = now
+		if s.start.IsZero() {
+			s.start = now
+		}
 	}
 	if s.current > len(s.stages)-1 {
 		return 0
 	}
-	if now.Sub(s.start)+1 > s.stages[s.current].duration {
+	for s.current < len(s.stages) && now.Sub(s.start)+1 > s.stages[s.current].duration {
 		s.start = s.start.Add(s.stages[s.current].duration)
 		s.current++
 	}
@@ -56,7 +61,7 @@ func (s *rateCalculator) Rate(now time.Time) int {
 	position := float64(offset) / float64(s.stages[s.current].duration)
 	rate := s.stages[s.current].startTarget +
 		int(position*float64(s.stages[s.current].endTarget-s.stages[s.current].startTarget))
-	logrus.Debugf("Stage %d; Triggering %d. Offset: %d, Duration: %d, Position: %v\n",
+	logrus.Infof("Stage %d; Triggering %d. Offset: %d, Duration: %d, Position: %v\n",
 		s.current, rate, offset, s.stages[s.current].duration, position)
 	return rate
 }

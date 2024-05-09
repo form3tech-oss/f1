@@ -150,6 +150,7 @@ func (s *Stage) parseStage(stageIdx int, defaults Stage) (*runnableStage, error)
 			*validatedStagedStage.IterationFrequency,
 			*validatedStagedStage.Stages,
 			*validatedStagedStage.Distribution,
+			nil,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("calculating staged rate: %w", err)
