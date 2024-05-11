@@ -34,7 +34,6 @@ linters:
   - gocyclo
   - nestif
   - nilnil
-  - exhaustruct
 
   # Requires too many changes
   - testpackage
@@ -69,6 +68,9 @@ linters-settings:
       - standard
       - default
       - prefix(github.com/form3tech-oss/f1)
+  exhaustruct:
+    include:
+      - github.com/form3tech-oss/f1/v2/internal/run/templates.*
 issues:
   exclude-dirs:
     - vendor$

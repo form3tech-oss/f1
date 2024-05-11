@@ -52,8 +52,8 @@ func NewRun(
 		printer:         printer,
 	}
 
-	run.templates = templates.Parse()
-	run.result = Result{templates: run.templates}
+	run.templates = templates.Parse(templates.RenderTermColors)
+	run.result = NewResult(options, run.templates)
 
 	if run.Settings.Prometheus.PushGateway != "" {
 		run.pusher = push.New(settings.Prometheus.PushGateway, "f1-"+options.Scenario).
@@ -70,9 +70,6 @@ func NewRun(
 	if run.Options.RegisterLogHookFunc == nil {
 		run.Options.RegisterLogHookFunc = logging.NoneRegisterLogHookFunc
 	}
-	run.result.IgnoreDropped = options.IgnoreDropped
-	run.result.MaxFailedIterations = options.MaxFailures
-	run.result.MaxFailedIterationsRate = options.MaxFailuresRate
 
 	progressRunner, _ := raterun.New(func(rate time.Duration, _ time.Time) {
 		run.gatherProgressMetrics(rate)
@@ -89,26 +86,32 @@ func NewRun(
 }
 
 type Run struct {
-	printer         *console.Printer
 	tracer          trace.Tracer
-	metrics         *metrics.Metrics
 	progressRunner  raterun.Runner
+	metrics         *metrics.Metrics
 	templates       *templates.Templates
 	activeScenario  *ActiveScenario
 	trigger         *api.Trigger
 	pusher          *push.Pusher
-	result          Result
+	printer         *console.Printer
 	Settings        envsettings.Settings
-	Options         options.RunOptions
 	RateDescription string
-	notifyDropped   sync.Once
-	busyWorkers     atomic.Int32
+	result          Result
+	Options         options.RunOptions
 	iteration       atomic.Uint64
 	failures        atomic.Uint64
+	notifyDropped   sync.Once
+	busyWorkers     atomic.Int32
 }
 
 func (r *Run) Do(ctx context.Context, s *scenarios.Scenarios) (*Result, error) {
-	r.printer.Print(renderTemplate(r.templates.Start, r))
+	r.printer.Print(r.templates.Start(templates.StartData{
+		Scenario:        r.Options.Scenario,
+		MaxDuration:     r.Options.MaxDuration,
+		MaxIterations:   r.Options.MaxIterations,
+		RateDescription: r.RateDescription,
+	}))
+
 	defer r.printSummary()
 	defer r.printLogOnFailure()
 
@@ -187,7 +190,13 @@ func (r *Run) configureLogging() error {
 
 	if !r.Options.Verbose {
 		r.result.LogFile = redirectLoggingToFile(r.Options.Scenario, r.Settings.LogFilePath, r.printer.Writer)
-		welcomeMessage := renderTemplate(r.templates.Start, r)
+		welcomeMessage := r.templates.Start(templates.StartData{
+			Scenario:        r.Options.Scenario,
+			MaxDuration:     r.Options.MaxDuration,
+			MaxIterations:   r.Options.MaxIterations,
+			RateDescription: r.RateDescription,
+		})
+
 		logrus.Info(welcomeMessage)
 		r.printer.Printf("Saving logs to %s\n\n", r.result.LogFile)
 	}
