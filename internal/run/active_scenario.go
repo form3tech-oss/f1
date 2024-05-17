@@ -12,13 +12,11 @@ import (
 type iterationState struct {
 	teardown func()
 	t        *testing.T
-	done     chan struct{}
 }
 
 func newIterationState(scenario string) *iterationState {
 	state := &iterationState{}
 	state.t, state.teardown = testing.NewT("", scenario)
-	state.done = make(chan struct{}, 1)
 
 	return state
 }
@@ -47,14 +45,13 @@ func NewActiveScenario(
 	}
 
 	start := time.Now()
-	done := make(chan struct{}, 1)
-	go func() {
-		defer testing.CheckResults(t, done)
+	func() {
+		defer testing.CheckResults(t, nil)
+
 		s.scenario.RunFn = s.scenario.ScenarioFn(t)
 	}()
 
 	// wait for completion
-	<-done
 	s.m.RecordSetupResult(scenario.Name, metrics.Result(t.Failed()), time.Since(start).Nanoseconds())
 	return s
 }
@@ -64,13 +61,10 @@ func (s *ActiveScenario) Run(state *iterationState) bool {
 	defer state.teardown()
 
 	start := time.Now()
-	go func() {
-		defer testing.CheckResults(state.t, state.done)
+	func() {
+		defer testing.CheckResults(state.t, nil)
 		s.scenario.RunFn(state.t)
 	}()
-
-	// wait for completion
-	<-state.done
 
 	failed := state.t.Failed()
 	duration := time.Since(start)

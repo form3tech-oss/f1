@@ -6,12 +6,23 @@ import (
 )
 
 func main() {
-	f1.New().Add("emptyScenario", emptyScenario).Execute()
+	f1.New().
+		Add("emptyScenario", emptyScenario).
+		Add("failingScenario", failingScenario).
+		Execute()
 }
 
 func emptyScenario(*testing.T) testing.RunFn {
 	runFn := func(t *testing.T) {
 		t.Require().True(true)
+	}
+
+	return runFn
+}
+
+func failingScenario(*testing.T) testing.RunFn {
+	runFn := func(t *testing.T) {
+		t.Require().True(false)
 	}
 
 	return runFn

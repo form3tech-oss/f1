@@ -1,7 +1,7 @@
 package testing
 
 import (
-	"runtime"
+	"errors"
 	"runtime/debug"
 	"sync/atomic"
 	"time"
@@ -11,6 +11,8 @@ import (
 
 	"github.com/form3tech-oss/f1/v2/internal/metrics"
 )
+
+var errFailNow = errors.New("FailNow")
 
 // T is a type passed to Scenario functions to manage test state and support formatted test logs. A
 // test ends when its Scenario function returns or calls any of the methods FailNow, Fatal, Fatalf.
@@ -60,11 +62,10 @@ func (t *T) Name() string {
 	return t.Scenario
 }
 
-// FailNow marks the function as having failed and stops its execution by calling runtime.Goexit
-// (which then runs all deferred calls in the current goroutine). Execution will continue at the
-// next Scenario iteration. FailNow must be called from the goroutine running the Scenario, not from
-// other goroutines created during the Scenario. Calling FailNow does not stop those other
-// goroutines.
+// FailNow marks the function as having failed and stops its execution.
+// Execution will continue at the next Scenario iteration. FailNow must be called from
+// the goroutine running the Scenario, not from other goroutines created during the Scenario.
+// Calling FailNow does not stop those other goroutines.
 func (t *T) FailNow() {
 	if t.tearingDown {
 		t.teardownFailed.Store(true)
@@ -72,7 +73,7 @@ func (t *T) FailNow() {
 		t.failed.Store(true)
 	}
 
-	runtime.Goexit()
+	panic(errFailNow)
 }
 
 // Fail marks the function as having failed but continues execution.
@@ -143,33 +144,42 @@ func (t *T) Cleanup(f func()) {
 }
 
 func CheckResults(t *T, done chan<- struct{}) {
-	r := recover()
-	if r != nil {
-		err, isError := r.(error)
-		if isError {
-			stack := string(debug.Stack())
-			t.Fail()
-			t.logger.
-				WithField("stack_trace", stack).
-				WithError(err).
-				Errorf("panic in '%s' scenario on %s", t.Scenario, t.Iteration)
-		} else {
-			t.Errorf("panic in '%s' scenario on %s: %v", t.Scenario, t.Iteration, r)
-		}
+	handlePanic(t, recover())
+
+	if done != nil {
+		done <- struct{}{}
 	}
-	done <- struct{}{}
+}
+
+func handlePanic(t *T, recovered any) {
+	if recovered == nil {
+		return
+	}
+
+	err, isError := recovered.(error)
+	switch {
+	case isError && errors.Is(err, errFailNow):
+		return
+	case isError:
+		stack := string(debug.Stack())
+		t.logger.
+			WithField("stack_trace", stack).
+			WithError(err).
+			Errorf("panic in '%s' scenario on %s", t.Scenario, t.Iteration)
+		t.Fail()
+	default:
+		t.Errorf("panic in '%s' scenario on %s: %v", t.Scenario, t.Iteration, recovered)
+	}
 }
 
 func (t *T) teardown() {
 	t.tearingDown = true
 
 	for i := len(t.teardownStack) - 1; i >= 0; i-- {
-		done := make(chan struct{}, 1)
-		go func() {
-			defer CheckResults(t, done)
+		func() {
+			defer CheckResults(t, nil)
 			t.teardownStack[i]()
 		}()
-		<-done
 	}
 }
 
