@@ -46,6 +46,7 @@ func buildRootCmd(s *scenarios.Scenarios, settings envsettings.Settings, p *prof
 	}
 
 	printer := console.NewPrinter(os.Stdout)
+	metrics.Init(settings.PrometheusEnabled())
 	metricsInstance := metrics.Instance()
 
 	rootCmd.AddCommand(run.Cmd(

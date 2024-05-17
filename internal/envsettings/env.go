@@ -30,12 +30,14 @@ type Fluentd struct {
 }
 
 type Settings struct {
+	Prometheus  Prometheus
+	Fluentd     Fluentd
 	LogFilePath string
+	Trace       bool
+}
 
-	Trace bool
-
-	Fluentd    Fluentd
-	Prometheus Prometheus
+func (s *Settings) PrometheusEnabled() bool {
+	return s.Prometheus.PushGateway != ""
 }
 
 func Get() Settings {

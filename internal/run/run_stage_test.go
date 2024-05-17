@@ -101,7 +101,7 @@ func NewRunTestStage(t *testing.T) (*RunTestStage, *RunTestStage, *RunTestStage)
 		settings:    envsettings.Get(),
 		metricData:  NewMetricData(),
 		printer:     console.NewPrinter(io.Discard),
-		metrics:     metrics.NewInstance(prometheus.NewRegistry(), prometheus.NewRegistry()),
+		metrics:     metrics.NewInstance(prometheus.NewRegistry(), true),
 	}
 
 	handler := FakePrometheusHandler(t, stage.metricData)
@@ -349,17 +349,17 @@ func (s *RunTestStage) a_test_scenario_that_fails_intermittently() *RunTestStage
 }
 
 func (s *RunTestStage) the_results_should_show_n_failures(expectedFailures uint64) *RunTestStage {
-	s.assert.Equal(int(expectedFailures), int(s.runResult.FailedIterationCount), "failure count does not match expected")
+	s.assert.Equal(int(expectedFailures), int(s.runResult.Snapshot().FailedIterationDurations.Count), "failure count does not match expected")
 	return s
 }
 
 func (s *RunTestStage) the_results_should_show_n_successful_iterations(expected uint64) *RunTestStage {
-	s.assert.Equal(int(expected), int(s.runResult.SuccessfulIterationCount), "success count does not match expected")
+	s.assert.Equal(int(expected), int(s.runResult.Snapshot().SuccessfulIterationDurations.Count), "success count does not match expected")
 	return s
 }
 
 func (s *RunTestStage) the_number_of_dropped_iterations_should_be(expected uint64) *RunTestStage {
-	s.assert.Equal(int(expected), int(s.runResult.DroppedIterationCount), "dropped count does not match expected")
+	s.assert.Equal(int(expected), int(s.runResult.Snapshot().DroppedIterationCount), "dropped count does not match expected")
 	return s
 }
 

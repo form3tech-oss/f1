@@ -20,6 +20,7 @@ import (
 	"github.com/form3tech-oss/f1/v2/internal/logging"
 	"github.com/form3tech-oss/f1/v2/internal/metrics"
 	"github.com/form3tech-oss/f1/v2/internal/options"
+	"github.com/form3tech-oss/f1/v2/internal/progress"
 	"github.com/form3tech-oss/f1/v2/internal/raterun"
 	"github.com/form3tech-oss/f1/v2/internal/run/templates"
 	"github.com/form3tech-oss/f1/v2/internal/trace"
@@ -33,6 +34,26 @@ const (
 
 	metricsRefreshInterval = 5 * time.Second
 )
+
+type Run struct {
+	progressRunner  raterun.Runner
+	tracer          trace.Tracer
+	progressStats   *progress.Stats
+	metrics         *metrics.Metrics
+	templates       *templates.Templates
+	activeScenario  *ActiveScenario
+	trigger         *api.Trigger
+	pusher          *push.Pusher
+	printer         *console.Printer
+	RateDescription string
+	Settings        envsettings.Settings
+	Options         options.RunOptions
+	result          Result
+	iteration       atomic.Uint64
+	failures        atomic.Uint64
+	notifyDropped   sync.Once
+	busyWorkers     atomic.Int32
+}
 
 func NewRun(
 	options options.RunOptions,
@@ -50,10 +71,11 @@ func NewRun(
 		metrics:         metricsInstane,
 		tracer:          tracer,
 		printer:         printer,
+		progressStats:   &progress.Stats{},
 	}
 
 	run.templates = templates.Parse(templates.RenderTermColors)
-	run.result = NewResult(options, run.templates)
+	run.result = NewResult(options, run.templates, run.progressStats)
 
 	if run.Settings.Prometheus.PushGateway != "" {
 		run.pusher = push.New(settings.Prometheus.PushGateway, "f1-"+options.Scenario).
@@ -72,7 +94,7 @@ func NewRun(
 	}
 
 	progressRunner, _ := raterun.New(func(rate time.Duration, _ time.Time) {
-		run.gatherProgressMetrics(rate)
+		run.result.SnapshotProgress(rate)
 		run.printer.Println(run.result.Progress())
 	}, []raterun.Rate{
 		{Start: time.Nanosecond, Rate: time.Second},
@@ -83,25 +105,6 @@ func NewRun(
 	run.progressRunner = progressRunner
 
 	return &run, nil
-}
-
-type Run struct {
-	tracer          trace.Tracer
-	progressRunner  raterun.Runner
-	metrics         *metrics.Metrics
-	templates       *templates.Templates
-	activeScenario  *ActiveScenario
-	trigger         *api.Trigger
-	pusher          *push.Pusher
-	printer         *console.Printer
-	Settings        envsettings.Settings
-	RateDescription string
-	result          Result
-	Options         options.RunOptions
-	iteration       atomic.Uint64
-	failures        atomic.Uint64
-	notifyDropped   sync.Once
-	busyWorkers     atomic.Int32
 }
 
 func (r *Run) Do(ctx context.Context, s *scenarios.Scenarios) (*Result, error) {
@@ -125,7 +128,7 @@ func (r *Run) Do(ctx context.Context, s *scenarios.Scenarios) (*Result, error) {
 	if scenario == nil {
 		return nil, fmt.Errorf("scenario not defined: %s", r.Options.Scenario)
 	}
-	r.activeScenario = NewActiveScenario(scenario, r.metrics)
+	r.activeScenario = NewActiveScenario(scenario, r.metrics, r.progressStats)
 	r.pushMetrics(ctx)
 
 	// run teardown even if the context is cancelled
@@ -161,7 +164,7 @@ func (r *Run) Do(ctx context.Context, s *scenarios.Scenarios) (*Result, error) {
 
 	r.progressRunner.Terminate()
 	close(metricsCloseCh)
-	r.gatherMetrics()
+	r.result.GetTotals()
 
 	return &r.result, nil
 }
@@ -301,56 +304,6 @@ func (r *Run) doWork(doWorkChannel chan<- uint64, durationElapsed *CancellableTi
 	} else if r.Options.MaxIterations <= 0 || iteration <= r.Options.MaxIterations {
 		r.tracer.IterationEvent("Within Max iterations So calling dowork()", iteration)
 		doWorkChannel <- iteration
-	}
-}
-
-func (r *Run) gatherMetrics() {
-	m, err := r.metrics.Registry.Gather()
-	if err != nil {
-		r.result.AddError(fmt.Errorf("gather metrics: %w", err))
-	}
-	for _, metric := range m {
-		if metric.GetName() == metrics.IterationMetricName {
-			for _, m := range metric.GetMetric() {
-				result := metrics.UnknownResult
-				stage := metrics.IterationStage
-				for _, label := range m.GetLabel() {
-					if label.GetName() == metrics.ResultLabel {
-						result = metrics.ResultTypeFromString(label.GetValue())
-					}
-					if label.GetName() == metrics.StageLabel {
-						stage = label.GetValue()
-					}
-				}
-
-				if stage == metrics.IterationStage {
-					r.result.SetMetrics(result, m.GetSummary().GetSampleCount(), m.GetSummary().GetQuantile())
-				}
-			}
-		}
-	}
-}
-
-func (r *Run) gatherProgressMetrics(duration time.Duration) {
-	m, err := r.metrics.ProgressRegistry.Gather()
-	if err != nil {
-		r.result.AddError(fmt.Errorf("gather metrics: %w", err))
-	}
-	r.metrics.Progress.Reset()
-	r.result.ClearProgressMetrics()
-	for _, metric := range m {
-		for _, m := range metric.GetMetric() {
-			result := metrics.UnknownResult
-			for _, label := range m.GetLabel() {
-				if label.GetName() == metrics.ResultLabel {
-					result = metrics.ResultTypeFromString(label.GetValue())
-				}
-			}
-
-			r.result.IncrementMetrics(
-				duration, result, m.GetSummary().GetSampleCount(), m.GetSummary().GetQuantile(),
-			)
-		}
 	}
 }
 
