@@ -131,6 +131,13 @@ func (r *Result) Progress() string {
 	})
 }
 
+func (r *Result) HasDroppedIterations() bool {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	return r.snapshot.DroppedIterationCount > 0
+}
+
 func (r *Result) Setup() string {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
