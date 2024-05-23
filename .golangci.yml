@@ -41,10 +41,6 @@ linters:
   # Project is not large enough to need duplicate code detection
   - dupl
 
-  # Linter has too many false positives at this point
-  # it was added for go 1.22
-  - copyloopvar
-
   # TODO
   - mnd
   - err113
