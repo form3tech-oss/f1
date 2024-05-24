@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"time"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
 
 	"github.com/form3tech-oss/f1/v2/internal/trace"
@@ -79,7 +79,7 @@ func readFile(filename string) (*[]byte, error) {
 	}
 	defer func() {
 		if err = file.Close(); err != nil {
-			log.WithError(err).Error("unable to close the config file")
+			logrus.WithError(err).Error("unable to close the config file")
 		}
 	}()
 

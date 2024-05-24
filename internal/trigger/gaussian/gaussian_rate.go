@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
 
 	"github.com/form3tech-oss/f1/v2/internal/gaussian"
@@ -97,7 +97,7 @@ func Rate() api.Builder {
 			}
 			if peakRate != "" {
 				if volume != defaultVolume {
-					log.Warn("--peak-rate is provided, the value given for --volume will be ignored")
+					logrus.Warn("--peak-rate is provided, the value given for --volume will be ignored")
 				}
 				volume, err = calculateVolume(peakRate, peakDuration, stddevDuration)
 				if err != nil {

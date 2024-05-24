@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/form3tech-oss/f1/v2/internal/console"
@@ -22,6 +23,8 @@ type ChartTestStage struct {
 
 func NewChartTestStage(t *testing.T) (*ChartTestStage, *ChartTestStage, *ChartTestStage) {
 	t.Helper()
+	logrus.SetLevel(logrus.WarnLevel)
+
 	stage := &ChartTestStage{
 		t:      t,
 		assert: assert.New(t),

@@ -241,7 +241,7 @@ func (s *RunTestStage) the_command_should_have_run_for_approx(expectedDuration t
 }
 
 func (s *RunTestStage) the_number_of_started_iterations_should_be(expected uint32) *RunTestStage {
-	s.assert.Equal(expected, s.runCount.Load(), "number of started iterations")
+	s.assert.Equal(int(expected), int(s.runCount.Load()), "number of started iterations")
 	return s
 }
 

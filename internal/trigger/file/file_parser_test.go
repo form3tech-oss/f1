@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/require"
 )
 
@@ -414,6 +415,7 @@ stages:
 
 func TestFileRate_FileErrors(t *testing.T) {
 	t.Parallel()
+	logrus.SetLevel(logrus.WarnLevel)
 
 	for _, test := range []struct {
 		fileContent, expectedError string
