@@ -54,7 +54,7 @@ func (s *ActiveScenario) Failed() bool {
 	return s.t.Failed()
 }
 
-// Run performs a single iteration of the test. It returns `true` if the test was successful, `false` otherwise.
+// Run performs a single iteration of the test.
 func (s *ActiveScenario) Run(state *iterationState) {
 	defer state.teardown()
 
