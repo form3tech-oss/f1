@@ -1,4 +1,4 @@
-package run
+package workers
 
 import (
 	"time"
@@ -9,18 +9,6 @@ import (
 	"github.com/form3tech-oss/f1/v2/pkg/f1/testing"
 )
 
-type iterationState struct {
-	teardown func()
-	t        *testing.T
-}
-
-func newIterationState(scenario string) *iterationState {
-	state := &iterationState{}
-	state.t, state.teardown = testing.NewT("", scenario)
-
-	return state
-}
-
 type ActiveScenario struct {
 	scenario *scenarios.Scenario
 	m        *metrics.Metrics
@@ -28,6 +16,8 @@ type ActiveScenario struct {
 	t        *testing.T
 	Teardown func()
 }
+
+const instantDuration = 0
 
 func NewActiveScenario(
 	scenario *scenarios.Scenario,
@@ -56,8 +46,16 @@ func NewActiveScenario(
 	return s
 }
 
-// Run performs a single iteration of the test. It returns `true` if the test was successful, `false` otherwise.
-func (s *ActiveScenario) Run(state *iterationState) bool {
+func (s *ActiveScenario) TeardownFailed() bool {
+	return s.t.TeardownFailed()
+}
+
+func (s *ActiveScenario) Failed() bool {
+	return s.t.Failed()
+}
+
+// Run performs a single iteration of the test.
+func (s *ActiveScenario) Run(state *iterationState) {
 	defer state.teardown()
 
 	start := time.Now()
@@ -71,10 +69,9 @@ func (s *ActiveScenario) Run(state *iterationState) bool {
 
 	s.m.RecordIterationResult(s.scenario.Name, metrics.Result(failed), duration.Nanoseconds())
 	s.progress.Record(metrics.Result(failed), duration)
-	return !failed
 }
 
 func (s *ActiveScenario) RecordDroppedIteration() {
-	s.m.RecordIterationResult(s.scenario.Name, metrics.DroppedResult, 0)
-	s.progress.Record(metrics.DroppedResult, 0)
+	s.m.RecordIterationResult(s.scenario.Name, metrics.DroppedResult, instantDuration)
+	s.progress.Record(metrics.DroppedResult, instantDuration)
 }

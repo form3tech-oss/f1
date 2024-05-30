@@ -7,9 +7,7 @@ import (
 	"io"
 	stdlog "log"
 	"os"
-	"strconv"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus/push"
@@ -25,13 +23,13 @@ import (
 	"github.com/form3tech-oss/f1/v2/internal/run/templates"
 	"github.com/form3tech-oss/f1/v2/internal/trace"
 	"github.com/form3tech-oss/f1/v2/internal/trigger/api"
+	"github.com/form3tech-oss/f1/v2/internal/workers"
 	"github.com/form3tech-oss/f1/v2/internal/xcontext"
 	"github.com/form3tech-oss/f1/v2/pkg/f1/scenarios"
 )
 
 const (
-	NextIterationWindow = 10 * time.Millisecond
-
+	nextIterationWindow    = 10 * time.Millisecond
 	metricsRefreshInterval = 5 * time.Second
 )
 
@@ -41,7 +39,7 @@ type Run struct {
 	progressStats   *progress.Stats
 	metrics         *metrics.Metrics
 	templates       *templates.Templates
-	activeScenario  *ActiveScenario
+	activeScenario  *workers.ActiveScenario
 	trigger         *api.Trigger
 	pusher          *push.Pusher
 	printer         *console.Printer
@@ -49,10 +47,7 @@ type Run struct {
 	Settings        envsettings.Settings
 	Options         options.RunOptions
 	result          Result
-	iteration       atomic.Uint64
-	failures        atomic.Uint64
 	notifyDropped   sync.Once
-	busyWorkers     atomic.Int32
 }
 
 func NewRun(
@@ -96,6 +91,11 @@ func NewRun(
 	progressRunner, _ := raterun.New(func(rate time.Duration, _ time.Time) {
 		run.result.SnapshotProgress(rate)
 		run.printer.Println(run.result.Progress())
+		if run.result.HasDroppedIterations() {
+			run.notifyDropped.Do(func() {
+				logrus.Warn("Dropping requests as workers are too busy. Considering increasing `--concurrency` argument")
+			})
+		}
 	}, []raterun.Rate{
 		{Start: time.Nanosecond, Rate: time.Second},
 		{Start: time.Minute, Rate: time.Second * 10},
@@ -128,14 +128,14 @@ func (r *Run) Do(ctx context.Context, s *scenarios.Scenarios) (*Result, error) {
 	if scenario == nil {
 		return nil, fmt.Errorf("scenario not defined: %s", r.Options.Scenario)
 	}
-	r.activeScenario = NewActiveScenario(scenario, r.metrics, r.progressStats)
+	r.activeScenario = workers.NewActiveScenario(scenario, r.metrics, r.progressStats)
 	r.pushMetrics(ctx)
 
 	// run teardown even if the context is cancelled
 	teardownContext := xcontext.Detach(ctx)
 	defer r.teardownActiveScenario(teardownContext)
 
-	if r.activeScenario.t.Failed() {
+	if r.activeScenario.Failed() {
 		return r.reportSetupFailure(ctx), nil
 	}
 
@@ -178,7 +178,7 @@ func (r *Run) reportSetupFailure(ctx context.Context) *Result {
 
 func (r *Run) teardownActiveScenario(ctx context.Context) {
 	r.activeScenario.Teardown()
-	if r.activeScenario.t.TeardownFailed() {
+	if r.activeScenario.TeardownFailed() {
 		r.fail("teardown failed")
 	}
 	r.pushMetrics(ctx)
@@ -218,26 +218,6 @@ func (r *Run) printSummary() {
 }
 
 func (r *Run) run(ctx context.Context) {
-	// Build a worker group to process the iterations.
-	workers := r.Options.Concurrency
-	doWorkChannel := make(chan uint64, workers)
-	stopWorkers := make(chan struct{})
-
-	r.busyWorkers.Store(0)
-	workDone := make(chan bool, workers)
-
-	iterationStatePool := make([]*iterationState, workers)
-	for i := range workers {
-		iterationStatePool[i] = newIterationState(r.Options.Scenario)
-	}
-
-	wg := &sync.WaitGroup{}
-	defer wg.Wait()
-	wg.Add(workers)
-	for i := range workers {
-		go r.runWorker(doWorkChannel, stopWorkers, wg, i, workDone, iterationStatePool[i])
-	}
-
 	// if the trigger has a limited duration, restrict the run to that duration.
 	duration := r.Options.MaxDuration
 	if r.trigger.Duration > 0 && r.trigger.Duration < r.Options.MaxDuration {
@@ -245,103 +225,28 @@ func (r *Run) run(ctx context.Context) {
 	}
 
 	// Cancel work slightly before end of duration to avoid starting a new iteration
-	durationElapsed := NewCancellableTimer(duration-NextIterationWindow, r.tracer)
 	r.result.RecordStarted()
 	defer r.result.RecordTestFinished()
 
-	workTriggered := make(chan bool, workers)
-	stopTrigger := make(chan bool, 1)
-	go r.trigger.Trigger(workTriggered, stopTrigger, workDone, r.Options)
+	triggerCtx, triggerCancel := context.WithTimeout(ctx, duration-nextIterationWindow)
+	defer triggerCancel()
 
-	// This blocks waiting for cancellable timer
-	go func() {
-		elapsed := <-durationElapsed.C
-		r.tracer.ReceivedFromChannel("C")
-		if elapsed {
+	poolManager := workers.New(r.Options.MaxIterations, r.activeScenario, r.tracer)
+	r.trigger.Trigger(triggerCtx, poolManager, r.Options)
+
+	select {
+	case <-ctx.Done():
+		r.printer.Println(r.result.Interrupted())
+		r.progressRunner.RestartRate()
+		<-poolManager.WaitForCompletion()
+	case <-triggerCtx.Done():
+		if triggerCtx.Err() == context.DeadlineExceeded {
 			r.printer.Println(r.result.MaxDurationElapsed())
 		}
-		logrus.Info("Stopping worker")
-		stopTrigger <- true
-		close(stopWorkers)
-		wg.Wait()
-	}()
-
-	// run more iterations on every tick, until duration has elapsed.
-	for {
-		r.tracer.Event("Run loop ")
-		select {
-		case <-ctx.Done():
-			r.printer.Println(r.result.Interrupted())
-			r.progressRunner.RestartRate()
-			// stop listening to interrupts - second interrupt will terminate immediately
-			durationElapsed.Cancel()
-		case <-workTriggered:
-			r.tracer.ReceivedFromChannel("workTriggered")
-			r.doWork(doWorkChannel, durationElapsed)
-			r.tracer.Event("Called do work")
-		case <-stopWorkers:
-			wg.Wait()
-			return
-		}
-	}
-}
-
-func (r *Run) doWork(doWorkChannel chan<- uint64, durationElapsed *CancellableTimer) {
-	if r.busyWorkers.Load() >= int32(r.Options.Concurrency) {
-		r.activeScenario.RecordDroppedIteration()
-		r.notifyDropped.Do(func() {
-			// only log once.
-			logrus.Warn("Dropping requests as workers are too busy. Considering increasing `--concurrency` argument")
-		})
-		return
-	}
-	iteration := r.iteration.Add(1)
-	if r.Options.MaxIterations > 0 && iteration > r.Options.MaxIterations {
-		r.tracer.IterationEvent("Max iterations exceeded Calling Cancel", iteration)
-		durationElapsed.Cancel()
-		r.printer.Println(r.result.MaxIterationsReached())
-		r.tracer.IterationEvent("Max iterations exceeded Called Cancel", iteration)
-	} else if r.Options.MaxIterations <= 0 || iteration <= r.Options.MaxIterations {
-		r.tracer.IterationEvent("Within Max iterations So calling dowork()", iteration)
-		doWorkChannel <- iteration
-	}
-}
-
-func (r *Run) runWorker(
-	iterationInput <-chan uint64,
-	stop <-chan struct{},
-	wg *sync.WaitGroup,
-	worker int,
-	workDone chan<- bool,
-	iterationState *iterationState,
-) {
-	defer wg.Done()
-	r.tracer.WorkerEvent("Started worker", worker)
-	for {
-		select {
-		case <-stop:
-			r.tracer.WorkerEvent("Stopping worker", worker)
-			return
-		case iteration := <-iterationInput:
-			r.tracer.IterationEvent("Received work from Channel 'doWork'", iteration)
-			r.busyWorkers.Add(1)
-
-			iterationState.t.Reset(strconv.FormatUint(iteration, 10))
-			successful := r.activeScenario.Run(iterationState)
-			if !successful {
-				r.failures.Add(1)
-			}
-			r.busyWorkers.Add(-1)
-
-			// if we need to stop - no one is listening for workDone,
-			// so it will block forever. check the stop channel to stop the worker
-			select {
-			case workDone <- true:
-			case <-stop:
-				return
-			}
-
-			r.tracer.IterationEvent("Completed iteration", iteration)
+		<-poolManager.WaitForCompletion()
+	case <-poolManager.WaitForCompletion():
+		if poolManager.MaxIterationsReached() {
+			r.printer.Println(r.result.MaxIterationsReached())
 		}
 	}
 }

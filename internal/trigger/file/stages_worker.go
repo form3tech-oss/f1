@@ -1,8 +1,8 @@
 package file
 
 import (
+	"context"
 	"os"
-	"sync"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -11,59 +11,56 @@ import (
 	"github.com/form3tech-oss/f1/v2/internal/trace"
 	"github.com/form3tech-oss/f1/v2/internal/trigger/api"
 	"github.com/form3tech-oss/f1/v2/internal/trigger/users"
+	"github.com/form3tech-oss/f1/v2/internal/workers"
 )
 
+const safeDurationBeforeNextStage = 20 * time.Millisecond
+
 func newStagesWorker(stages []runnableStage, tracer trace.Tracer) api.WorkTriggerer {
-	return func(workTriggered chan<- bool, stop <-chan bool, workDone <-chan bool, options options.RunOptions) {
-		safeThresholdBeforeNextIteration := 20 * time.Millisecond
-		stopStageCh := make(chan bool)
-		wg := sync.WaitGroup{}
-
+	return func(ctx context.Context, workers *workers.PoolManager, options options.RunOptions) {
 		for _, stage := range stages {
-			wg.Add(1)
-			setEnvs(stage.params)
-
-			stopStageTicker := time.NewTicker(stage.stageDuration - safeThresholdBeforeNextIteration)
-
-			go func() {
-				defer wg.Done()
-
-				if stage.usersConcurrency == 0 {
-					doWork := api.NewIterationWorker(stage.iterationDuration, stage.rate, tracer)
-					doWork(workTriggered, stopStageCh, workDone, options)
-				} else {
-					doWork := users.NewWorker(stage.usersConcurrency)
-					doWork(workTriggered, stopStageCh, workDone, options)
-				}
-			}()
-
-			// Wait until the current stage is completed or the program is stopped.
-			// In any of the cases, it must wait for the worker to complete and avoid memory leak.
-			// A stage needs to be stopped a bit earlier than the stage duration to avoid extra iterations.
-			for isListening := true; isListening; {
-				select {
-				case <-stop:
-					stopStageCh <- true
-					wg.Wait()
-					unsetEnvs(stage.params)
-					stopStageTicker.Stop()
-					return
-				case <-stopStageTicker.C:
-					select {
-					case <-stop:
-						continue
-					default:
-					}
-
-					stopStageCh <- true
-					wg.Wait()
-					stopStageTicker.Stop()
-					unsetEnvs(stage.params)
-					time.Sleep(safeThresholdBeforeNextIteration)
-					isListening = false
-				}
+			if ctx.Err() != nil {
+				return
 			}
+			runStage(ctx, workers, stage, options, tracer)
 		}
+	}
+}
+
+func runStage(
+	ctx context.Context,
+	workers *workers.PoolManager,
+	stage runnableStage,
+	options options.RunOptions,
+	tracer trace.Tracer,
+) {
+	setEnvs(stage.params)
+	defer unsetEnvs(stage.params)
+
+	// stop the stage early to avoid starting a new tick
+	stageCtx, stageCancel := context.WithTimeout(ctx, stage.stageDuration-safeDurationBeforeNextStage)
+	defer stageCancel()
+
+	stageDone := make(chan struct{})
+
+	go func() {
+		defer close(stageDone)
+
+		if stage.usersConcurrency == 0 {
+			doWork := api.NewIterationWorker(stage.iterationDuration, stage.rate, tracer)
+			doWork(stageCtx, workers, options)
+		} else {
+			doWork := users.NewWorker(stage.usersConcurrency)
+			doWork(stageCtx, workers, options)
+		}
+	}()
+
+	select {
+	case <-ctx.Done():
+		<-stageDone
+		return
+	case <-stageDone:
+		time.Sleep(safeDurationBeforeNextStage)
 	}
 }
 

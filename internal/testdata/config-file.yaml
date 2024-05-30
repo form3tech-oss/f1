@@ -10,6 +10,7 @@ limits:
   max-failures-rate: 0
   ignore-dropped: true
 stages:
+  # [0ms;0] 10/100ms for 5 ticks = 50 in 500ms
   - duration: 500ms
     mode: constant
     rate: 10/100ms
@@ -17,17 +18,21 @@ stages:
     parameters:
       FOO: 1
       BAR: 2
+  # [500ms;50] 5/100ms for 2 ticks = 10 in 200ms
   - duration: 200ms
     mode: constant
     rate: 5/100ms
+  # [700ms; 60] 0ms: 5; 100ms: 5 = 10 in 200ms
   - duration: 200ms
     mode: ramp
     start-rate: 5/100ms
     end-rate: 4/100ms
+  # [900ms; 75] 0ms: 5; 100ms: 5; 200ms: 10; 300ms: 0 = 15 in 400ms
   - duration: 400ms
     mode: staged
     stages: "0s:0,200ms:10,100ms:0"
     iteration-frequency: 100ms
+  # [1300ms; 85] 0
   - duration: 300ms
     mode: gaussian
     volume: 100
@@ -38,6 +43,8 @@ stages:
     standard-deviation: 1m
     jitter: 0
     distribution: none
+  # [1500ms; 100] 100ms: 20
   - duration: 100ms
     mode: users
     concurrency: 20
+  # [1700ms; 105]

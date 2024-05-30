@@ -27,11 +27,11 @@ type runnableStages struct {
 }
 
 type runnableStage struct {
+	rate              api.RateFunction
+	params            map[string]string
 	stageDuration     time.Duration
 	iterationDuration time.Duration
-	rate              api.RateFunction
 	usersConcurrency  int
-	params            map[string]string
 }
 
 func Rate() api.Builder {

@@ -1,6 +1,7 @@
 package users
 
 import (
+	"context"
 	"time"
 
 	"github.com/spf13/pflag"
@@ -8,6 +9,7 @@ import (
 	"github.com/form3tech-oss/f1/v2/internal/options"
 	"github.com/form3tech-oss/f1/v2/internal/trace"
 	"github.com/form3tech-oss/f1/v2/internal/trigger/api"
+	"github.com/form3tech-oss/f1/v2/internal/workers"
 )
 
 func Rate() api.Builder {
@@ -18,9 +20,9 @@ func Rate() api.Builder {
 		Description: "triggers test iterations from a static set of users controlled by the --concurrency flag",
 		Flags:       flags,
 		New: func(*pflag.FlagSet, trace.Tracer) (*api.Trigger, error) {
-			trigger := func(workTriggered chan<- bool, stop <-chan bool, workDone <-chan bool, options options.RunOptions) {
+			trigger := func(ctx context.Context, workers *workers.PoolManager, options options.RunOptions) {
 				doWork := NewWorker(options.Concurrency)
-				doWork(workTriggered, stop, workDone, options)
+				doWork(ctx, workers, options)
 			}
 
 			return &api.Trigger{
@@ -38,18 +40,11 @@ func Rate() api.Builder {
 }
 
 func NewWorker(concurrency int) api.WorkTriggerer {
-	return func(workTriggered chan<- bool, stop <-chan bool, workDone <-chan bool, _ options.RunOptions) {
-		for range concurrency {
-			workTriggered <- true
-		}
+	return func(ctx context.Context, workers *workers.PoolManager, _ options.RunOptions) {
+		pool := workers.NewPool(concurrency)
+		workerCtx := pool.Start(ctx)
 
-		for {
-			select {
-			case <-stop:
-				return
-			case <-workDone:
-				workTriggered <- true
-			}
+		for pool.Queue(workerCtx) {
 		}
 	}
 }
