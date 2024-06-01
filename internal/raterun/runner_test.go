@@ -1,21 +1,23 @@
 //nolint:paralleltest // incompatible with individual leak checks
-package raterun
+package raterun_test
 
 import (
 	"testing"
 	"time"
+
+	"github.com/form3tech-oss/f1/v2/internal/raterun"
 )
 
 func Test_FunctionIsExecutedAtSpecifiedRates(t *testing.T) {
 	given, when, then := NewRatedRunnerStage(t)
 
-	given.some_rates([]Rate{
+	given.some_rates([]raterun.Schedule{
 		// Start immediately, firing function at intervals of 80ms
-		{Start: time.Nanosecond, Rate: time.Millisecond * 80},
+		{StartDelay: time.Nanosecond, Frequency: time.Millisecond * 80},
 		// after 1 second, fire function at intervals of 250ms
-		{Start: time.Second, Rate: time.Millisecond * 250},
+		{StartDelay: time.Second, Frequency: time.Millisecond * 250},
 		// after another 1 second, fire function at intervals of 10ms
-		{Start: time.Second, Rate: time.Millisecond * 10},
+		{StartDelay: time.Second, Frequency: time.Millisecond * 10},
 	}).
 		and().
 		a_rate_runner()
@@ -32,11 +34,11 @@ func Test_FunctionIsExecutedAtSpecifiedRates(t *testing.T) {
 func Test_FunctionIsExecutedAtSpecifiedRatesWhenRatesAreReset(t *testing.T) {
 	given, when, then := NewRatedRunnerStage(t)
 
-	given.some_rates([]Rate{
+	given.some_rates([]raterun.Schedule{
 		// Start immediately, firing function at intervals of 80ms
-		{Start: time.Nanosecond, Rate: time.Millisecond * 80},
+		{StartDelay: time.Nanosecond, Frequency: time.Millisecond * 80},
 		// after 1 second, fire function at intervals of 250ms
-		{Start: time.Second, Rate: time.Millisecond * 250},
+		{StartDelay: time.Second, Frequency: time.Millisecond * 250},
 	}).
 		and().
 		a_rate_runner()
@@ -56,8 +58,8 @@ func Test_FunctionIsExecutedAtSpecifiedRatesWhenRatesAreReset(t *testing.T) {
 func Test_RunnerLeaksWhenNotTerminated(t *testing.T) {
 	given, when, then := NewRatedRunnerStage(t)
 
-	given.some_rates([]Rate{
-		{Start: time.Nanosecond, Rate: time.Millisecond * 80},
+	given.some_rates([]raterun.Schedule{
+		{StartDelay: time.Nanosecond, Frequency: time.Millisecond * 80},
 	}).
 		and().
 		a_rate_runner()

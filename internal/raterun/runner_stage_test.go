@@ -1,20 +1,25 @@
-package raterun
+package raterun_test
 
 import (
+	"context"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.uber.org/goleak"
+
+	"github.com/form3tech-oss/f1/v2/internal/raterun"
 )
 
 type RatedRunnerStage struct {
-	rates    []Rate
-	runner   Runner
-	m        sync.Mutex
-	funcRuns map[time.Duration]int
-	t        *testing.T
+	runner    *raterun.Runner
+	funcRuns  map[time.Duration]int
+	t         *testing.T
+	cancelRun context.CancelFunc
+	rates     []raterun.Schedule
+	m         sync.Mutex
 }
 
 func NewRatedRunnerStage(t *testing.T) (*RatedRunnerStage, *RatedRunnerStage, *RatedRunnerStage) {
@@ -27,7 +32,7 @@ func NewRatedRunnerStage(t *testing.T) (*RatedRunnerStage, *RatedRunnerStage, *R
 	return &stage, &stage, &stage
 }
 
-func (s *RatedRunnerStage) some_rates(rates []Rate) *RatedRunnerStage {
+func (s *RatedRunnerStage) some_rates(rates []raterun.Schedule) *RatedRunnerStage {
 	s.rates = rates
 	return s
 }
@@ -37,17 +42,22 @@ func (s *RatedRunnerStage) and() *RatedRunnerStage {
 }
 
 func (s *RatedRunnerStage) a_rate_runner() *RatedRunnerStage {
-	runner, _ := New(func(rate time.Duration, _ time.Time) {
+	runner, err := raterun.New(func(rate time.Duration) {
 		s.m.Lock()
 		defer s.m.Unlock()
 		s.funcRuns[rate]++
 	}, s.rates)
+
+	require.NoError(s.t, err)
+
 	s.runner = runner
 	return s
 }
 
 func (s *RatedRunnerStage) runner_is_run() *RatedRunnerStage {
-	s.runner.Run()
+	ctx, cancel := context.WithCancel(context.TODO())
+	s.cancelRun = cancel
+	s.runner.Run(ctx)
 	return s
 }
 
@@ -57,7 +67,7 @@ func (s *RatedRunnerStage) time_passes(dur time.Duration) *RatedRunnerStage {
 }
 
 func (s *RatedRunnerStage) runner_is_terminated() *RatedRunnerStage {
-	s.runner.Terminate()
+	s.cancelRun()
 	return s
 }
 
@@ -75,7 +85,7 @@ func (s *RatedRunnerStage) function_ran_times(expectedRuns int) *RatedRunnerStag
 }
 
 func (s *RatedRunnerStage) runner_is_reset() *RatedRunnerStage {
-	s.runner.RestartRate()
+	s.runner.Restart()
 	return s
 }
 
