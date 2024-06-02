@@ -14,10 +14,10 @@ func NewIterationWorker(iterationDuration time.Duration, rate RateFunction, trac
 	return func(ctx context.Context, workers *workers.PoolManager, opts options.RunOptions) {
 		startRate := rate(time.Now())
 
-		pool := workers.NewPool(opts.Concurrency)
+		pool := workers.NewTriggerPool(opts.Concurrency)
 		workerCtx := pool.Start(ctx)
 
-		pool.QueueOrDrop(workerCtx, startRate)
+		pool.Trigger(workerCtx, startRate)
 
 		// start ticker to trigger subsequent iterations.
 		iterationTicker := time.NewTicker(iterationDuration)
@@ -31,7 +31,7 @@ func NewIterationWorker(iterationDuration time.Duration, rate RateFunction, trac
 				return
 			case start := <-iterationTicker.C:
 				iterationRate := rate(start)
-				pool.QueueOrDrop(workerCtx, iterationRate)
+				pool.Trigger(workerCtx, iterationRate)
 			}
 		}
 	}

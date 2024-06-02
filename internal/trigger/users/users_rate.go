@@ -41,10 +41,7 @@ func Rate() api.Builder {
 
 func NewWorker(concurrency int) api.WorkTriggerer {
 	return func(ctx context.Context, workers *workers.PoolManager, _ options.RunOptions) {
-		pool := workers.NewPool(concurrency)
-		workerCtx := pool.Start(ctx)
-
-		for pool.Queue(workerCtx) {
-		}
+		pool := workers.NewContinuousPool(concurrency)
+		pool.Start(ctx)
 	}
 }

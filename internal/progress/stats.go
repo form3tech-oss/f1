@@ -14,12 +14,12 @@ type Stats struct {
 	droppedIterationCount atomic.Uint64
 }
 
-func (s *Stats) Record(result metrics.ResultType, duration time.Duration) {
+func (s *Stats) Record(result metrics.ResultType, nanoseconds int64) {
 	switch result {
 	case metrics.SucessResult:
-		s.successfulIterationDurations.Record(duration)
+		s.successfulIterationDurations.Record(nanoseconds)
 	case metrics.FailedResult:
-		s.failedIterationDurations.Record(duration)
+		s.failedIterationDurations.Record(nanoseconds)
 	case metrics.DroppedResult:
 		s.droppedIterationCount.Add(1)
 	case metrics.UnknownResult:
