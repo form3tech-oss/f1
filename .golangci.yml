@@ -1,4 +1,4 @@
-# Using golangci-lint@v1.58.2
+# Using golangci-lint@v1.59.0
 run:
   timeout: 5m
   tests: true
@@ -9,16 +9,6 @@ linters:
   fast: false
   disable:
   # Deprecated (see https://golangci-lint.run/usage/linters/)
-  - deadcode
-  - golint
-  - ifshort
-  - interfacer
-  - maligned
-  - nosnakecase
-  - scopelint
-  - structcheck
-  - varcheck
-  - exhaustivestruct
   - execinquery
   - gomnd
 
