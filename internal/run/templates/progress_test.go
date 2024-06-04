@@ -35,6 +35,57 @@ func Test_RenderProgress(t *testing.T) {
 			},
 			expected: "[ 1m0s]  ✔    10  ⦸     3  ✘     5 (1/s)   avg: 10µs, min: 1µs, max: 20µs",
 		},
+		{
+			name: "rate rounding",
+			data: templates.ProgressData{
+				Duration:                 1 * time.Minute,
+				SuccessfulIterationCount: 10,
+				DroppedIterationCount:    3,
+				FailedIterationCount:     5,
+				Period:                   980 * time.Millisecond,
+				SuccessfulIterationDurationsForPeriod: progress.IterationDurationsSnapshot{
+					Average: 10 * time.Microsecond,
+					Min:     1 * time.Microsecond,
+					Max:     20 * time.Microsecond,
+					Count:   10,
+				},
+			},
+			expected: "[ 1m0s]  ✔    10  ⦸     3  ✘     5 (10/s)   avg: 10µs, min: 1µs, max: 20µs",
+		},
+		{
+			name: "period less than 500ms",
+			data: templates.ProgressData{
+				Duration:                 1 * time.Minute,
+				SuccessfulIterationCount: 10,
+				DroppedIterationCount:    3,
+				FailedIterationCount:     5,
+				Period:                   100 * time.Millisecond,
+				SuccessfulIterationDurationsForPeriod: progress.IterationDurationsSnapshot{
+					Average: 10 * time.Microsecond,
+					Min:     1 * time.Microsecond,
+					Max:     20 * time.Microsecond,
+					Count:   10,
+				},
+			},
+			expected: "[ 1m0s]  ✔    10  ⦸     3  ✘     5 (0/s)   avg: 10µs, min: 1µs, max: 20µs",
+		},
+		{
+			name: "no iterations",
+			data: templates.ProgressData{
+				Duration:                 1 * time.Minute,
+				SuccessfulIterationCount: 0,
+				DroppedIterationCount:    0,
+				FailedIterationCount:     0,
+				Period:                   1 * time.Second,
+				SuccessfulIterationDurationsForPeriod: progress.IterationDurationsSnapshot{
+					Average: 0,
+					Min:     0,
+					Max:     0,
+					Count:   0,
+				},
+			},
+			expected: "[ 1m0s]  ✔     0  ✘     0 (0/s)   avg: 0s, min: 0s, max: 0s",
+		},
 	}
 
 	tmpl := templates.Parse(templates.DisableRenderTermColors)
