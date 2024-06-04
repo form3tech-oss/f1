@@ -71,6 +71,16 @@ func (i *IterationDurations) average() (int64, uint64) {
 func (i *IterationDurations) Update(other *IterationDurations) {
 	i.sum.Add(other.sum.Load())
 	i.count.Add(other.count.Load())
+
+	min := other.min.Load()
+	if i.min.Load() == 0 || (i.min.Load() > min && min > 0) {
+		i.min.Store(min)
+	}
+
+	max := other.max.Load()
+	if i.max.Load() < max {
+		i.max.Store(max)
+	}
 }
 
 func (i *IterationDurations) Reset() {
