@@ -32,6 +32,22 @@ func TestRegularRateDistribution(t *testing.T) {
 			expectedDistributedRates: []int{5, 5},
 		},
 		{
+			iterationDuration:        215 * time.Millisecond,
+			rate:                     1,
+			expectedDistributedRates: []int{0, 1},
+		},
+		{
+			iterationDuration:        299 * time.Millisecond,
+			rate:                     1,
+			expectedDistributedRates: []int{0, 1},
+		},
+
+		{
+			iterationDuration:        300 * time.Millisecond,
+			rate:                     1,
+			expectedDistributedRates: []int{0, 0, 1},
+		},
+		{
 			iterationDuration:        900 * time.Millisecond,
 			rate:                     7,
 			expectedDistributedRates: []int{0, 1, 1, 1, 0, 1, 1, 1, 1},
