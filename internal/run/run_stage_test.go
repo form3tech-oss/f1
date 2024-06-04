@@ -13,7 +13,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/avast/retry-go/v4"
 	"github.com/prometheus/client_golang/prometheus"
 	io_prometheus_client "github.com/prometheus/client_model/go"
 	"github.com/prometheus/common/expfmt"
@@ -44,49 +43,44 @@ const (
 )
 
 type RunTestStage struct {
-	duration               time.Duration
-	runCount               atomic.Uint32
 	startTime              time.Time
-	t                      *testing.T
-	scenario               string
+	runError               error
+	tracer                 trace.Tracer
+	metrics                *metrics.Metrics
+	printer                *console.Printer
 	runInstance            *run.Run
 	runResult              *run.Result
-	runError               error
-	concurrency            int
-	setupTeardownCount     atomic.Uint32
-	iterationTeardownCount atomic.Uint32
-	assert                 *assert.Assertions
-	rate                   string
-	maxIterations          uint64
-	maxFailures            uint64
-	maxFailuresRate        int
-	triggerType            TriggerType
-	stages                 string
-	frequency              string
+	t                      *testing.T
 	require                *require.Assertions
+	metricData             *MetricData
+	scenarioCleanup        func()
+	assert                 *assert.Assertions
+	tracerReader           *io.PipeReader
+	tracerWriter           *io.PipeWriter
+	iterationCleanup       func()
+	f1                     *f1.F1
+	durations              sync.Map
+	frequency              string
+	rate                   string
+	stages                 string
 	distributionType       string
 	configFile             string
 	startRate              string
 	endRate                string
 	rampDuration           string
-	durations              sync.Map
-	f1                     *f1.F1
-
-	tracer       trace.Tracer
-	tracerWg     sync.WaitGroup
-	tracerOutput bytes.Buffer
-	tracerWriter *io.PipeWriter
-	tracerReader *io.PipeReader
-
-	printer *console.Printer
-
-	settings envsettings.Settings
-
-	metricData *MetricData
-	metrics    *metrics.Metrics
-
-	scenarioCleanup  func()
-	iterationCleanup func()
+	scenario               string
+	settings               envsettings.Settings
+	tracerOutput           bytes.Buffer
+	tracerWg               sync.WaitGroup
+	maxFailures            uint64
+	maxIterations          uint64
+	maxFailuresRate        int
+	duration               time.Duration
+	concurrency            int
+	triggerType            TriggerType
+	iterationTeardownCount atomic.Uint32
+	setupTeardownCount     atomic.Uint32
+	runCount               atomic.Uint32
 }
 
 func NewRunTestStage(t *testing.T) (*RunTestStage, *RunTestStage, *RunTestStage) {
@@ -549,7 +543,7 @@ func (s *RunTestStage) all_other_percentiles_are_fast() *RunTestStage {
 }
 
 func (s *RunTestStage) there_is_a_metric_called(metricName string) *RunTestStage {
-	err := retry.Do(func() error {
+	err := retry(func() error {
 		metricNames := s.metricData.GetMetricNames()
 		for _, mn := range metricNames {
 			if mn == metricName {
@@ -557,13 +551,13 @@ func (s *RunTestStage) there_is_a_metric_called(metricName string) *RunTestStage
 			}
 		}
 		return fmt.Errorf("%v did not contain %s", metricNames, metricName)
-	})
+	}, 10, 50*time.Millisecond)
 	s.require.NoError(err)
 	return s
 }
 
 func (s *RunTestStage) the_iteration_metric_has_n_results(n int, result string) *RunTestStage {
-	err := retry.Do(func() error {
+	err := retry(func() error {
 		metricFamily := s.metricData.GetMetricFamily(iterationMetricFamily)
 		s.require.NotNil(metricFamily, "metric family %s not found", iterationMetricFamily)
 		resultMetric := getMetricByResult(metricFamily, result)
@@ -572,7 +566,7 @@ func (s *RunTestStage) the_iteration_metric_has_n_results(n int, result string) 
 			return nil
 		}
 		return fmt.Errorf("expected %d to equal %d", uint64(n), resultMetric.GetSummary().GetSampleCount())
-	})
+	}, 10, 50*time.Millisecond)
 	s.require.NoError(err)
 	return s
 }
@@ -656,4 +650,17 @@ func getMetricByResult(metricFamily *io_prometheus_client.MetricFamily, result s
 		}
 	}
 	return nil
+}
+
+func retry(retryable func() error, retries int, delay time.Duration) error {
+	var err error
+	for range retries {
+		err = retryable()
+		if err == nil {
+			return nil
+		}
+
+		time.Sleep(delay)
+	}
+	return err
 }
