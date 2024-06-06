@@ -6,14 +6,22 @@ import (
 	"time"
 )
 
-// RunFunction function to be executed every period
-type RunFunction func(period time.Duration)
+// RunFunction is a function type that represents the function to be executed by the Runner.
+//
+// It will be called with the frequency at which the function is executed.
+type RunFunction func(frequency time.Duration)
 
+// Schedule configures when and how frequent the Runner will execute the function
 type Schedule struct {
+	// StartDelay is when the function will start executing at a certain frequency
 	StartDelay time.Duration
-	Frequency  time.Duration
+	// Frequency configures how often the function will be executed during this Schedule
+	Frequency time.Duration
 }
 
+// New creates a new runner that will execute fn as defined by the provided schedules
+//
+// Each Schedule in schedules defines how often fn should be executed at any given point in time.
 func New(fn RunFunction, schedules []Schedule) (*Runner, error) {
 	if len(schedules) == 0 {
 		return nil, errors.New("empty schedules")
@@ -23,6 +31,7 @@ func New(fn RunFunction, schedules []Schedule) (*Runner, error) {
 		restart:     make(chan struct{}, 1),
 		runFunction: fn,
 		schedules:   newSchedules(schedules),
+		stopped:     make(chan struct{}),
 	}
 
 	return rateRunner, nil
@@ -33,13 +42,25 @@ type Runner struct {
 	runFunction RunFunction
 
 	schedules *schedules
+	cancel    context.CancelFunc
+	stopped   chan struct{}
 }
 
+// Restart will stop the current schedule and start from the first one defined.
 func (r *Runner) Restart() {
 	r.restart <- struct{}{}
 }
 
-func (r *Runner) Run(ctx context.Context) {
+// Start starts the execution of the runner.
+//
+// Start is non-blockig and runs in a go routine. The provided context can be used to manage the
+// lifecycle. Stop() will also terminate the runner.
+func (r *Runner) Start(ctx context.Context) {
+	defer close(r.stopped)
+
+	schedulesCtx, schedulesCtxCancel := context.WithCancel(ctx)
+	r.cancel = schedulesCtxCancel
+
 	go func() {
 		for {
 			select {
@@ -49,12 +70,18 @@ func (r *Runner) Run(ctx context.Context) {
 				r.schedules.startNext()
 			case <-r.schedules.currentScheduleTicker():
 				r.runFunction(r.schedules.currentFrequency())
-			case <-ctx.Done():
+			case <-schedulesCtx.Done():
 				r.schedules.stop()
 				return
 			}
 		}
 	}()
+}
+
+// Stop stopps the runner and will block until the runner is stopped
+func (r *Runner) Stop() {
+	r.cancel()
+	<-r.stopped
 }
 
 type schedules struct {

@@ -163,12 +163,11 @@ func (r *Run) Do(ctx context.Context, s *scenarios.Scenarios) (*Result, error) {
 		}
 	}()
 
-	progressCtx, progressCancel := context.WithCancel(ctx)
-	r.progressRunner.Run(progressCtx)
+	r.progressRunner.Start(ctx)
 
 	r.run(ctx)
 
-	progressCancel()
+	r.progressRunner.Stop()
 	close(metricsCloseCh)
 	r.result.GetTotals()
 

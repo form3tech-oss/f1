@@ -57,7 +57,7 @@ func (s *RatedRunnerStage) a_rate_runner() *RatedRunnerStage {
 func (s *RatedRunnerStage) runner_is_run() *RatedRunnerStage {
 	ctx, cancel := context.WithCancel(context.TODO())
 	s.cancelRun = cancel
-	s.runner.Run(ctx)
+	s.runner.Start(ctx)
 	return s
 }
 
