@@ -95,8 +95,8 @@ type DurationStats struct {
 	lifetime IterationDurations
 }
 
-func (d *DurationStats) Record(duration time.Duration) {
-	d.running.Add(duration.Abs().Nanoseconds())
+func (d *DurationStats) Record(nanoseconds int64) {
+	d.running.Add(nanoseconds)
 }
 
 func (d *DurationStats) CollectLifetime() (IterationDurationsSnapshot, IterationDurationsSnapshot) {

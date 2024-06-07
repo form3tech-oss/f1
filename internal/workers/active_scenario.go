@@ -1,10 +1,9 @@
 package workers
 
 import (
-	"time"
-
 	"github.com/form3tech-oss/f1/v2/internal/metrics"
 	"github.com/form3tech-oss/f1/v2/internal/progress"
+	"github.com/form3tech-oss/f1/v2/internal/xtime"
 	"github.com/form3tech-oss/f1/v2/pkg/f1/scenarios"
 	"github.com/form3tech-oss/f1/v2/pkg/f1/testing"
 )
@@ -34,15 +33,16 @@ func NewActiveScenario(
 		progress: stats,
 	}
 
-	start := time.Now()
+	start := xtime.NanoTime()
 	func() {
 		defer testing.CheckResults(t, nil)
 
 		s.scenario.RunFn = s.scenario.ScenarioFn(t)
 	}()
+	duration := xtime.NanoTime() - start
 
 	// wait for completion
-	s.m.RecordSetupResult(scenario.Name, metrics.Result(t.Failed()), time.Since(start).Nanoseconds())
+	s.m.RecordSetupResult(scenario.Name, metrics.Result(t.Failed()), duration)
 	return s
 }
 
@@ -58,16 +58,16 @@ func (s *ActiveScenario) Failed() bool {
 func (s *ActiveScenario) Run(state *iterationState) {
 	defer state.teardown()
 
-	start := time.Now()
+	start := xtime.NanoTime()
 	func() {
 		defer testing.CheckResults(state.t, nil)
 		s.scenario.RunFn(state.t)
 	}()
 
 	failed := state.t.Failed()
-	duration := time.Since(start)
+	duration := xtime.NanoTime() - start
 
-	s.m.RecordIterationResult(s.scenario.Name, metrics.Result(failed), duration.Nanoseconds())
+	s.m.RecordIterationResult(s.scenario.Name, metrics.Result(failed), duration)
 	s.progress.Record(metrics.Result(failed), duration)
 }
 

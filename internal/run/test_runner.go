@@ -236,7 +236,7 @@ func (r *Run) run(ctx context.Context) {
 	triggerCtx, triggerCancel := context.WithTimeout(ctx, duration-nextIterationWindow)
 	defer triggerCancel()
 
-	poolManager := workers.New(r.Options.MaxIterations, r.activeScenario, r.tracer)
+	poolManager := workers.New(r.Options.MaxIterations, r.activeScenario)
 	r.trigger.Trigger(triggerCtx, poolManager, r.Options)
 
 	select {
