@@ -1,6 +1,7 @@
 package templates
 
 import (
+	"math"
 	"strings"
 	"text/template"
 	"time"
@@ -29,10 +30,13 @@ type Templates struct {
 func Parse(renderTermColors RenderTermColorsType) *Templates {
 	templateFunctions := template.FuncMap{
 		"rate": func(duration time.Duration, count uint64) uint64 {
-			if uint64(duration/time.Second) == 0 {
+			durationInSeconds := duration.Round(time.Second).Seconds()
+
+			if durationInSeconds == 0 {
 				return 0
 			}
-			return count / uint64(duration/time.Second)
+
+			return uint64(math.Round(float64(count) / durationInSeconds))
 		},
 		"durationSeconds": func(d time.Duration) time.Duration {
 			return d.Round(time.Second)
