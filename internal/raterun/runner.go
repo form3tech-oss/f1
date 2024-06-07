@@ -1,102 +1,144 @@
 package raterun
 
 import (
+	"context"
 	"errors"
 	"time"
 )
 
-// RunFunction function to be executed at specified rate
-type RunFunction func(rate time.Duration, t time.Time)
+// RunFunction is a function type that represents the function to be executed by the Runner.
+//
+// It will be called with the frequency at which the function is executed.
+type RunFunction func(frequency time.Duration)
 
-type Rate struct {
-	Start time.Duration // when to start this rate
-	Rate  time.Duration // run in amount of Duration
+// Schedule configures when and how frequent the Runner will execute the function
+type Schedule struct {
+	// StartDelay is when the function will start executing at a certain frequency
+	StartDelay time.Duration
+	// Frequency configures how often the function will be executed during this Schedule
+	Frequency time.Duration
 }
 
-type Runner interface {
-	// Terminate cancels scheduling for the next run
-	Terminate()
-	// RestartRate resets function calling back to first defined rate
-	RestartRate()
-	// run starts running the function at rates provided to the constructor
-	Run()
-}
-
-// New creates a new runner which varies in time according to given rates
-func New(fn RunFunction, rates []Rate) (*Instance, error) {
-	if len(rates) == 0 {
-		return nil, errors.New("empty rates")
+// New creates a new runner that will execute fn as defined by the provided schedules
+//
+// Each Schedule in schedules defines how often fn should be executed at any given point in time.
+func New(fn RunFunction, schedules []Schedule) (*Runner, error) {
+	if len(schedules) == 0 {
+		return nil, errors.New("empty schedules")
 	}
 
-	rateRunner := &Instance{
-		terminateRunner: make(chan bool, 1),
-		restartRates:    make(chan bool, 1),
-		runFunction:     fn,
-		rates:           rates,
-		nextRateIndex:   0,
+	rateRunner := &Runner{
+		restart:     make(chan struct{}, 1),
+		runFunction: fn,
+		schedules:   newSchedules(schedules),
+		stopped:     make(chan struct{}),
 	}
 
 	return rateRunner, nil
 }
 
-type Instance struct {
-	terminateRunner chan bool
-	restartRates    chan bool
-	// function that is going to be run at specific timed intervals,
-	// according to current rate set at a specific moment in time
+type Runner struct {
+	restart     chan struct{}
 	runFunction RunFunction
-	rates       []Rate
-	// index for the next rate in rates array
-	nextRateIndex int
-	// runs runFunction at current rate interval
-	fnTicker *time.Ticker
-	// rateTimer controls when to Start next rate interval
-	rateTimer *time.Timer
+
+	schedules *schedules
+	cancel    context.CancelFunc
+	stopped   chan struct{}
 }
 
-func (rr *Instance) Terminate() {
-	rr.terminateRunner <- true
+// Restart will stop the current schedule and start from the first one defined.
+func (r *Runner) Restart() {
+	r.restart <- struct{}{}
 }
 
-func (rr *Instance) RestartRate() {
-	rr.restartRates <- true
-}
+// Start starts the execution of the runner.
+//
+// Start is non-blockig and runs in a go routine. The provided context can be used to manage the
+// lifecycle. Stop() will also terminate the runner.
+func (r *Runner) Start(ctx context.Context) {
+	defer close(r.stopped)
 
-func (rr *Instance) Run() {
+	schedulesCtx, schedulesCtxCancel := context.WithCancel(ctx)
+	r.cancel = schedulesCtxCancel
+
 	go func() {
-		rr.rateTimer = time.NewTimer(rr.rates[0].Start)
-		rr.fnTicker = time.NewTicker(time.Hour)
 		for {
 			select {
-			case <-rr.restartRates:
-				rr.nextRateIndex = 0
-				rr.scheduleNextRate(rr.nextRateIndex)
-			case <-rr.rateTimer.C:
-				rate := rr.rates[rr.nextRateIndex]
-				rr.nextRateIndex++
-				rr.scheduleNextRate(rr.nextRateIndex)
-				rr.runAtRate(rate)
-			case t := <-rr.fnTicker.C:
-				rr.runFunction(rr.rates[rr.nextRateIndex-1].Rate, t)
-			case <-rr.terminateRunner:
-				rr.rateTimer.Stop()
-				rr.fnTicker.Stop()
+			case <-r.restart:
+				r.schedules.startFirst()
+			case <-r.schedules.timeUntilNextSchedule():
+				r.schedules.startNext()
+			case <-r.schedules.currentScheduleTicker():
+				r.runFunction(r.schedules.currentFrequency())
+			case <-schedulesCtx.Done():
+				r.schedules.stop()
 				return
 			}
 		}
 	}()
 }
 
-func (rr *Instance) scheduleNextRate(rateIndex int) {
-	if rateIndex < len(rr.rates) {
-		nextRate := rr.rates[rateIndex]
-		// close rateTimer if it hasn't run yet to prevent double runs
-		rr.rateTimer.Stop()
-		rr.rateTimer = time.NewTimer(nextRate.Start)
+// Stop stopps the runner and will block until the runner is stopped
+func (r *Runner) Stop() {
+	r.cancel()
+	<-r.stopped
+}
+
+type schedules struct {
+	ticker               *time.Ticker
+	nextScheduleTimer    *time.Timer
+	list                 []Schedule
+	currentScheduleIndex int
+}
+
+func newSchedules(list []Schedule) *schedules {
+	return &schedules{
+		list:                 list,
+		currentScheduleIndex: -1,
+		ticker:               time.NewTicker(time.Hour),
+		nextScheduleTimer:    time.NewTimer(list[0].StartDelay),
 	}
 }
 
-func (rr *Instance) runAtRate(rate Rate) {
-	rr.fnTicker.Stop()
-	rr.fnTicker = time.NewTicker(rate.Rate)
+func (s *schedules) start(index int) {
+	if index >= len(s.list) {
+		return
+	}
+
+	s.ticker.Stop()
+	s.currentScheduleIndex = index
+	s.ticker = time.NewTicker(s.list[s.currentScheduleIndex].Frequency)
+
+	nextIndex := s.currentScheduleIndex + 1
+	s.nextScheduleTimer.Stop()
+	if nextIndex >= len(s.list) {
+		return
+	}
+
+	s.nextScheduleTimer = time.NewTimer(s.list[nextIndex].StartDelay)
+}
+
+func (s *schedules) startFirst() {
+	s.start(0)
+}
+
+func (s *schedules) startNext() {
+	s.start(s.currentScheduleIndex + 1)
+}
+
+func (s *schedules) currentFrequency() time.Duration {
+	return s.list[s.currentScheduleIndex].Frequency
+}
+
+func (s *schedules) stop() {
+	s.ticker.Stop()
+	s.nextScheduleTimer.Stop()
+}
+
+func (s *schedules) timeUntilNextSchedule() <-chan time.Time {
+	return s.nextScheduleTimer.C
+}
+
+func (s *schedules) currentScheduleTicker() <-chan time.Time {
+	return s.ticker.C
 }

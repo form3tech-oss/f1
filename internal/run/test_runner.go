@@ -34,7 +34,7 @@ const (
 )
 
 type Run struct {
-	progressRunner  raterun.Runner
+	progressRunner  *raterun.Runner
 	tracer          trace.Tracer
 	progressStats   *progress.Stats
 	metrics         *metrics.Metrics
@@ -88,7 +88,7 @@ func NewRun(
 		run.Options.RegisterLogHookFunc = logging.NoneRegisterLogHookFunc
 	}
 
-	progressRunner, _ := raterun.New(func(rate time.Duration, _ time.Time) {
+	progressRunner, err := raterun.New(func(rate time.Duration) {
 		run.result.SnapshotProgress(rate)
 		run.printer.Println(run.result.Progress())
 		if run.result.HasDroppedIterations() {
@@ -96,12 +96,16 @@ func NewRun(
 				logrus.Warn("Dropping requests as workers are too busy. Considering increasing `--concurrency` argument")
 			})
 		}
-	}, []raterun.Rate{
-		{Start: time.Nanosecond, Rate: time.Second},
-		{Start: time.Minute, Rate: time.Second * 10},
-		{Start: time.Minute * 5, Rate: time.Minute / 2},
-		{Start: time.Minute * 10, Rate: time.Minute},
+	}, []raterun.Schedule{
+		{StartDelay: 0, Frequency: time.Second},
+		{StartDelay: time.Minute, Frequency: 10 * time.Second},
+		{StartDelay: 5 * time.Minute, Frequency: 30 * time.Second},
+		{StartDelay: 10 * time.Minute, Frequency: time.Minute},
 	})
+	if err != nil {
+		return nil, fmt.Errorf("creating progress runner: %w", err)
+	}
+
 	run.progressRunner = progressRunner
 
 	return &run, nil
@@ -141,7 +145,6 @@ func (r *Run) Do(ctx context.Context, s *scenarios.Scenarios) (*Result, error) {
 
 	// set initial started timestamp so that the progress trackers work
 	r.result.RecordStarted()
-	r.progressRunner.Run()
 
 	metricsCloseCh := make(chan struct{})
 	go func() {
@@ -160,9 +163,11 @@ func (r *Run) Do(ctx context.Context, s *scenarios.Scenarios) (*Result, error) {
 		}
 	}()
 
+	r.progressRunner.Start(ctx)
+
 	r.run(ctx)
 
-	r.progressRunner.Terminate()
+	r.progressRunner.Stop()
 	close(metricsCloseCh)
 	r.result.GetTotals()
 
@@ -237,7 +242,7 @@ func (r *Run) run(ctx context.Context) {
 	select {
 	case <-ctx.Done():
 		r.printer.Println(r.result.Interrupted())
-		r.progressRunner.RestartRate()
+		r.progressRunner.Restart()
 		<-poolManager.WaitForCompletion()
 	case <-triggerCtx.Done():
 		if triggerCtx.Err() == context.DeadlineExceeded {
