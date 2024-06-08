@@ -95,7 +95,6 @@ It provides the following information:
 | `PROMETHEUS_NAMESPACE` | string | `""` | Sets the metric label `namespace` to the specified value. Label is omitted if the value provided is empty.|
 | `PROMETHEUS_LABEL_ID` | string | `""` | Sets the metric label `id` to the specified value. Label is omitted if the value provided is empty.|
 | `LOG_FILE_PATH` | string | `""`| Specify the log file path if `--verbose` is enabled. The logfile path will be an automatically generated temp file if not specified. |
-| `TRACE` | bool | "" | If set to `"true"` detailed internal tracing is printed to stdout. Disabled by default. |
 | `FLUENTD_HOST`| string | "" | Enable log shipping to a fluentd host. Must together with `FLUENTD_PORT`. Disabled by default. |
 | `FLUENTD_PORT`| int | "" | Enable log shipping to a fluentd host. Must together with `FLUENTD_HOST`. Disabled by default. |
 

@@ -1,7 +1,6 @@
 package run_test
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -25,7 +24,6 @@ import (
 	"github.com/form3tech-oss/f1/v2/internal/metrics"
 	"github.com/form3tech-oss/f1/v2/internal/options"
 	"github.com/form3tech-oss/f1/v2/internal/run"
-	"github.com/form3tech-oss/f1/v2/internal/trace"
 	"github.com/form3tech-oss/f1/v2/internal/trigger/api"
 	"github.com/form3tech-oss/f1/v2/internal/trigger/constant"
 	"github.com/form3tech-oss/f1/v2/internal/trigger/file"
@@ -45,7 +43,6 @@ const (
 type RunTestStage struct {
 	startTime              time.Time
 	runError               error
-	tracer                 trace.Tracer
 	metrics                *metrics.Metrics
 	printer                *console.Printer
 	runInstance            *run.Run
@@ -55,8 +52,6 @@ type RunTestStage struct {
 	metricData             *MetricData
 	scenarioCleanup        func()
 	assert                 *assert.Assertions
-	tracerReader           *io.PipeReader
-	tracerWriter           *io.PipeWriter
 	iterationCleanup       func()
 	f1                     *f1.F1
 	durations              sync.Map
@@ -70,8 +65,6 @@ type RunTestStage struct {
 	rampDuration           string
 	scenario               string
 	settings               envsettings.Settings
-	tracerOutput           bytes.Buffer
-	tracerWg               sync.WaitGroup
 	maxFailures            uint64
 	maxIterations          uint64
 	maxFailuresRate        int
@@ -91,7 +84,6 @@ func NewRunTestStage(t *testing.T) (*RunTestStage, *RunTestStage, *RunTestStage)
 		assert:      assert.New(t),
 		require:     require.New(t),
 		f1:          f1.New(),
-		tracer:      trace.NewConsoleTracer(io.Discard),
 		settings:    envsettings.Get(),
 		metricData:  NewMetricData(),
 		printer:     console.NewPrinter(io.Discard),
@@ -108,8 +100,6 @@ func NewRunTestStage(t *testing.T) (*RunTestStage, *RunTestStage, *RunTestStage)
 
 	stage.scenarioCleanup = func() { stage.setupTeardownCount.Add(1) }
 	stage.iterationCleanup = func() { stage.iterationTeardownCount.Add(1) }
-
-	stage.tracerReader, stage.tracerWriter = io.Pipe()
 
 	return stage, stage, stage
 }
@@ -174,7 +164,7 @@ func (s *RunTestStage) setupRun() {
 			MaxFailuresRate:     s.maxFailuresRate,
 			RegisterLogHookFunc: fluentd.LoggingHook(s.settings.Fluentd.Host, s.settings.Fluentd.Port),
 		},
-		s.build_trigger(), s.settings, s.metrics, s.tracer, s.printer)
+		s.build_trigger(), s.settings, s.metrics, s.printer)
 	if err != nil {
 		s.runError = fmt.Errorf("run create: %w", err)
 	}
@@ -418,7 +408,7 @@ func (s *RunTestStage) build_trigger() *api.Trigger {
 			require.NoError(s.t, err)
 		}
 
-		t, err = constant.Rate().New(flags, s.tracer)
+		t, err = constant.Rate().New(flags)
 		require.NoError(s.t, err)
 	case Staged:
 		flags := staged.Rate().Flags
@@ -434,11 +424,11 @@ func (s *RunTestStage) build_trigger() *api.Trigger {
 			require.NoError(s.t, err)
 		}
 
-		t, err = staged.Rate().New(flags, s.tracer)
+		t, err = staged.Rate().New(flags)
 		require.NoError(s.t, err)
 	case Users:
 		flags := users.Rate().Flags
-		t, err = users.Rate().New(flags, s.tracer)
+		t, err = users.Rate().New(flags)
 		require.NoError(s.t, err)
 	case Ramp:
 		flags := ramp.Rate().Flags
@@ -463,7 +453,7 @@ func (s *RunTestStage) build_trigger() *api.Trigger {
 			require.NoError(s.t, err)
 		}
 
-		t, err = ramp.Rate().New(flags, s.tracer)
+		t, err = ramp.Rate().New(flags)
 		require.NoError(s.t, err)
 	case File:
 		flags := file.Rate().Flags
@@ -471,7 +461,7 @@ func (s *RunTestStage) build_trigger() *api.Trigger {
 		err := flags.Parse([]string{s.configFile})
 		require.NoError(s.t, err)
 
-		t, err = file.Rate().New(flags, s.tracer)
+		t, err = file.Rate().New(flags)
 		require.NoError(s.t, err)
 	}
 	return t
@@ -594,27 +584,6 @@ func (s *RunTestStage) all_exported_metrics_contain_label(labelName string, labe
 			}
 		}
 	}
-	return s
-}
-
-func (s *RunTestStage) the_trace_output_should_be_present() *RunTestStage {
-	s.require.NoError(s.tracerWriter.Close())
-	s.tracerWg.Wait()
-
-	s.require.NotEmpty(s.tracerOutput)
-	return s
-}
-
-func (s *RunTestStage) tracing_is_enabled() *RunTestStage {
-	s.tracerWg.Add(1)
-
-	go func() {
-		defer s.tracerWg.Done()
-		_, err := io.Copy(&s.tracerOutput, s.tracerReader)
-		s.require.NoError(err)
-	}()
-
-	s.tracer = trace.NewConsoleTracer(s.tracerWriter)
 	return s
 }
 
