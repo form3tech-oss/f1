@@ -6,7 +6,6 @@ import (
 
 	"github.com/spf13/pflag"
 
-	"github.com/form3tech-oss/f1/v2/internal/trace"
 	"github.com/form3tech-oss/f1/v2/internal/trigger/api"
 	"github.com/form3tech-oss/f1/v2/internal/trigger/rate"
 	"github.com/form3tech-oss/f1/v2/internal/triggerflags"
@@ -28,7 +27,7 @@ func Rate() api.Builder {
 		Name:        "constant <scenario>",
 		Description: "triggers test iterations at a constant rate",
 		Flags:       flags,
-		New: func(params *pflag.FlagSet, tracer trace.Tracer) (*api.Trigger, error) {
+		New: func(params *pflag.FlagSet) (*api.Trigger, error) {
 			rateArg, err := params.GetString(flagRate)
 			if err != nil {
 				return nil, fmt.Errorf("getting flag: %w", err)
@@ -48,7 +47,7 @@ func Rate() api.Builder {
 			}
 
 			return &api.Trigger{
-					Trigger:     api.NewIterationWorker(rates.IterationDuration, rates.Rate, tracer),
+					Trigger:     api.NewIterationWorker(rates.IterationDuration, rates.Rate),
 					Description: fmt.Sprintf("%s constant rate, using distribution %s", rateArg, distributionTypeArg),
 					DryRun:      rates.Rate,
 				},

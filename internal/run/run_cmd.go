@@ -12,7 +12,6 @@ import (
 	"github.com/form3tech-oss/f1/v2/internal/logging"
 	"github.com/form3tech-oss/f1/v2/internal/metrics"
 	"github.com/form3tech-oss/f1/v2/internal/options"
-	"github.com/form3tech-oss/f1/v2/internal/trace"
 	"github.com/form3tech-oss/f1/v2/internal/trigger/api"
 	"github.com/form3tech-oss/f1/v2/internal/triggerflags"
 	"github.com/form3tech-oss/f1/v2/pkg/f1/scenarios"
@@ -24,7 +23,6 @@ func Cmd(
 	settings envsettings.Settings,
 	hookFunc logging.RegisterLogHookFunc,
 	metricsInstance *metrics.Metrics,
-	tracer trace.Tracer,
 	printer *console.Printer,
 ) *cobra.Command {
 	runCmd := &cobra.Command{
@@ -36,7 +34,7 @@ func Cmd(
 		triggerCmd := &cobra.Command{
 			Use:   t.Name,
 			Short: t.Description,
-			RunE:  runCmdExecute(s, t, settings, hookFunc, metricsInstance, tracer, printer),
+			RunE:  runCmdExecute(s, t, settings, hookFunc, metricsInstance, printer),
 			Args:  cobra.MatchAll(cobra.ExactArgs(1)),
 		}
 
@@ -72,13 +70,12 @@ func runCmdExecute(
 	settings envsettings.Settings,
 	hookFunc logging.RegisterLogHookFunc,
 	metricsInstance *metrics.Metrics,
-	tracer trace.Tracer,
 	printer *console.Printer,
 ) func(cmd *cobra.Command, args []string) error {
 	return func(cmd *cobra.Command, args []string) error {
 		cmd.SilenceUsage = true
 
-		trig, err := t.New(cmd.Flags(), tracer)
+		trig, err := t.New(cmd.Flags())
 		if err != nil {
 			return fmt.Errorf("creating trigger command: %w", err)
 		}
@@ -151,7 +148,7 @@ func runCmdExecute(
 			MaxFailuresRate:     maxFailuresRate,
 			RegisterLogHookFunc: hookFunc,
 			IgnoreDropped:       ignoreDropped,
-		}, trig, settings, metricsInstance, tracer, printer)
+		}, trig, settings, metricsInstance, printer)
 		if err != nil {
 			return fmt.Errorf("new run: %w", err)
 		}

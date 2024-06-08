@@ -11,7 +11,6 @@ import (
 
 	"github.com/form3tech-oss/f1/v2/internal/console"
 	"github.com/form3tech-oss/f1/v2/internal/support/errorh"
-	"github.com/form3tech-oss/f1/v2/internal/trace"
 	"github.com/form3tech-oss/f1/v2/internal/trigger/api"
 )
 
@@ -21,7 +20,7 @@ const (
 	flagFilename      = "filename"
 )
 
-func Cmd(builders []api.Builder, tracer trace.Tracer, printer *console.Printer) *cobra.Command {
+func Cmd(builders []api.Builder, printer *console.Printer) *cobra.Command {
 	chartCmd := &cobra.Command{
 		Use:   "chart <subcommand>",
 		Short: "plots a chart of the test scenarios that would be triggered over time with the provided run function",
@@ -31,7 +30,7 @@ func Cmd(builders []api.Builder, tracer trace.Tracer, printer *console.Printer) 
 		triggerCmd := &cobra.Command{
 			Use:   t.Name,
 			Short: t.Description,
-			RunE:  chartCmdExecute(t, tracer, printer),
+			RunE:  chartCmdExecute(t, printer),
 		}
 		triggerCmd.Flags().String(flagChartStart, time.Now().Format(time.RFC3339), "Optional start time for the chart")
 		triggerCmd.Flags().Duration(flagChartDuration, 10*time.Minute, "Duration for the chart")
@@ -45,7 +44,6 @@ func Cmd(builders []api.Builder, tracer trace.Tracer, printer *console.Printer) 
 
 func chartCmdExecute(
 	t api.Builder,
-	tracer trace.Tracer,
 	printer *console.Printer,
 ) func(cmd *cobra.Command, args []string) error {
 	return func(cmd *cobra.Command, _ []string) error {
@@ -68,7 +66,7 @@ func chartCmdExecute(
 			return fmt.Errorf("getting flag: %w", err)
 		}
 
-		trig, err := t.New(cmd.Flags(), tracer)
+		trig, err := t.New(cmd.Flags())
 		if err != nil {
 			return fmt.Errorf("creating builder: %w", err)
 		}

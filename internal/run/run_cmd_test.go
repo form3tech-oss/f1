@@ -722,20 +722,6 @@ func TestParameterisedMaxFailures(t *testing.T) {
 	}
 }
 
-func TestTracing(t *testing.T) {
-	t.Parallel()
-
-	given, when, then := NewRunTestStage(t)
-
-	given.
-		tracing_is_enabled().and().
-		a_concurrent_constant_trigger_is_configured().and()
-
-	when.the_run_command_is_executed()
-
-	then.the_trace_output_should_be_present()
-}
-
 func TestFluentd_InvalidPort(t *testing.T) {
 	t.Parallel()
 

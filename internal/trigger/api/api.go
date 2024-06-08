@@ -7,7 +7,6 @@ import (
 	"github.com/spf13/pflag"
 
 	"github.com/form3tech-oss/f1/v2/internal/options"
-	"github.com/form3tech-oss/f1/v2/internal/trace"
 	"github.com/form3tech-oss/f1/v2/internal/workers"
 )
 
@@ -31,7 +30,7 @@ type Builder struct {
 	IgnoreCommonFlags bool
 }
 
-type Constructor func(*pflag.FlagSet, trace.Tracer) (*Trigger, error)
+type Constructor func(*pflag.FlagSet) (*Trigger, error)
 
 type Trigger struct {
 	Trigger     WorkTriggerer

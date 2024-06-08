@@ -13,7 +13,6 @@ import (
 	"github.com/form3tech-oss/f1/v2/internal/fluentd"
 	"github.com/form3tech-oss/f1/v2/internal/metrics"
 	"github.com/form3tech-oss/f1/v2/internal/run"
-	"github.com/form3tech-oss/f1/v2/internal/trace"
 	"github.com/form3tech-oss/f1/v2/internal/trigger"
 	"github.com/form3tech-oss/f1/v2/pkg/f1/scenarios"
 )
@@ -40,11 +39,6 @@ func buildRootCmd(s *scenarios.Scenarios, settings envsettings.Settings, p *prof
 		return nil, fmt.Errorf("marking flag as filename: %w", err)
 	}
 
-	var tracer trace.Tracer = trace.NewNilTracer()
-	if settings.Trace {
-		tracer = trace.NewConsoleTracer(os.Stdout)
-	}
-
 	printer := console.NewPrinter(os.Stdout)
 	metrics.Init(settings.PrometheusEnabled())
 	metricsInstance := metrics.Instance()
@@ -55,10 +49,9 @@ func buildRootCmd(s *scenarios.Scenarios, settings envsettings.Settings, p *prof
 		settings,
 		fluentd.LoggingHook(settings.Fluentd.Host, settings.Fluentd.Port),
 		metricsInstance,
-		tracer,
 		printer,
 	))
-	rootCmd.AddCommand(chart.Cmd(builders, tracer, printer))
+	rootCmd.AddCommand(chart.Cmd(builders, printer))
 	rootCmd.AddCommand(scenarios.Cmd(s))
 	rootCmd.AddCommand(completionsCmd(rootCmd))
 	return rootCmd, nil

@@ -5,12 +5,11 @@ import (
 	"time"
 
 	"github.com/form3tech-oss/f1/v2/internal/options"
-	"github.com/form3tech-oss/f1/v2/internal/trace"
 	"github.com/form3tech-oss/f1/v2/internal/workers"
 )
 
 // NewIterationWorker produces a WorkTriggerer which triggers work at fixed intervals.
-func NewIterationWorker(iterationDuration time.Duration, rate RateFunction, tracer trace.Tracer) WorkTriggerer {
+func NewIterationWorker(iterationDuration time.Duration, rate RateFunction) WorkTriggerer {
 	return func(ctx context.Context, workers *workers.PoolManager, opts options.RunOptions) {
 		startRate := rate(time.Now())
 
@@ -27,7 +26,6 @@ func NewIterationWorker(iterationDuration time.Duration, rate RateFunction, trac
 		for {
 			select {
 			case <-workerCtx.Done():
-				tracer.Event("Iteration worker stopped.")
 				return
 			case start := <-iterationTicker.C:
 				iterationRate := rate(start)
