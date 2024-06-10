@@ -2,10 +2,12 @@ package users
 
 import (
 	"context"
+	"log/slog"
 	"time"
 
 	"github.com/spf13/pflag"
 
+	"github.com/form3tech-oss/f1/v2/internal/console"
 	"github.com/form3tech-oss/f1/v2/internal/options"
 	"github.com/form3tech-oss/f1/v2/internal/trigger/api"
 	"github.com/form3tech-oss/f1/v2/internal/workers"
@@ -18,10 +20,10 @@ func Rate() api.Builder {
 		Name:        "users <scenario>",
 		Description: "triggers test iterations from a static set of users controlled by the --concurrency flag",
 		Flags:       flags,
-		New: func(*pflag.FlagSet) (*api.Trigger, error) {
-			trigger := func(ctx context.Context, workers *workers.PoolManager, options options.RunOptions) {
+		New: func(*pflag.FlagSet, *console.Printer) (*api.Trigger, error) {
+			trigger := func(ctx context.Context, workers *workers.PoolManager, options options.RunOptions, logger *slog.Logger) {
 				doWork := NewWorker(options.Concurrency)
-				doWork(ctx, workers, options)
+				doWork(ctx, workers, options, logger)
 			}
 
 			return &api.Trigger{
@@ -39,7 +41,7 @@ func Rate() api.Builder {
 }
 
 func NewWorker(concurrency int) api.WorkTriggerer {
-	return func(ctx context.Context, workers *workers.PoolManager, _ options.RunOptions) {
+	return func(ctx context.Context, workers *workers.PoolManager, _ options.RunOptions, _ *slog.Logger) {
 		pool := workers.NewContinuousPool(concurrency)
 		pool.Start(ctx)
 	}

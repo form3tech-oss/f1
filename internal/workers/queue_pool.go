@@ -16,7 +16,11 @@ func newTriggerPool(m *PoolManager, numWorkers int) *TriggerPool {
 	}
 
 	for i := range numWorkers {
-		p.iterationStatePool[i] = newIterationState(m.activeScenario.scenario.Name)
+		p.iterationStatePool[i] = newIterationState(
+			m.activeScenario.scenario.Name,
+			m.logger,
+			m.logrusLogger,
+		)
 	}
 
 	return p

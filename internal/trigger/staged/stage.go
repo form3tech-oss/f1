@@ -7,15 +7,15 @@ import (
 	"time"
 )
 
-type stage struct {
-	startTarget int
-	endTarget   int
-	duration    time.Duration
+type Stage struct {
+	StartTarget int
+	EndTarget   int
+	Duration    time.Duration
 }
 
-func parseStages(value string) ([]stage, error) {
+func ParseStages(value string) ([]Stage, error) {
 	stageElements := strings.Split(value, ",")
-	stages := make([]stage, len(stageElements))
+	stages := make([]Stage, len(stageElements))
 
 	for i, stageElements := range stageElements {
 		stageElement := strings.Split(strings.TrimSpace(stageElements), ":")
@@ -33,9 +33,9 @@ func parseStages(value string) ([]stage, error) {
 			return nil, fmt.Errorf("unable to parse target %s in stage %d: %s", stageElement[1], i, stageElements)
 		}
 
-		stages[i] = stage{
-			endTarget: target,
-			duration:  duration,
+		stages[i] = Stage{
+			EndTarget: target,
+			Duration:  duration,
 		}
 	}
 

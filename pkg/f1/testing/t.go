@@ -2,6 +2,8 @@ package testing
 
 import (
 	"errors"
+	"fmt"
+	"log/slog"
 	"runtime/debug"
 	"sync/atomic"
 	"time"
@@ -9,10 +11,26 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/require"
 
+	"github.com/form3tech-oss/f1/v2/internal/log"
 	"github.com/form3tech-oss/f1/v2/internal/metrics"
 )
 
 var errFailNow = errors.New("FailNow")
+
+type TOption func(*T)
+
+func WithLogger(logger *slog.Logger) TOption {
+	return func(t *T) {
+		t.logger = logger
+	}
+}
+
+// WithLogrusLogger will be removed in future versions, needed for backwards compatibility
+func WithLogrusLogger(logger *logrus.Logger) TOption {
+	return func(t *T) {
+		t.logrus = logger
+	}
+}
 
 // T is a type passed to Scenario functions to manage test state and support formatted test logs. A
 // test ends when its Scenario function returns or calls any of the methods FailNow, Fatal, Fatalf.
@@ -20,7 +38,8 @@ var errFailNow = errors.New("FailNow")
 // reporting methods, such as the variations of Log and Error, may be called simultaneously from
 // multiple goroutines.
 type T struct {
-	logger         *logrus.Logger // logger with user and iteration tags
+	logrus         *logrus.Logger
+	logger         *slog.Logger
 	require        *require.Assertions
 	Iteration      string // iteration number or "setup"
 	Scenario       string
@@ -31,13 +50,25 @@ type T struct {
 }
 
 func NewT(iter, scenarioName string) (*T, func()) {
+	t, teardown := NewTWithOptions(scenarioName)
+	t.Iteration = iter
+
+	return t, teardown
+}
+
+func NewTWithOptions(scenarioName string, options ...TOption) (*T, func()) {
 	t := &T{
-		Iteration:     iter,
-		logger:        logrus.StandardLogger(),
+		logrus:        logrus.StandardLogger(),
 		Scenario:      scenarioName,
 		teardownStack: []func(){},
+		logger:        slog.Default(),
 	}
 	t.require = require.New(t)
+
+	for _, opt := range options {
+		opt(t)
+	}
+
 	return t, t.teardown
 }
 
@@ -50,7 +81,7 @@ func (t *T) Reset(iter string) {
 }
 
 func (t *T) Logger() *logrus.Logger {
-	return t.logger
+	return t.logrus
 }
 
 func (t *T) Require() *require.Assertions {
@@ -111,14 +142,14 @@ func (t *T) Fatal(err error) {
 
 // Log formats its arguments using default formatting, analogous to Println, and records the text in the error log.
 // The text will be printed only if f1 is running in verbose mode.
-func (t *T) Log(args ...interface{}) {
-	t.logger.Error(args...)
+func (t *T) Log(args ...any) {
+	t.logger.Error(fmt.Sprint(args...))
 }
 
 // Logf formats its arguments according to the format, analogous to Printf, and records the text in the error log.
 // A final newline is added if not provided. The text will be printed only if f1 is running in verbose mode.
-func (t *T) Logf(format string, args ...interface{}) {
-	t.logger.Errorf(format, args...)
+func (t *T) Logf(format string, args ...any) {
+	t.logger.Error(fmt.Sprintf(format, args...))
 }
 
 // Failed reports whether the function has failed.
@@ -161,14 +192,23 @@ func handlePanic(t *T, recovered any) {
 	case isError && errors.Is(err, errFailNow):
 		return
 	case isError:
-		stack := string(debug.Stack())
-		t.logger.
-			WithField("stack_trace", stack).
-			WithError(err).
-			Errorf("panic in '%s' scenario on %s", t.Scenario, t.Iteration)
+		stack := debug.Stack()
+		t.logger.Error("recovered panic in scenario",
+			log.StackTraceAttr(stack),
+			log.ScenarioAttr(t.Scenario),
+			log.IterationAttr(t.Iteration),
+			log.ErrorAttr(err),
+		)
 		t.Fail()
 	default:
-		t.Errorf("panic in '%s' scenario on %s: %v", t.Scenario, t.Iteration, recovered)
+		stack := debug.Stack()
+		t.logger.Error("recovered panic in scenario",
+			log.StackTraceAttr(stack),
+			log.ScenarioAttr(t.Scenario),
+			log.IterationAttr(t.Iteration),
+			log.ErrorAnyAttr(recovered),
+		)
+		t.Fail()
 	}
 }
 

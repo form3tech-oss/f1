@@ -53,7 +53,7 @@ type Stage struct {
 	Parameters         *map[string]string `yaml:"parameters"`
 }
 
-func parseConfigFile(fileContent []byte, now time.Time) (*runnableStages, error) {
+func ParseConfigFile(fileContent []byte, now time.Time) (*RunnableStages, error) {
 	configFile := ConfigFile{}
 	err := yaml.Unmarshal(fileContent, &configFile)
 	if err != nil {
@@ -64,7 +64,7 @@ func parseConfigFile(fileContent []byte, now time.Time) (*runnableStages, error)
 		return nil, err
 	}
 
-	var stages []runnableStage
+	var stages []RunnableStage
 	stagesTotalDuration := 0 * time.Second
 	for idx, stageConfig := range validatedConfigFile.Stages {
 		validatedStage, err := stageConfig.validateCommonFieldsOfStage(idx, validatedConfigFile.Default)
@@ -83,20 +83,20 @@ func parseConfigFile(fileContent []byte, now time.Time) (*runnableStages, error)
 		}
 	}
 
-	return &runnableStages{
-		scenario:            *validatedConfigFile.Scenario,
-		stages:              stages,
-		stagesTotalDuration: stagesTotalDuration,
-		maxDuration:         *validatedConfigFile.Limits.MaxDuration,
-		concurrency:         *validatedConfigFile.Limits.Concurrency,
-		maxIterations:       *validatedConfigFile.Limits.MaxIterations,
-		maxFailures:         *validatedConfigFile.Limits.MaxFailures,
-		maxFailuresRate:     *validatedConfigFile.Limits.MaxFailuresRate,
-		ignoreDropped:       *validatedConfigFile.Limits.IgnoreDropped,
+	return &RunnableStages{
+		Scenario:            *validatedConfigFile.Scenario,
+		Stages:              stages,
+		StagesTotalDuration: stagesTotalDuration,
+		MaxDuration:         *validatedConfigFile.Limits.MaxDuration,
+		Concurrency:         *validatedConfigFile.Limits.Concurrency,
+		MaxIterations:       *validatedConfigFile.Limits.MaxIterations,
+		MaxFailures:         *validatedConfigFile.Limits.MaxFailures,
+		MaxFailuresRate:     *validatedConfigFile.Limits.MaxFailuresRate,
+		IgnoreDropped:       *validatedConfigFile.Limits.IgnoreDropped,
 	}, nil
 }
 
-func (s *Stage) parseStage(stageIdx int, defaults Stage) (*runnableStage, error) {
+func (s *Stage) parseStage(stageIdx int, defaults Stage) (*RunnableStage, error) {
 	switch *s.Mode {
 	case "constant":
 		validatedConstantStage, err := s.validateConstantStage(stageIdx, defaults)
@@ -112,11 +112,11 @@ func (s *Stage) parseStage(stageIdx int, defaults Stage) (*runnableStage, error)
 			return nil, fmt.Errorf("calculating constant rate: %w", err)
 		}
 
-		return &runnableStage{
-			stageDuration:     *validatedConstantStage.Duration,
-			iterationDuration: rates.IterationDuration,
-			rate:              rates.Rate,
-			params:            *validatedConstantStage.Parameters,
+		return &RunnableStage{
+			StageDuration:     *validatedConstantStage.Duration,
+			IterationDuration: rates.IterationDuration,
+			Rate:              rates.Rate,
+			Params:            *validatedConstantStage.Parameters,
 		}, nil
 	case "ramp":
 		validatedRampStage, err := s.validateRampStage(stageIdx, defaults)
@@ -134,11 +134,11 @@ func (s *Stage) parseStage(stageIdx int, defaults Stage) (*runnableStage, error)
 			return nil, fmt.Errorf("calculating ramp rate: %w", err)
 		}
 
-		return &runnableStage{
-			stageDuration:     *validatedRampStage.Duration,
-			iterationDuration: rates.IterationDuration,
-			rate:              rates.Rate,
-			params:            *validatedRampStage.Parameters,
+		return &RunnableStage{
+			StageDuration:     *validatedRampStage.Duration,
+			IterationDuration: rates.IterationDuration,
+			Rate:              rates.Rate,
+			Params:            *validatedRampStage.Parameters,
 		}, nil
 	case "staged":
 		validatedStagedStage, err := s.validateStagedStage(stageIdx, defaults)
@@ -156,11 +156,11 @@ func (s *Stage) parseStage(stageIdx int, defaults Stage) (*runnableStage, error)
 			return nil, fmt.Errorf("calculating staged rate: %w", err)
 		}
 
-		return &runnableStage{
-			stageDuration:     *validatedStagedStage.Duration,
-			iterationDuration: rates.IterationDuration,
-			rate:              rates.Rate,
-			params:            *validatedStagedStage.Parameters,
+		return &RunnableStage{
+			StageDuration:     *validatedStagedStage.Duration,
+			IterationDuration: rates.IterationDuration,
+			Rate:              rates.Rate,
+			Params:            *validatedStagedStage.Parameters,
 		}, nil
 	case "gaussian":
 		validatedGaussianStage, err := s.validateGaussianStage(stageIdx, defaults)
@@ -176,21 +176,21 @@ func (s *Stage) parseStage(stageIdx int, defaults Stage) (*runnableStage, error)
 			return nil, fmt.Errorf("calculating gaussian rate: %w", err)
 		}
 
-		return &runnableStage{
-			stageDuration:     *validatedGaussianStage.Duration,
-			iterationDuration: rates.IterationDuration,
-			rate:              rates.Rate,
-			params:            *validatedGaussianStage.Parameters,
+		return &RunnableStage{
+			StageDuration:     *validatedGaussianStage.Duration,
+			IterationDuration: rates.IterationDuration,
+			Rate:              rates.Rate,
+			Params:            *validatedGaussianStage.Parameters,
 		}, nil
 	case "users":
 		validatedUsersStage, err := s.validateUsersStage(stageIdx, defaults)
 		if err != nil {
 			return nil, err
 		}
-		return &runnableStage{
-			stageDuration:    *validatedUsersStage.Duration,
-			params:           *validatedUsersStage.Parameters,
-			usersConcurrency: *validatedUsersStage.Concurrency,
+		return &RunnableStage{
+			StageDuration:    *validatedUsersStage.Duration,
+			Params:           *validatedUsersStage.Parameters,
+			UsersConcurrency: *validatedUsersStage.Concurrency,
 		}, nil
 	default:
 		return nil, fmt.Errorf("invalid stage mode at stage %d", stageIdx)

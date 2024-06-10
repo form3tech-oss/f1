@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	stdlog "log"
+	"log/slog"
 	"os"
 	"sync"
 	"time"
@@ -15,7 +15,7 @@ import (
 
 	"github.com/form3tech-oss/f1/v2/internal/console"
 	"github.com/form3tech-oss/f1/v2/internal/envsettings"
-	"github.com/form3tech-oss/f1/v2/internal/logging"
+	"github.com/form3tech-oss/f1/v2/internal/log"
 	"github.com/form3tech-oss/f1/v2/internal/metrics"
 	"github.com/form3tech-oss/f1/v2/internal/options"
 	"github.com/form3tech-oss/f1/v2/internal/progress"
@@ -33,16 +33,17 @@ const (
 )
 
 type Run struct {
+	pusher          *push.Pusher
 	progressRunner  *raterun.Runner
-	progressStats   *progress.Stats
 	metrics         *metrics.Metrics
 	templates       *templates.Templates
 	activeScenario  *workers.ActiveScenario
 	trigger         *api.Trigger
-	pusher          *push.Pusher
+	progressStats   *progress.Stats
 	printer         *console.Printer
-	RateDescription string
+	logger          *slog.Logger
 	Settings        envsettings.Settings
+	RateDescription string
 	Options         options.RunOptions
 	result          Result
 	notifyDropped   sync.Once
@@ -80,16 +81,13 @@ func NewRun(
 			run.pusher = run.pusher.Grouping("id", run.Settings.Prometheus.LabelID)
 		}
 	}
-	if run.Options.RegisterLogHookFunc == nil {
-		run.Options.RegisterLogHookFunc = logging.NoneRegisterLogHookFunc
-	}
 
 	progressRunner, err := raterun.New(func(rate time.Duration) {
 		run.result.SnapshotProgress(rate)
 		run.printer.Println(run.result.Progress())
 		if run.result.HasDroppedIterations() {
 			run.notifyDropped.Do(func() {
-				logrus.Warn("Dropping requests as workers are too busy. Considering increasing `--concurrency` argument")
+				run.logger.Warn("Dropping requests as workers are too busy. Considering increasing `--concurrency` argument")
 			})
 		}
 	}, []raterun.Schedule{
@@ -118,8 +116,39 @@ func (r *Run) Do(ctx context.Context, s *scenarios.Scenarios) (*Result, error) {
 	defer r.printSummary()
 	defer r.printLogOnFailure()
 
-	if err := r.configureLogging(); err != nil {
-		return nil, fmt.Errorf("configure logging: %w", err)
+	logConfig := log.NewConfig().
+		WithLevel(r.Settings.LogLevel).
+		WithFormat(r.Settings.LogFormat)
+
+	logOutput := NewLogOutput(r.Settings.LogFilePath, r.Options.Scenario)
+
+	var logWriter *os.File
+	var logFileOpenErr error
+	if r.Options.LogToFile() {
+		logWriter, logFileOpenErr = os.OpenFile(logOutput.LogPath(), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o600)
+		if logFileOpenErr != nil {
+			logWriter = os.Stderr
+		} else {
+			defer logWriter.Close()
+			r.result.LogFilePath = logOutput.LogPath()
+			r.printer.Printf("Saving logs to %s\n\n", r.result.LogFilePath)
+		}
+	} else {
+		logWriter = os.Stdout
+	}
+
+	r.logger = log.NewLogger(logWriter, logConfig)
+
+	if r.Options.LogToFile() {
+		welcomeMessage := r.templates.Start(templates.StartData{
+			Scenario:        r.Options.Scenario,
+			MaxDuration:     r.Options.MaxDuration,
+			MaxIterations:   r.Options.MaxIterations,
+			RateDescription: r.RateDescription,
+		})
+
+		r.logger.Info(welcomeMessage)
+
 	}
 
 	r.metrics.Reset()
@@ -186,35 +215,11 @@ func (r *Run) teardownActiveScenario(ctx context.Context) {
 	r.printer.Println(r.result.Teardown())
 }
 
-func (r *Run) configureLogging() error {
-	err := r.Options.RegisterLogHookFunc(r.Options.Scenario)
-	if err != nil {
-		return fmt.Errorf("calling register log hook func: %w", err)
-	}
-
-	if !r.Options.Verbose {
-		r.result.LogFile = redirectLoggingToFile(r.Options.Scenario, r.Settings.LogFilePath, r.printer.Writer)
-		welcomeMessage := r.templates.Start(templates.StartData{
-			Scenario:        r.Options.Scenario,
-			MaxDuration:     r.Options.MaxDuration,
-			MaxIterations:   r.Options.MaxIterations,
-			RateDescription: r.RateDescription,
-		})
-
-		logrus.Info(welcomeMessage)
-		r.printer.Printf("Saving logs to %s\n\n", r.result.LogFile)
-	}
-
-	return nil
-}
-
 func (r *Run) printSummary() {
 	summary := r.result.String()
 	r.printer.Println(summary)
 	if !r.Options.Verbose {
-		logrus.Info(summary)
-		logrus.StandardLogger().SetOutput(r.printer.Writer)
-		stdlog.SetOutput(r.printer.Writer)
+		r.logger.Info(summary)
 	}
 }
 
@@ -232,8 +237,8 @@ func (r *Run) run(ctx context.Context) {
 	triggerCtx, triggerCancel := context.WithTimeout(ctx, duration-nextIterationWindow)
 	defer triggerCancel()
 
-	poolManager := workers.New(r.Options.MaxIterations, r.activeScenario)
-	r.trigger.Trigger(triggerCtx, poolManager, r.Options)
+	poolManager := workers.New(r.Options.MaxIterations, r.activeScenario, r.logger, logrus.StandardLogger())
+	r.trigger.Trigger(triggerCtx, poolManager, r.Options, r.logger)
 
 	select {
 	case <-ctx.Done():
@@ -262,7 +267,7 @@ func (r *Run) pushMetrics(ctx context.Context) {
 	}
 	err := r.pusher.PushContext(ctx)
 	if err != nil {
-		logrus.Errorf("unable to push metrics to prometheus: %v", err)
+		r.logger.Error("unable to push metrics to prometheus", log.ErrorAttr(err))
 	}
 }
 
@@ -272,12 +277,12 @@ func (r *Run) printLogOnFailure() {
 	}
 
 	if err := r.printResultLogs(); err != nil {
-		logrus.WithError(err).Error("error printing logs")
+		r.logger.Error("error printing logs", log.ErrorAttr(err))
 	}
 }
 
 func (r *Run) printResultLogs() error {
-	fd, err := os.Open(r.result.LogFile)
+	fd, err := os.Open(r.result.LogFilePath)
 	if err != nil {
 		return fmt.Errorf("opening log file: %w", err)
 	}
@@ -286,7 +291,7 @@ func (r *Run) printResultLogs() error {
 			return
 		}
 		if err := fd.Close(); err != nil {
-			logrus.WithError(err).Error("error closing log file")
+			r.logger.Error("error closing log file", log.ErrorAttr(err))
 		}
 	}()
 

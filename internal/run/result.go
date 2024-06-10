@@ -16,7 +16,7 @@ type Result struct {
 	startTime     time.Time
 	progressStats *progress.Stats
 	templates     *templates.Templates
-	LogFile       string
+	LogFilePath       string
 	errors        []error
 	runOptions    options.RunOptions
 	snapshot      progress.Snapshot
@@ -98,7 +98,7 @@ func (r *Result) String() string {
 		FailedIterationDurations:     r.snapshot.FailedIterationDurations,
 		Error:                        r.Error(),
 		Failed:                       r.Failed(),
-		LogFile:                      r.LogFile,
+		LogFile:                      r.LogFilePath,
 		Iterations:                   r.snapshot.Iterations(),
 		IterationsStarted:            r.snapshot.IterationsStarted(),
 	})

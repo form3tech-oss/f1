@@ -1,4 +1,4 @@
-package chart
+package chart_test
 
 import (
 	"testing"

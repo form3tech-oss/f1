@@ -10,7 +10,6 @@ import (
 	"github.com/form3tech-oss/f1/v2/internal/chart"
 	"github.com/form3tech-oss/f1/v2/internal/console"
 	"github.com/form3tech-oss/f1/v2/internal/envsettings"
-	"github.com/form3tech-oss/f1/v2/internal/fluentd"
 	"github.com/form3tech-oss/f1/v2/internal/metrics"
 	"github.com/form3tech-oss/f1/v2/internal/run"
 	"github.com/form3tech-oss/f1/v2/internal/trigger"
@@ -28,7 +27,6 @@ func buildRootCmd(s *scenarios.Scenarios, settings envsettings.Settings, p *prof
 		Short:             "F1 load testing tool",
 		PersistentPreRunE: startProfiling(p),
 	}
-	builders := trigger.GetBuilders()
 
 	rootCmd.PersistentFlags().String(flagCPUProfile, "", "write cpu profile to `file`")
 	if err := rootCmd.MarkPersistentFlagFilename(flagCPUProfile); err != nil {
@@ -43,11 +41,11 @@ func buildRootCmd(s *scenarios.Scenarios, settings envsettings.Settings, p *prof
 	metrics.Init(settings.PrometheusEnabled())
 	metricsInstance := metrics.Instance()
 
+	builders := trigger.GetBuilders()
 	rootCmd.AddCommand(run.Cmd(
 		s,
 		builders,
 		settings,
-		fluentd.LoggingHook(settings.Fluentd.Host, settings.Fluentd.Port),
 		metricsInstance,
 		printer,
 	))

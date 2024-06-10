@@ -9,7 +9,6 @@ import (
 
 	"github.com/form3tech-oss/f1/v2/internal/console"
 	"github.com/form3tech-oss/f1/v2/internal/envsettings"
-	"github.com/form3tech-oss/f1/v2/internal/logging"
 	"github.com/form3tech-oss/f1/v2/internal/metrics"
 	"github.com/form3tech-oss/f1/v2/internal/options"
 	"github.com/form3tech-oss/f1/v2/internal/trigger/api"
@@ -21,7 +20,6 @@ func Cmd(
 	s *scenarios.Scenarios,
 	builders []api.Builder,
 	settings envsettings.Settings,
-	hookFunc logging.RegisterLogHookFunc,
 	metricsInstance *metrics.Metrics,
 	printer *console.Printer,
 ) *cobra.Command {
@@ -30,18 +28,18 @@ func Cmd(
 		Short: "Runs a test scenario",
 	}
 
-	for _, t := range builders {
+	for _, builder := range builders {
 		triggerCmd := &cobra.Command{
-			Use:   t.Name,
-			Short: t.Description,
-			RunE:  runCmdExecute(s, t, settings, hookFunc, metricsInstance, printer),
+			Use:   builder.Name,
+			Short: builder.Description,
+			RunE:  runCmdExecute(s, builder, settings, metricsInstance, printer),
 			Args:  cobra.MatchAll(cobra.ExactArgs(1)),
 		}
 
 		triggerCmd.Flags().BoolP(triggerflags.FlagVerbose, "v", false, "enables log output to stdout")
 		triggerCmd.Flags().Bool(triggerflags.FlagVerboseFail, false, "log output to stdout on failure")
 
-		if !t.IgnoreCommonFlags {
+		if !builder.IgnoreCommonFlags {
 			triggerCmd.ValidArgs = s.GetScenarioNames()
 
 			triggerCmd.Flags().Bool(triggerflags.FlagIgnoreDropped, false, "dropped requests will not fail the run")
@@ -57,7 +55,7 @@ func Cmd(
 				"--max-failures-rate 5 (load test will fail if more than 5\\% requests failed, default is 0)")
 		}
 
-		triggerCmd.Flags().AddFlagSet(t.Flags)
+		triggerCmd.Flags().AddFlagSet(builder.Flags)
 		runCmd.AddCommand(triggerCmd)
 	}
 
@@ -66,16 +64,15 @@ func Cmd(
 
 func runCmdExecute(
 	s *scenarios.Scenarios,
-	t api.Builder,
+	builder api.Builder,
 	settings envsettings.Settings,
-	hookFunc logging.RegisterLogHookFunc,
 	metricsInstance *metrics.Metrics,
 	printer *console.Printer,
 ) func(cmd *cobra.Command, args []string) error {
 	return func(cmd *cobra.Command, args []string) error {
 		cmd.SilenceUsage = true
 
-		trig, err := t.New(cmd.Flags())
+		trig, err := builder.New(cmd.Flags(), printer)
 		if err != nil {
 			return fmt.Errorf("creating trigger command: %w", err)
 		}
@@ -87,7 +84,7 @@ func runCmdExecute(
 		var maxFailures uint64
 		var maxFailuresRate int
 		var ignoreDropped bool
-		if t.IgnoreCommonFlags {
+		if builder.IgnoreCommonFlags {
 			scenarioName = trig.Options.Scenario
 			duration = trig.Options.MaxDuration
 			concurrency = trig.Options.Concurrency
@@ -146,7 +143,6 @@ func runCmdExecute(
 			MaxIterations:       maxIterations,
 			MaxFailures:         maxFailures,
 			MaxFailuresRate:     maxFailuresRate,
-			RegisterLogHookFunc: hookFunc,
 			IgnoreDropped:       ignoreDropped,
 		}, trig, settings, metricsInstance, printer)
 		if err != nil {

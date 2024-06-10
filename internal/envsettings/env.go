@@ -10,6 +10,8 @@ const (
 	EnvPrometheusPushGateway = "PROMETHEUS_PUSH_GATEWAY"
 
 	EnvLogFilePath = "LOG_FILE_PATH"
+	EnvLogFormat   = "LOG_FORMAT"
+	EnvLogLevel    = "LOG_LEVEL"
 
 	EnvFluentdHost = "FLUENTD_HOST"
 	EnvFluentdPort = "FLUENTD_PORT"
@@ -30,6 +32,8 @@ type Settings struct {
 	Prometheus  Prometheus
 	Fluentd     Fluentd
 	LogFilePath string
+	LogLevel    string
+	LogFormat   string
 }
 
 func (s *Settings) PrometheusEnabled() bool {
@@ -39,6 +43,8 @@ func (s *Settings) PrometheusEnabled() bool {
 func Get() Settings {
 	return Settings{
 		LogFilePath: os.Getenv(EnvLogFilePath),
+		LogLevel:    os.Getenv(EnvLogLevel),
+		LogFormat:   os.Getenv(EnvLogFormat),
 		Fluentd: Fluentd{
 			Host: os.Getenv(EnvFluentdHost),
 			Port: os.Getenv(EnvFluentdPort),

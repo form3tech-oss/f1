@@ -2,10 +2,12 @@ package workers
 
 import (
 	"errors"
+	"log/slog"
 	"sync"
 	"sync/atomic"
 
 	"github.com/form3tech-oss/f1/v2/pkg/f1/testing"
+	"github.com/sirupsen/logrus"
 )
 
 type iterationState struct {
@@ -13,9 +15,12 @@ type iterationState struct {
 	t        *testing.T
 }
 
-func newIterationState(scenario string) *iterationState {
+func newIterationState(scenario string, logger *slog.Logger, logrusLogger *logrus.Logger) *iterationState {
 	state := &iterationState{}
-	state.t, state.teardown = testing.NewT("", scenario)
+	state.t, state.teardown = testing.NewTWithOptions(scenario,
+		testing.WithLogger(logger),
+		testing.WithLogrusLogger(logrusLogger),
+	)
 
 	return state
 }
@@ -25,12 +30,16 @@ type PoolManager struct {
 	iteration      atomic.Uint64
 	maxIterations  uint64
 	runningWorkers sync.WaitGroup
+	logger         *slog.Logger
+	logrusLogger   *logrus.Logger
 }
 
-func New(maxIterations uint64, activeScenario *ActiveScenario) *PoolManager {
+func New(maxIterations uint64, activeScenario *ActiveScenario, logger *slog.Logger, logrusLogger *logrus.Logger) *PoolManager {
 	w := &PoolManager{
 		activeScenario: activeScenario,
 		maxIterations:  maxIterations,
+		logger:         logger,
+		logrusLogger:   logrusLogger,
 	}
 
 	return w

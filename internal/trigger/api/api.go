@@ -2,16 +2,18 @@ package api
 
 import (
 	"context"
+	"log/slog"
 	"time"
 
 	"github.com/spf13/pflag"
 
+	"github.com/form3tech-oss/f1/v2/internal/console"
 	"github.com/form3tech-oss/f1/v2/internal/options"
 	"github.com/form3tech-oss/f1/v2/internal/workers"
 )
 
 type (
-	WorkTriggerer func(ctx context.Context, workers *workers.PoolManager, options options.RunOptions)
+	WorkTriggerer func(ctx context.Context, workers *workers.PoolManager, options options.RunOptions, logger *slog.Logger)
 	RateFunction  func(time.Time) int
 )
 
@@ -30,7 +32,7 @@ type Builder struct {
 	IgnoreCommonFlags bool
 }
 
-type Constructor func(*pflag.FlagSet) (*Trigger, error)
+type Constructor func(flags *pflag.FlagSet, printer *console.Printer) (*Trigger, error)
 
 type Trigger struct {
 	Trigger     WorkTriggerer

@@ -1,4 +1,4 @@
-package chart
+package chart_test
 
 import (
 	"io"
@@ -6,23 +6,22 @@ import (
 	"testing"
 	"time"
 
-	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 
+	"github.com/form3tech-oss/f1/v2/internal/chart"
 	"github.com/form3tech-oss/f1/v2/internal/console"
 	"github.com/form3tech-oss/f1/v2/internal/trigger"
 )
 
 type ChartTestStage struct {
+	err    error
 	t      *testing.T
 	assert *assert.Assertions
-	err    error
 	args   []string
 }
 
 func NewChartTestStage(t *testing.T) (*ChartTestStage, *ChartTestStage, *ChartTestStage) {
 	t.Helper()
-	logrus.SetLevel(logrus.WarnLevel)
 
 	stage := &ChartTestStage{
 		t:      t,
@@ -36,7 +35,7 @@ func (s *ChartTestStage) and() *ChartTestStage {
 }
 
 func (s *ChartTestStage) i_execute_the_chart_command() *ChartTestStage {
-	cmd := Cmd(trigger.GetBuilders(), console.NewPrinter(io.Discard))
+	cmd := chart.Cmd(trigger.GetBuilders(), console.NewPrinter(io.Discard))
 	cmd.SetArgs(s.args)
 	s.err = cmd.Execute()
 	return s

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log/slog"
 	"math"
 	"net/http/httptest"
 	"strings"
@@ -20,7 +21,6 @@ import (
 
 	"github.com/form3tech-oss/f1/v2/internal/console"
 	"github.com/form3tech-oss/f1/v2/internal/envsettings"
-	"github.com/form3tech-oss/f1/v2/internal/fluentd"
 	"github.com/form3tech-oss/f1/v2/internal/metrics"
 	"github.com/form3tech-oss/f1/v2/internal/options"
 	"github.com/form3tech-oss/f1/v2/internal/run"
@@ -74,6 +74,7 @@ type RunTestStage struct {
 	iterationTeardownCount atomic.Uint32
 	setupTeardownCount     atomic.Uint32
 	runCount               atomic.Uint32
+	logger                 *slog.Logger
 }
 
 func NewRunTestStage(t *testing.T) (*RunTestStage, *RunTestStage, *RunTestStage) {
@@ -88,6 +89,7 @@ func NewRunTestStage(t *testing.T) (*RunTestStage, *RunTestStage, *RunTestStage)
 		metricData:  NewMetricData(),
 		printer:     console.NewPrinter(io.Discard),
 		metrics:     metrics.NewInstance(prometheus.NewRegistry(), true),
+		logger:      slog.New(slog.NewTextHandler(io.Discard, nil)),
 	}
 
 	handler := FakePrometheusHandler(t, stage.metricData)
@@ -156,13 +158,12 @@ func (s *RunTestStage) a_ramp_duration_of(rampDuration string) *RunTestStage {
 func (s *RunTestStage) setupRun() {
 	r, err := run.NewRun(
 		options.RunOptions{
-			Scenario:            s.scenario,
-			MaxDuration:         s.duration,
-			Concurrency:         s.concurrency,
-			MaxIterations:       s.maxIterations,
-			MaxFailures:         s.maxFailures,
-			MaxFailuresRate:     s.maxFailuresRate,
-			RegisterLogHookFunc: fluentd.LoggingHook(s.settings.Fluentd.Host, s.settings.Fluentd.Port),
+			Scenario:        s.scenario,
+			MaxDuration:     s.duration,
+			Concurrency:     s.concurrency,
+			MaxIterations:   s.maxIterations,
+			MaxFailures:     s.maxFailures,
+			MaxFailuresRate: s.maxFailuresRate,
 		},
 		s.build_trigger(), s.settings, s.metrics, s.printer)
 	if err != nil {
@@ -408,7 +409,7 @@ func (s *RunTestStage) build_trigger() *api.Trigger {
 			require.NoError(s.t, err)
 		}
 
-		t, err = constant.Rate().New(flags)
+		t, err = constant.Rate().New(flags, s.printer)
 		require.NoError(s.t, err)
 	case Staged:
 		flags := staged.Rate().Flags
@@ -424,11 +425,11 @@ func (s *RunTestStage) build_trigger() *api.Trigger {
 			require.NoError(s.t, err)
 		}
 
-		t, err = staged.Rate().New(flags)
+		t, err = staged.Rate().New(flags, s.printer)
 		require.NoError(s.t, err)
 	case Users:
 		flags := users.Rate().Flags
-		t, err = users.Rate().New(flags)
+		t, err = users.Rate().New(flags, s.printer)
 		require.NoError(s.t, err)
 	case Ramp:
 		flags := ramp.Rate().Flags
@@ -453,7 +454,7 @@ func (s *RunTestStage) build_trigger() *api.Trigger {
 			require.NoError(s.t, err)
 		}
 
-		t, err = ramp.Rate().New(flags)
+		t, err = ramp.Rate().New(flags, s.printer)
 		require.NoError(s.t, err)
 	case File:
 		flags := file.Rate().Flags
@@ -461,7 +462,7 @@ func (s *RunTestStage) build_trigger() *api.Trigger {
 		err := flags.Parse([]string{s.configFile})
 		require.NoError(s.t, err)
 
-		t, err = file.Rate().New(flags)
+		t, err = file.Rate().New(flags, s.printer)
 		require.NoError(s.t, err)
 	}
 	return t

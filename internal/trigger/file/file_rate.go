@@ -7,30 +7,30 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
 
+	"github.com/form3tech-oss/f1/v2/internal/console"
 	"github.com/form3tech-oss/f1/v2/internal/trigger/api"
 )
 
-type runnableStages struct {
-	scenario            string
-	stages              []runnableStage
-	stagesTotalDuration time.Duration
-	maxDuration         time.Duration
-	concurrency         int
-	maxIterations       uint64
-	maxFailures         uint64
-	maxFailuresRate     int
-	ignoreDropped       bool
+type RunnableStages struct {
+	Scenario            string
+	Stages              []RunnableStage
+	StagesTotalDuration time.Duration
+	MaxDuration         time.Duration
+	Concurrency         int
+	MaxIterations       uint64
+	MaxFailures         uint64
+	MaxFailuresRate     int
+	IgnoreDropped       bool
 }
 
-type runnableStage struct {
-	rate              api.RateFunction
-	params            map[string]string
-	stageDuration     time.Duration
-	iterationDuration time.Duration
-	usersConcurrency  int
+type RunnableStage struct {
+	Rate              api.RateFunction
+	Params            map[string]string
+	StageDuration     time.Duration
+	IterationDuration time.Duration
+	UsersConcurrency  int
 }
 
 func Rate() api.Builder {
@@ -40,30 +40,30 @@ func Rate() api.Builder {
 		Name:        "file <filename>",
 		Description: "triggers test iterations from a yaml config file",
 		Flags:       flags,
-		New: func(flags *pflag.FlagSet) (*api.Trigger, error) {
+		New: func(flags *pflag.FlagSet, printer *console.Printer) (*api.Trigger, error) {
 			filename := flags.Arg(0)
-			fileContent, err := readFile(filename)
+			fileContent, err := readFile(filename, printer)
 			if err != nil {
 				return nil, err
 			}
-			runnableStages, err := parseConfigFile(*fileContent, time.Now())
+			runnableStages, err := ParseConfigFile(*fileContent, time.Now())
 			if err != nil {
 				return nil, err
 			}
 
 			return &api.Trigger{
-				Trigger:     newStagesWorker(runnableStages.stages),
-				DryRun:      newDryRun(runnableStages.stages),
-				Description: fmt.Sprintf("%d different stages", len(runnableStages.stages)),
-				Duration:    runnableStages.stagesTotalDuration,
+				Trigger:     newStagesWorker(runnableStages.Stages),
+				DryRun:      newDryRun(runnableStages.Stages),
+				Description: fmt.Sprintf("%d different stages", len(runnableStages.Stages)),
+				Duration:    runnableStages.StagesTotalDuration,
 				Options: api.Options{
-					Scenario:        runnableStages.scenario,
-					MaxDuration:     runnableStages.maxDuration,
-					Concurrency:     runnableStages.concurrency,
-					MaxIterations:   runnableStages.maxIterations,
-					MaxFailures:     runnableStages.maxFailures,
-					MaxFailuresRate: runnableStages.maxFailuresRate,
-					IgnoreDropped:   runnableStages.ignoreDropped,
+					Scenario:        runnableStages.Scenario,
+					MaxDuration:     runnableStages.MaxDuration,
+					Concurrency:     runnableStages.Concurrency,
+					MaxIterations:   runnableStages.MaxIterations,
+					MaxFailures:     runnableStages.MaxFailures,
+					MaxFailuresRate: runnableStages.MaxFailuresRate,
+					IgnoreDropped:   runnableStages.IgnoreDropped,
 				},
 			}, nil
 		},
@@ -71,14 +71,14 @@ func Rate() api.Builder {
 	}
 }
 
-func readFile(filename string) (*[]byte, error) {
+func readFile(filename string, printer *console.Printer) (*[]byte, error) {
 	file, err := os.Open(filepath.Clean(filename))
 	if err != nil {
 		return nil, fmt.Errorf("opening file: %w", err)
 	}
 	defer func() {
 		if err = file.Close(); err != nil {
-			logrus.WithError(err).Error("unable to close the config file")
+			printer.Println(fmt.Errorf("unable to close the config file: %w", err).Error())
 		}
 	}()
 
@@ -90,7 +90,7 @@ func readFile(filename string) (*[]byte, error) {
 	return &fileContent, nil
 }
 
-func newDryRun(stagesToRun []runnableStage) api.RateFunction {
+func newDryRun(stagesToRun []RunnableStage) api.RateFunction {
 	var startTime time.Time
 	started := false
 	stageIdx := 0
@@ -107,16 +107,16 @@ func newDryRun(stagesToRun []runnableStage) api.RateFunction {
 
 		currentStage := stagesToRun[stageIdx]
 
-		if startTime.Add(currentStage.stageDuration).Before(time) {
-			startTime = startTime.Add(currentStage.stageDuration)
+		if startTime.Add(currentStage.StageDuration).Before(time) {
+			startTime = startTime.Add(currentStage.StageDuration)
 			stageIdx++
 		}
 
-		if currentStage.usersConcurrency > 0 {
+		if currentStage.UsersConcurrency > 0 {
 			return 1
 		}
 
-		rate := currentStage.rate(time)
+		rate := currentStage.Rate(time)
 		return rate
 	}
 }

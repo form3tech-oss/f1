@@ -14,6 +14,7 @@ func main() {
 		Add("emptyScenario", emptyScenario).
 		Add("failingScenario", failingScenario).
 		Add("sleepScenario", sleepScenario).
+		Add("logScenario", logScenario).
 		Execute()
 }
 
@@ -40,6 +41,21 @@ func sleepScenario(t *testing.T) testing.RunFn {
 func failingScenario(*testing.T) testing.RunFn {
 	runFn := func(t *testing.T) {
 		t.Require().True(false)
+	}
+
+	return runFn
+}
+
+func logScenario(t *testing.T) testing.RunFn {
+	t.Log("Setup")
+	runFn := func(t *testing.T) {
+		t.Logf("Iteration: %s", t.Iteration)
+		t.Logger().WithField("iteration", t.Iteration).Trace("Trace log")
+		t.Logger().WithField("iteration", t.Iteration).Debug("Debug log")
+		t.Logger().WithField("iteration", t.Iteration).Info("Info log")
+		t.Logger().WithField("iteration", t.Iteration).Warn("Warn log")
+		t.Logger().WithField("iteration", t.Iteration).Error("Error log")
+		t.Logger().WithField("iteration", t.Iteration).Panic("Fatal log")
 	}
 
 	return runFn

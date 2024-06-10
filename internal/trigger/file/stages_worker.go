@@ -2,11 +2,11 @@ package file
 
 import (
 	"context"
+	"log/slog"
 	"os"
 	"time"
 
-	"github.com/sirupsen/logrus"
-
+	"github.com/form3tech-oss/f1/v2/internal/log"
 	"github.com/form3tech-oss/f1/v2/internal/options"
 	"github.com/form3tech-oss/f1/v2/internal/trigger/api"
 	"github.com/form3tech-oss/f1/v2/internal/trigger/users"
@@ -15,13 +15,13 @@ import (
 
 const safeDurationBeforeNextStage = 20 * time.Millisecond
 
-func newStagesWorker(stages []runnableStage) api.WorkTriggerer {
-	return func(ctx context.Context, workers *workers.PoolManager, options options.RunOptions) {
+func newStagesWorker(stages []RunnableStage) api.WorkTriggerer {
+	return func(ctx context.Context, workers *workers.PoolManager, options options.RunOptions, logger *slog.Logger) {
 		for _, stage := range stages {
 			if ctx.Err() != nil {
 				return
 			}
-			runStage(ctx, workers, stage, options)
+			runStage(ctx, workers, stage, options, logger)
 		}
 	}
 }
@@ -29,14 +29,15 @@ func newStagesWorker(stages []runnableStage) api.WorkTriggerer {
 func runStage(
 	ctx context.Context,
 	workers *workers.PoolManager,
-	stage runnableStage,
+	stage RunnableStage,
 	options options.RunOptions,
+	logger *slog.Logger,
 ) {
-	setEnvs(stage.params)
-	defer unsetEnvs(stage.params)
+	setEnvs(stage.Params, logger)
+	defer unsetEnvs(stage.Params, logger)
 
 	// stop the stage early to avoid starting a new tick
-	stageCtx, stageCancel := context.WithTimeout(ctx, stage.stageDuration-safeDurationBeforeNextStage)
+	stageCtx, stageCancel := context.WithTimeout(ctx, stage.StageDuration-safeDurationBeforeNextStage)
 	defer stageCancel()
 
 	stageDone := make(chan struct{})
@@ -44,12 +45,12 @@ func runStage(
 	go func() {
 		defer close(stageDone)
 
-		if stage.usersConcurrency == 0 {
-			doWork := api.NewIterationWorker(stage.iterationDuration, stage.rate)
-			doWork(stageCtx, workers, options)
+		if stage.UsersConcurrency == 0 {
+			doWork := api.NewIterationWorker(stage.IterationDuration, stage.Rate)
+			doWork(stageCtx, workers, options, logger)
 		} else {
-			doWork := users.NewWorker(stage.usersConcurrency)
-			doWork(stageCtx, workers, options)
+			doWork := users.NewWorker(stage.UsersConcurrency)
+			doWork(stageCtx, workers, options, logger)
 		}
 	}()
 
@@ -62,20 +63,20 @@ func runStage(
 	}
 }
 
-func setEnvs(envs map[string]string) {
+func setEnvs(envs map[string]string, logger *slog.Logger) {
 	for key, value := range envs {
 		err := os.Setenv(key, value)
 		if err != nil {
-			logrus.WithError(err).Error("unable set environment variables for given scenario")
+			logger.Error("unable set environment variables for given scenario", log.ErrorAttr(err))
 		}
 	}
 }
 
-func unsetEnvs(envs map[string]string) {
+func unsetEnvs(envs map[string]string, logger *slog.Logger) {
 	for key := range envs {
 		err := os.Unsetenv(key)
 		if err != nil {
-			logrus.WithError(err).Error("unable unset environment variables for given scenario")
+			logger.Error("unable unset environment variables for given scenario", log.ErrorAttr(err))
 		}
 	}
 }

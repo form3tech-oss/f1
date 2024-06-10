@@ -7,9 +7,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
 
+	"github.com/form3tech-oss/f1/v2/internal/console"
 	"github.com/form3tech-oss/f1/v2/internal/gaussian"
 	"github.com/form3tech-oss/f1/v2/internal/trigger/api"
 	"github.com/form3tech-oss/f1/v2/internal/trigger/rate"
@@ -57,7 +57,7 @@ func Rate() api.Builder {
 		Name:        "gaussian <scenario>",
 		Description: "distributes load to match a desired monthly volume",
 		Flags:       flags,
-		New: func(flags *pflag.FlagSet) (*api.Trigger, error) {
+		New: func(flags *pflag.FlagSet, printer *console.Printer) (*api.Trigger, error) {
 			volume, err := flags.GetFloat64(flagVolume)
 			if err != nil {
 				return nil, fmt.Errorf("getting flag: %w", err)
@@ -96,7 +96,7 @@ func Rate() api.Builder {
 			}
 			if peakRate != "" {
 				if volume != defaultVolume {
-					logrus.Warn("--peak-rate is provided, the value given for --volume will be ignored")
+					printer.Println("--peak-rate is provided, the value given for --volume will be ignored")
 				}
 				volume, err = calculateVolume(peakRate, peakDuration, stddevDuration)
 				if err != nil {
