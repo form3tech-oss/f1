@@ -55,7 +55,7 @@ func withRegularDistribution(iterationDuration time.Duration, rateFn RateFunctio
 		}
 
 		accRate += float64(rate) / float64(tickSteps)
-		accRate = math.Round(accRate*10_000_000) / 10_000_000
+		accRate = math.Ceil(accRate*10_000_000) / 10_000_000
 		remainingSteps--
 
 		if accRate < 1 {
