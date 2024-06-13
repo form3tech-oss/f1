@@ -6,14 +6,14 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type rateCalculator struct {
-	current int
-	stages  []stage
+type RateCalculator struct {
 	start   time.Time
+	stages  []Stage
+	current int
 }
 
-func newRateCalculator(stages []stage, start *time.Time) *rateCalculator {
-	calculator := rateCalculator{
+func NewRateCalculator(stages []Stage, start *time.Time) *RateCalculator {
+	calculator := RateCalculator{
 		current: -1,
 	}
 	calculator.addRange(stages)
@@ -23,23 +23,23 @@ func newRateCalculator(stages []stage, start *time.Time) *rateCalculator {
 	return &calculator
 }
 
-func (s *rateCalculator) addRange(stages []stage) {
+func (s *RateCalculator) addRange(stages []Stage) {
 	for _, stage := range stages {
-		logrus.Debugf("Stage %d: %s, %d -> %d\n", stage, stage.duration.String(), stage.startTarget, stage.endTarget)
+		logrus.Debugf("Stage %d: %s, %d -> %d\n", stage, stage.Duration.String(), stage.StartTarget, stage.EndTarget)
 		s.add(stage)
 	}
 }
 
-func (s *rateCalculator) add(newStage stage) {
+func (s *RateCalculator) add(newStage Stage) {
 	if len(s.stages) == 0 {
-		newStage.startTarget = 0
+		newStage.StartTarget = 0
 	} else {
-		newStage.startTarget = s.stages[len(s.stages)-1].endTarget
+		newStage.StartTarget = s.stages[len(s.stages)-1].EndTarget
 	}
 	s.stages = append(s.stages, newStage)
 }
 
-func (s *rateCalculator) Rate(now time.Time) int {
+func (s *RateCalculator) Rate(now time.Time) int {
 	if s.current < 0 {
 		s.current = 0
 		if s.start.IsZero() {
@@ -49,8 +49,8 @@ func (s *rateCalculator) Rate(now time.Time) int {
 	if s.current > len(s.stages)-1 {
 		return 0
 	}
-	for s.current < len(s.stages) && now.Sub(s.start)+1 > s.stages[s.current].duration {
-		s.start = s.start.Add(s.stages[s.current].duration)
+	for s.current < len(s.stages) && now.Sub(s.start)+1 > s.stages[s.current].Duration {
+		s.start = s.start.Add(s.stages[s.current].Duration)
 		s.current++
 	}
 	if s.current > len(s.stages)-1 {
@@ -58,18 +58,18 @@ func (s *rateCalculator) Rate(now time.Time) int {
 	}
 	// interpolate
 	offset := now.Sub(s.start)
-	position := float64(offset) / float64(s.stages[s.current].duration)
-	rate := s.stages[s.current].startTarget +
-		int(position*float64(s.stages[s.current].endTarget-s.stages[s.current].startTarget))
+	position := float64(offset) / float64(s.stages[s.current].Duration)
+	rate := s.stages[s.current].StartTarget +
+		int(position*float64(s.stages[s.current].EndTarget-s.stages[s.current].StartTarget))
 	logrus.Infof("Stage %d; Triggering %d. Offset: %d, Duration: %d, Position: %v\n",
-		s.current, rate, offset, s.stages[s.current].duration, position)
+		s.current, rate, offset, s.stages[s.current].Duration, position)
 	return rate
 }
 
-func (s *rateCalculator) MaxDuration() time.Duration {
+func (s *RateCalculator) MaxDuration() time.Duration {
 	max := 0 * time.Second
 	for _, stage := range s.stages {
-		max += stage.duration
+		max += stage.Duration
 	}
 	return max
 }

@@ -1,10 +1,12 @@
-package gaussian
+package gaussian_test
 
 import (
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/form3tech-oss/f1/v2/internal/trigger/gaussian"
 )
 
 func Benchmark_calculateVolume(b *testing.B) {
@@ -59,7 +61,7 @@ func Benchmark_calculateVolume(b *testing.B) {
 	}
 	for _, tt := range tests {
 		b.Run(tt.name, func(b *testing.B) {
-			_, err := calculateVolume(tt.peakTps, tt.peakTime, tt.stddev)
+			_, err := gaussian.CalculateVolume(tt.peakTps, tt.peakTime, tt.stddev)
 			require.NoError(b, err)
 		})
 	}

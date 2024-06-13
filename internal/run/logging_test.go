@@ -1,4 +1,4 @@
-package run
+package run_test
 
 import (
 	"os"
@@ -6,15 +6,17 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+
+	"github.com/form3tech-oss/f1/v2/internal/run"
 )
 
 func TestProvidingCustomLogFilePathWithDirectoryThatDoesExist(t *testing.T) {
 	t.Parallel()
 
 	logPath := "/does-not-exist/my-scenario.log"
-	expected := getGeneratedLogFilePath("my-scenario")
+	expected := run.GetGeneratedLogFilePath("my-scenario")
 
-	actual := getLogFilePath("my-scenario", logPath)
+	actual := run.GetLogFilePath("my-scenario", logPath)
 
 	assert.NotEqual(t, "", actual)
 	assert.Equal(t, expected, actual)
@@ -25,7 +27,7 @@ func TestProvidingCustomLogFilePathWithDirectoryThatDoesNotExistResultsInGenerat
 
 	expected := filepath.Join(os.TempDir(), "my-scenario.log")
 
-	actual := getLogFilePath("my-scenario", expected)
+	actual := run.GetLogFilePath("my-scenario", expected)
 
 	assert.NotEqual(t, "", actual)
 	assert.Equal(t, expected, actual)
@@ -34,9 +36,9 @@ func TestProvidingCustomLogFilePathWithDirectoryThatDoesNotExistResultsInGenerat
 func TestProvidingCustomLogFilePathWhichIsEmptyResultsInGeneratedLogFile(t *testing.T) {
 	t.Parallel()
 
-	expected := getGeneratedLogFilePath("my-scenario")
+	expected := run.GetGeneratedLogFilePath("my-scenario")
 
-	actual := getLogFilePath("my-scenario", "")
+	actual := run.GetLogFilePath("my-scenario", "")
 
 	assert.NotEqual(t, "", actual)
 	assert.Equal(t, expected, actual)

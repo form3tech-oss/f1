@@ -53,7 +53,7 @@ type Stage struct {
 	Parameters         *map[string]string `yaml:"parameters"`
 }
 
-func parseConfigFile(fileContent []byte, now time.Time) (*runnableStages, error) {
+func ParseConfigFile(fileContent []byte, now time.Time) (*RunnableStages, error) {
 	configFile := ConfigFile{}
 	err := yaml.Unmarshal(fileContent, &configFile)
 	if err != nil {
@@ -83,16 +83,16 @@ func parseConfigFile(fileContent []byte, now time.Time) (*runnableStages, error)
 		}
 	}
 
-	return &runnableStages{
-		scenario:            *validatedConfigFile.Scenario,
-		stages:              stages,
+	return &RunnableStages{
+		Scenario:            *validatedConfigFile.Scenario,
+		Stages:              stages,
 		stagesTotalDuration: stagesTotalDuration,
-		maxDuration:         *validatedConfigFile.Limits.MaxDuration,
-		concurrency:         *validatedConfigFile.Limits.Concurrency,
-		maxIterations:       *validatedConfigFile.Limits.MaxIterations,
+		MaxDuration:         *validatedConfigFile.Limits.MaxDuration,
+		Concurrency:         *validatedConfigFile.Limits.Concurrency,
+		MaxIterations:       *validatedConfigFile.Limits.MaxIterations,
 		maxFailures:         *validatedConfigFile.Limits.MaxFailures,
 		maxFailuresRate:     *validatedConfigFile.Limits.MaxFailuresRate,
-		ignoreDropped:       *validatedConfigFile.Limits.IgnoreDropped,
+		IgnoreDropped:       *validatedConfigFile.Limits.IgnoreDropped,
 	}, nil
 }
 
@@ -113,10 +113,10 @@ func (s *Stage) parseStage(stageIdx int, defaults Stage) (*runnableStage, error)
 		}
 
 		return &runnableStage{
-			stageDuration:     *validatedConstantStage.Duration,
-			iterationDuration: rates.IterationDuration,
-			rate:              rates.Rate,
-			params:            *validatedConstantStage.Parameters,
+			StageDuration:     *validatedConstantStage.Duration,
+			IterationDuration: rates.IterationDuration,
+			Rate:              rates.Rate,
+			Params:            *validatedConstantStage.Parameters,
 		}, nil
 	case "ramp":
 		validatedRampStage, err := s.validateRampStage(stageIdx, defaults)
@@ -135,10 +135,10 @@ func (s *Stage) parseStage(stageIdx int, defaults Stage) (*runnableStage, error)
 		}
 
 		return &runnableStage{
-			stageDuration:     *validatedRampStage.Duration,
-			iterationDuration: rates.IterationDuration,
-			rate:              rates.Rate,
-			params:            *validatedRampStage.Parameters,
+			StageDuration:     *validatedRampStage.Duration,
+			IterationDuration: rates.IterationDuration,
+			Rate:              rates.Rate,
+			Params:            *validatedRampStage.Parameters,
 		}, nil
 	case "staged":
 		validatedStagedStage, err := s.validateStagedStage(stageIdx, defaults)
@@ -157,10 +157,10 @@ func (s *Stage) parseStage(stageIdx int, defaults Stage) (*runnableStage, error)
 		}
 
 		return &runnableStage{
-			stageDuration:     *validatedStagedStage.Duration,
-			iterationDuration: rates.IterationDuration,
-			rate:              rates.Rate,
-			params:            *validatedStagedStage.Parameters,
+			StageDuration:     *validatedStagedStage.Duration,
+			IterationDuration: rates.IterationDuration,
+			Rate:              rates.Rate,
+			Params:            *validatedStagedStage.Parameters,
 		}, nil
 	case "gaussian":
 		validatedGaussianStage, err := s.validateGaussianStage(stageIdx, defaults)
@@ -177,10 +177,10 @@ func (s *Stage) parseStage(stageIdx int, defaults Stage) (*runnableStage, error)
 		}
 
 		return &runnableStage{
-			stageDuration:     *validatedGaussianStage.Duration,
-			iterationDuration: rates.IterationDuration,
-			rate:              rates.Rate,
-			params:            *validatedGaussianStage.Parameters,
+			StageDuration:     *validatedGaussianStage.Duration,
+			IterationDuration: rates.IterationDuration,
+			Rate:              rates.Rate,
+			Params:            *validatedGaussianStage.Parameters,
 		}, nil
 	case "users":
 		validatedUsersStage, err := s.validateUsersStage(stageIdx, defaults)
@@ -188,9 +188,9 @@ func (s *Stage) parseStage(stageIdx int, defaults Stage) (*runnableStage, error)
 			return nil, err
 		}
 		return &runnableStage{
-			stageDuration:    *validatedUsersStage.Duration,
-			params:           *validatedUsersStage.Parameters,
-			usersConcurrency: *validatedUsersStage.Concurrency,
+			StageDuration:    *validatedUsersStage.Duration,
+			Params:           *validatedUsersStage.Parameters,
+			UsersConcurrency: *validatedUsersStage.Concurrency,
 		}, nil
 	default:
 		return nil, fmt.Errorf("invalid stage mode at stage %d", stageIdx)

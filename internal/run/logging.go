@@ -19,22 +19,22 @@ func directoryExists(path string) bool {
 	return false
 }
 
-func getGeneratedLogFilePath(scenario string) string {
+func GetGeneratedLogFilePath(scenario string) string {
 	return filepath.Join(
 		os.TempDir(),
 		fmt.Sprintf("f1-%s-%s.log", scenario, time.Now().Format("2006-01-02_15-04-05")),
 	)
 }
 
-func getLogFilePath(scenario string, logPath string) string {
+func GetLogFilePath(scenario string, logPath string) string {
 	if logPath != "" && directoryExists(logPath) {
 		return logPath
 	}
-	return getGeneratedLogFilePath(scenario)
+	return GetGeneratedLogFilePath(scenario)
 }
 
 func redirectLoggingToFile(scenario string, logPath string, output io.Writer) string {
-	logFilePath := getLogFilePath(scenario, logPath)
+	logFilePath := GetLogFilePath(scenario, logPath)
 
 	file, err := os.OpenFile(logFilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o600)
 	if err == nil {

@@ -83,15 +83,15 @@ func CalculateStagedRate(
 	distributionTypeArg string,
 	startTime *time.Time,
 ) (*api.Rates, error) {
-	stages, err := parseStages(stg)
+	stages, err := ParseStages(stg)
 	if err != nil {
 		return nil, fmt.Errorf("parsing stages: %w", err)
 	}
 
-	calculator := newRateCalculator(stages, startTime)
+	calculator := NewRateCalculator(stages, startTime)
 	rateFn := api.WithJitter(calculator.Rate, jitterArg)
 	distributedIterationDuration, distributedRateFn, err := api.NewDistribution(
-		api.DistributionType(distributionTypeArg), frequency, rateFn,
+		api.DistributionType(distributionTypeArg), frequency, rateFn, nil,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("new distribution: %w", err)

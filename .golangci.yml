@@ -25,9 +25,6 @@ linters:
   - nestif
   - nilnil
 
-  # Requires too many changes
-  - testpackage
-
   # Project is not large enough to need duplicate code detection
   - dupl
 

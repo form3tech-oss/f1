@@ -32,11 +32,11 @@ func runStage(
 	stage runnableStage,
 	options options.RunOptions,
 ) {
-	setEnvs(stage.params)
-	defer unsetEnvs(stage.params)
+	setEnvs(stage.Params)
+	defer unsetEnvs(stage.Params)
 
 	// stop the stage early to avoid starting a new tick
-	stageCtx, stageCancel := context.WithTimeout(ctx, stage.stageDuration-safeDurationBeforeNextStage)
+	stageCtx, stageCancel := context.WithTimeout(ctx, stage.StageDuration-safeDurationBeforeNextStage)
 	defer stageCancel()
 
 	stageDone := make(chan struct{})
@@ -44,11 +44,11 @@ func runStage(
 	go func() {
 		defer close(stageDone)
 
-		if stage.usersConcurrency == 0 {
-			doWork := api.NewIterationWorker(stage.iterationDuration, stage.rate)
+		if stage.UsersConcurrency == 0 {
+			doWork := api.NewIterationWorker(stage.IterationDuration, stage.Rate)
 			doWork(stageCtx, workers, options)
 		} else {
-			doWork := users.NewWorker(stage.usersConcurrency)
+			doWork := users.NewWorker(stage.UsersConcurrency)
 			doWork(stageCtx, workers, options)
 		}
 	}()
