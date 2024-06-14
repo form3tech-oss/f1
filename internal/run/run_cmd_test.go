@@ -721,17 +721,3 @@ func TestParameterisedMaxFailures(t *testing.T) {
 		})
 	}
 }
-
-func TestFluentd_InvalidPort(t *testing.T) {
-	t.Parallel()
-
-	given, when, then := NewRunTestStage(t)
-
-	given.
-		a_fluentd_config_with_host_and_port("host", "port").and().
-		a_concurrent_constant_trigger_is_configured()
-
-	when.the_run_command_is_executed()
-
-	then.run_fails_with_error_containing("parsing fluentd port")
-}

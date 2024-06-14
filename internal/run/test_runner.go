@@ -15,7 +15,6 @@ import (
 
 	"github.com/form3tech-oss/f1/v2/internal/console"
 	"github.com/form3tech-oss/f1/v2/internal/envsettings"
-	"github.com/form3tech-oss/f1/v2/internal/logging"
 	"github.com/form3tech-oss/f1/v2/internal/metrics"
 	"github.com/form3tech-oss/f1/v2/internal/options"
 	"github.com/form3tech-oss/f1/v2/internal/progress"
@@ -80,9 +79,6 @@ func NewRun(
 			run.pusher = run.pusher.Grouping("id", run.Settings.Prometheus.LabelID)
 		}
 	}
-	if run.Options.RegisterLogHookFunc == nil {
-		run.Options.RegisterLogHookFunc = logging.NoneRegisterLogHookFunc
-	}
 
 	progressRunner, err := raterun.New(func(rate time.Duration) {
 		run.result.SnapshotProgress(rate)
@@ -118,9 +114,7 @@ func (r *Run) Do(ctx context.Context, s *scenarios.Scenarios) (*Result, error) {
 	defer r.printSummary()
 	defer r.printLogOnFailure()
 
-	if err := r.configureLogging(); err != nil {
-		return nil, fmt.Errorf("configure logging: %w", err)
-	}
+	r.configureLogging()
 
 	r.metrics.Reset()
 
@@ -186,12 +180,7 @@ func (r *Run) teardownActiveScenario(ctx context.Context) {
 	r.printer.Println(r.result.Teardown())
 }
 
-func (r *Run) configureLogging() error {
-	err := r.Options.RegisterLogHookFunc(r.Options.Scenario)
-	if err != nil {
-		return fmt.Errorf("calling register log hook func: %w", err)
-	}
-
+func (r *Run) configureLogging() {
 	if !r.Options.Verbose {
 		r.result.LogFile = redirectLoggingToFile(r.Options.Scenario, r.Settings.LogFilePath, r.printer.Writer)
 		welcomeMessage := r.templates.Start(templates.StartData{
@@ -204,8 +193,6 @@ func (r *Run) configureLogging() error {
 		logrus.Info(welcomeMessage)
 		r.printer.Printf("Saving logs to %s\n\n", r.result.LogFile)
 	}
-
-	return nil
 }
 
 func (r *Run) printSummary() {

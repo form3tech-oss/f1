@@ -20,7 +20,6 @@ import (
 
 	"github.com/form3tech-oss/f1/v2/internal/console"
 	"github.com/form3tech-oss/f1/v2/internal/envsettings"
-	"github.com/form3tech-oss/f1/v2/internal/fluentd"
 	"github.com/form3tech-oss/f1/v2/internal/metrics"
 	"github.com/form3tech-oss/f1/v2/internal/options"
 	"github.com/form3tech-oss/f1/v2/internal/run"
@@ -86,7 +85,7 @@ func NewRunTestStage(t *testing.T) (*RunTestStage, *RunTestStage, *RunTestStage)
 		f1:          f1.New(),
 		settings:    envsettings.Get(),
 		metricData:  NewMetricData(),
-		printer:     console.NewPrinter(io.Discard),
+		printer:     console.NewPrinter(io.Discard, io.Discard),
 		metrics:     metrics.NewInstance(prometheus.NewRegistry(), true),
 	}
 
@@ -156,13 +155,12 @@ func (s *RunTestStage) a_ramp_duration_of(rampDuration string) *RunTestStage {
 func (s *RunTestStage) setupRun() {
 	r, err := run.NewRun(
 		options.RunOptions{
-			Scenario:            s.scenario,
-			MaxDuration:         s.duration,
-			Concurrency:         s.concurrency,
-			MaxIterations:       s.maxIterations,
-			MaxFailures:         s.maxFailures,
-			MaxFailuresRate:     s.maxFailuresRate,
-			RegisterLogHookFunc: fluentd.LoggingHook(s.settings.Fluentd.Host, s.settings.Fluentd.Port),
+			Scenario:        s.scenario,
+			MaxDuration:     s.duration,
+			Concurrency:     s.concurrency,
+			MaxIterations:   s.maxIterations,
+			MaxFailures:     s.maxFailures,
+			MaxFailuresRate: s.maxFailuresRate,
 		},
 		s.build_trigger(), s.settings, s.metrics, s.printer)
 	if err != nil {
@@ -584,29 +582,6 @@ func (s *RunTestStage) all_exported_metrics_contain_label(labelName string, labe
 			}
 		}
 	}
-	return s
-}
-
-func (s *RunTestStage) a_concurrent_constant_trigger_is_configured() *RunTestStage {
-	return s.
-		a_trigger_type_of(Constant).and().
-		a_rate_of("10/s").and().
-		a_duration_of(500 * time.Millisecond).and().
-		a_concurrency_of(50).and().
-		an_iteration_limit_of(1000).and().
-		a_scenario_where_each_iteration_takes(1 * time.Millisecond)
-}
-
-func (s *RunTestStage) a_fluentd_config_with_host_and_port(host, port string) *RunTestStage {
-	s.settings.Fluentd.Host = host
-	s.settings.Fluentd.Port = port
-
-	return s
-}
-
-func (s *RunTestStage) run_fails_with_error_containing(message string) *RunTestStage {
-	s.require.ErrorContains(s.runError, message)
-
 	return s
 }
 
