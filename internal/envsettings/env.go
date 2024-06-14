@@ -26,6 +26,10 @@ type Fluentd struct {
 	Port string
 }
 
+func (f Fluentd) Present() bool {
+	return f.Host != "" || f.Port != ""
+}
+
 type Settings struct {
 	Prometheus  Prometheus
 	Fluentd     Fluentd

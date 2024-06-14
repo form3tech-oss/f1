@@ -16,7 +16,7 @@ func Cmd(s *Scenarios) *cobra.Command {
 	}
 
 	// this should be injected, but it's a breaking changes for v2
-	printer := console.NewPrinter(os.Stdout)
+	printer := console.NewPrinter(os.Stdout, os.Stderr)
 	scenariosCmd.AddCommand(lsCmd(s, printer))
 	return scenariosCmd
 }

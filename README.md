@@ -95,8 +95,6 @@ It provides the following information:
 | `PROMETHEUS_NAMESPACE` | string | `""` | Sets the metric label `namespace` to the specified value. Label is omitted if the value provided is empty.|
 | `PROMETHEUS_LABEL_ID` | string | `""` | Sets the metric label `id` to the specified value. Label is omitted if the value provided is empty.|
 | `LOG_FILE_PATH` | string | `""`| Specify the log file path if `--verbose` is enabled. The logfile path will be an automatically generated temp file if not specified. |
-| `FLUENTD_HOST`| string | "" | Enable log shipping to a fluentd host. Must together with `FLUENTD_PORT`. Disabled by default. |
-| `FLUENTD_PORT`| int | "" | Enable log shipping to a fluentd host. Must together with `FLUENTD_HOST`. Disabled by default. |
 
 ## Design decisions
 ### Why did we decide to write our own load testing tool?

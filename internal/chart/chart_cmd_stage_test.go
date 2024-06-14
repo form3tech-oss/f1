@@ -37,7 +37,7 @@ func (s *ChartTestStage) and() *ChartTestStage {
 }
 
 func (s *ChartTestStage) i_execute_the_chart_command() *ChartTestStage {
-	cmd := chart.Cmd(trigger.GetBuilders(), console.NewPrinter(io.Discard))
+	cmd := chart.Cmd(trigger.GetBuilders(), console.NewPrinter(io.Discard, io.Discard))
 	cmd.SetArgs(s.args)
 	s.err = cmd.Execute()
 	return s

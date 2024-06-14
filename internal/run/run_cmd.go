@@ -9,7 +9,6 @@ import (
 
 	"github.com/form3tech-oss/f1/v2/internal/console"
 	"github.com/form3tech-oss/f1/v2/internal/envsettings"
-	"github.com/form3tech-oss/f1/v2/internal/logging"
 	"github.com/form3tech-oss/f1/v2/internal/metrics"
 	"github.com/form3tech-oss/f1/v2/internal/options"
 	"github.com/form3tech-oss/f1/v2/internal/trigger/api"
@@ -21,7 +20,6 @@ func Cmd(
 	s *scenarios.Scenarios,
 	builders []api.Builder,
 	settings envsettings.Settings,
-	hookFunc logging.RegisterLogHookFunc,
 	metricsInstance *metrics.Metrics,
 	printer *console.Printer,
 ) *cobra.Command {
@@ -34,7 +32,7 @@ func Cmd(
 		triggerCmd := &cobra.Command{
 			Use:   t.Name,
 			Short: t.Description,
-			RunE:  runCmdExecute(s, t, settings, hookFunc, metricsInstance, printer),
+			RunE:  runCmdExecute(s, t, settings, metricsInstance, printer),
 			Args:  cobra.MatchAll(cobra.ExactArgs(1)),
 		}
 
@@ -68,7 +66,6 @@ func runCmdExecute(
 	s *scenarios.Scenarios,
 	t api.Builder,
 	settings envsettings.Settings,
-	hookFunc logging.RegisterLogHookFunc,
 	metricsInstance *metrics.Metrics,
 	printer *console.Printer,
 ) func(cmd *cobra.Command, args []string) error {
@@ -137,17 +134,23 @@ func runCmdExecute(
 			return fmt.Errorf("getting flag: %w", err)
 		}
 
+		if settings.Fluentd.Present() {
+			printer.Warnf("WARNING: fluentd integration has been removed. %s and %s have no effect.",
+				envsettings.EnvFluentdHost,
+				envsettings.EnvFluentdPort,
+			)
+		}
+
 		run, err := NewRun(options.RunOptions{
-			Scenario:            scenarioName,
-			MaxDuration:         duration,
-			Concurrency:         concurrency,
-			Verbose:             verbose,
-			VerboseFail:         verboseFail,
-			MaxIterations:       maxIterations,
-			MaxFailures:         maxFailures,
-			MaxFailuresRate:     maxFailuresRate,
-			RegisterLogHookFunc: hookFunc,
-			IgnoreDropped:       ignoreDropped,
+			Scenario:        scenarioName,
+			MaxDuration:     duration,
+			Concurrency:     concurrency,
+			Verbose:         verbose,
+			VerboseFail:     verboseFail,
+			MaxIterations:   maxIterations,
+			MaxFailures:     maxFailures,
+			MaxFailuresRate: maxFailuresRate,
+			IgnoreDropped:   ignoreDropped,
 		}, trig, settings, metricsInstance, printer)
 		if err != nil {
 			return fmt.Errorf("new run: %w", err)

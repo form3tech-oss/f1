@@ -10,7 +10,6 @@ import (
 	"github.com/form3tech-oss/f1/v2/internal/chart"
 	"github.com/form3tech-oss/f1/v2/internal/console"
 	"github.com/form3tech-oss/f1/v2/internal/envsettings"
-	"github.com/form3tech-oss/f1/v2/internal/fluentd"
 	"github.com/form3tech-oss/f1/v2/internal/metrics"
 	"github.com/form3tech-oss/f1/v2/internal/run"
 	"github.com/form3tech-oss/f1/v2/internal/trigger"
@@ -39,7 +38,7 @@ func buildRootCmd(s *scenarios.Scenarios, settings envsettings.Settings, p *prof
 		return nil, fmt.Errorf("marking flag as filename: %w", err)
 	}
 
-	printer := console.NewPrinter(os.Stdout)
+	printer := console.NewPrinter(os.Stdout, os.Stderr)
 	metrics.Init(settings.PrometheusEnabled())
 	metricsInstance := metrics.Instance()
 
@@ -47,7 +46,6 @@ func buildRootCmd(s *scenarios.Scenarios, settings envsettings.Settings, p *prof
 		s,
 		builders,
 		settings,
-		fluentd.LoggingHook(settings.Fluentd.Host, settings.Fluentd.Port),
 		metricsInstance,
 		printer,
 	))
