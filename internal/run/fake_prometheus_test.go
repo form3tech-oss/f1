@@ -52,7 +52,7 @@ func FakePrometheusHandler(t *testing.T, metricData *MetricData) http.HandlerFun
 		metricFamily := &io_prometheus_client.MetricFamily{}
 		err := expfmt.NewDecoder(request.Body, expfmt.ResponseFormat(request.Header)).Decode(metricFamily)
 		if err != nil {
-			t.Errorf("error decoding request body: %s", err)
+			t.Errorf("error decoding request body '%s' : %s", request.Body, err)
 			responseWriter.WriteHeader(http.StatusInternalServerError)
 			return
 		}

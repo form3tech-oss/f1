@@ -1,6 +1,10 @@
 package workers
 
 import (
+	"log/slog"
+
+	"github.com/sirupsen/logrus"
+
 	"github.com/form3tech-oss/f1/v2/internal/metrics"
 	"github.com/form3tech-oss/f1/v2/internal/progress"
 	"github.com/form3tech-oss/f1/v2/internal/xtime"
@@ -9,11 +13,13 @@ import (
 )
 
 type ActiveScenario struct {
-	scenario *scenarios.Scenario
-	m        *metrics.Metrics
-	progress *progress.Stats
-	t        *testing.T
-	Teardown func()
+	scenario     *scenarios.Scenario
+	m            *metrics.Metrics
+	progress     *progress.Stats
+	t            *testing.T
+	Teardown     func()
+	logger       *slog.Logger
+	logrusLogger *logrus.Logger
 }
 
 const instantDuration = 0
@@ -22,28 +28,51 @@ func NewActiveScenario(
 	scenario *scenarios.Scenario,
 	metricsInstance *metrics.Metrics,
 	stats *progress.Stats,
+	logger *slog.Logger,
+	logrusLogger *logrus.Logger,
 ) *ActiveScenario {
-	t, teardown := testing.NewT("setup", scenario.Name)
+	t, teardown := testing.NewTWithOptions(scenario.Name,
+		testing.WithIteration("setup"),
+		testing.WithLogger(logger),
+		testing.WithLogrusLogger(logrusLogger),
+	)
 
 	s := &ActiveScenario{
-		scenario: scenario,
-		m:        metricsInstance,
-		t:        t,
-		Teardown: teardown,
-		progress: stats,
+		scenario:     scenario,
+		m:            metricsInstance,
+		t:            t,
+		Teardown:     teardown,
+		progress:     stats,
+		logger:       logger,
+		logrusLogger: logrusLogger,
 	}
 
+	return s
+}
+
+func (s *ActiveScenario) Setup() {
 	start := xtime.NanoTime()
 	func() {
-		defer testing.CheckResults(t, nil)
+		defer testing.CheckResults(s.t, nil)
 
-		s.scenario.RunFn = s.scenario.ScenarioFn(t)
+		s.scenario.RunFn = s.scenario.ScenarioFn(s.t)
 	}()
 	duration := xtime.NanoTime() - start
 
 	// wait for completion
-	s.m.RecordSetupResult(scenario.Name, metrics.Result(t.Failed()), duration)
-	return s
+	s.m.RecordSetupResult(s.scenario.Name, metrics.Result(s.t.Failed()), duration)
+}
+
+func (s *ActiveScenario) newIterationState() *iterationState {
+	t, teardown := testing.NewTWithOptions(s.scenario.Name,
+		testing.WithLogger(s.logger),
+		testing.WithLogrusLogger(s.logrusLogger),
+	)
+
+	return &iterationState{
+		t:        t,
+		teardown: teardown,
+	}
 }
 
 func (s *ActiveScenario) TeardownFailed() bool {

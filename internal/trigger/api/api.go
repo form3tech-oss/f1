@@ -7,11 +7,12 @@ import (
 	"github.com/spf13/pflag"
 
 	"github.com/form3tech-oss/f1/v2/internal/options"
+	"github.com/form3tech-oss/f1/v2/internal/ui"
 	"github.com/form3tech-oss/f1/v2/internal/workers"
 )
 
 type (
-	WorkTriggerer func(ctx context.Context, workers *workers.PoolManager, options options.RunOptions)
+	WorkTriggerer func(ctx context.Context, outputer ui.Outputer, workers *workers.PoolManager, options options.RunOptions)
 	RateFunction  func(time.Time) int
 )
 

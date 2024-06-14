@@ -13,18 +13,11 @@ type iterationState struct {
 	t        *testing.T
 }
 
-func newIterationState(scenario string) *iterationState {
-	state := &iterationState{}
-	state.t, state.teardown = testing.NewT("", scenario)
-
-	return state
-}
-
 type PoolManager struct {
 	activeScenario *ActiveScenario
+	runningWorkers sync.WaitGroup
 	iteration      atomic.Uint64
 	maxIterations  uint64
-	runningWorkers sync.WaitGroup
 }
 
 func New(maxIterations uint64, activeScenario *ActiveScenario) *PoolManager {
@@ -34,6 +27,15 @@ func New(maxIterations uint64, activeScenario *ActiveScenario) *PoolManager {
 	}
 
 	return w
+}
+
+func (m *PoolManager) makeIterationStatePool(numWorkers int) []*iterationState {
+	statePool := make([]*iterationState, numWorkers)
+	for i := range numWorkers {
+		statePool[i] = m.activeScenario.newIterationState()
+	}
+
+	return statePool
 }
 
 func (m *PoolManager) WaitForCompletion() <-chan struct{} {

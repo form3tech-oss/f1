@@ -7,10 +7,10 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
 
 	"github.com/form3tech-oss/f1/v2/internal/trigger/api"
+	"github.com/form3tech-oss/f1/v2/internal/ui"
 )
 
 type RunnableStages struct {
@@ -33,7 +33,7 @@ type runnableStage struct {
 	UsersConcurrency  int
 }
 
-func Rate() api.Builder {
+func Rate(outputer ui.Outputer) api.Builder {
 	flags := pflag.NewFlagSet("file", pflag.ContinueOnError)
 
 	return api.Builder{
@@ -42,7 +42,7 @@ func Rate() api.Builder {
 		Flags:       flags,
 		New: func(flags *pflag.FlagSet) (*api.Trigger, error) {
 			filename := flags.Arg(0)
-			fileContent, err := readFile(filename)
+			fileContent, err := readFile(filename, outputer)
 			if err != nil {
 				return nil, err
 			}
@@ -71,14 +71,17 @@ func Rate() api.Builder {
 	}
 }
 
-func readFile(filename string) (*[]byte, error) {
+func readFile(filename string, outputer ui.Outputer) (*[]byte, error) {
 	file, err := os.Open(filepath.Clean(filename))
 	if err != nil {
 		return nil, fmt.Errorf("opening file: %w", err)
 	}
 	defer func() {
 		if err = file.Close(); err != nil {
-			logrus.WithError(err).Error("unable to close the config file")
+			outputer.Display(ui.ErrorMessage{
+				Message: "unable to close the config file",
+				Error:   err,
+			})
 		}
 	}()
 
