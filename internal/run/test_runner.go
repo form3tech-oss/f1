@@ -21,7 +21,6 @@ import (
 	"github.com/form3tech-oss/f1/v2/internal/progress"
 	"github.com/form3tech-oss/f1/v2/internal/raterun"
 	"github.com/form3tech-oss/f1/v2/internal/run/templates"
-	"github.com/form3tech-oss/f1/v2/internal/trace"
 	"github.com/form3tech-oss/f1/v2/internal/trigger/api"
 	"github.com/form3tech-oss/f1/v2/internal/workers"
 	"github.com/form3tech-oss/f1/v2/internal/xcontext"
@@ -35,7 +34,6 @@ const (
 
 type Run struct {
 	progressRunner  *raterun.Runner
-	tracer          trace.Tracer
 	progressStats   *progress.Stats
 	metrics         *metrics.Metrics
 	templates       *templates.Templates
@@ -55,7 +53,6 @@ func NewRun(
 	t *api.Trigger,
 	settings envsettings.Settings,
 	metricsInstane *metrics.Metrics,
-	tracer trace.Tracer,
 	printer *console.Printer,
 ) (*Run, error) {
 	run := Run{
@@ -64,7 +61,6 @@ func NewRun(
 		RateDescription: t.Description,
 		trigger:         t,
 		metrics:         metricsInstane,
-		tracer:          tracer,
 		printer:         printer,
 		progressStats:   &progress.Stats{},
 	}

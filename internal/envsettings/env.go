@@ -11,9 +11,6 @@ const (
 
 	EnvLogFilePath = "LOG_FILE_PATH"
 
-	EnvTrace             = "TRACE"
-	EnvTraceEnabledValue = "true"
-
 	EnvFluentdHost = "FLUENTD_HOST"
 	EnvFluentdPort = "FLUENTD_PORT"
 )
@@ -33,7 +30,6 @@ type Settings struct {
 	Prometheus  Prometheus
 	Fluentd     Fluentd
 	LogFilePath string
-	Trace       bool
 }
 
 func (s *Settings) PrometheusEnabled() bool {
@@ -43,7 +39,6 @@ func (s *Settings) PrometheusEnabled() bool {
 func Get() Settings {
 	return Settings{
 		LogFilePath: os.Getenv(EnvLogFilePath),
-		Trace:       os.Getenv(EnvTrace) == EnvTraceEnabledValue,
 		Fluentd: Fluentd{
 			Host: os.Getenv(EnvFluentdHost),
 			Port: os.Getenv(EnvFluentdPort),

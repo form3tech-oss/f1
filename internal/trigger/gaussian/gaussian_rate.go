@@ -11,7 +11,6 @@ import (
 	"github.com/spf13/pflag"
 
 	"github.com/form3tech-oss/f1/v2/internal/gaussian"
-	"github.com/form3tech-oss/f1/v2/internal/trace"
 	"github.com/form3tech-oss/f1/v2/internal/trigger/api"
 	"github.com/form3tech-oss/f1/v2/internal/trigger/rate"
 	"github.com/form3tech-oss/f1/v2/internal/triggerflags"
@@ -58,7 +57,7 @@ func Rate() api.Builder {
 		Name:        "gaussian <scenario>",
 		Description: "distributes load to match a desired monthly volume",
 		Flags:       flags,
-		New: func(flags *pflag.FlagSet, tracer trace.Tracer) (*api.Trigger, error) {
+		New: func(flags *pflag.FlagSet) (*api.Trigger, error) {
 			volume, err := flags.GetFloat64(flagVolume)
 			if err != nil {
 				return nil, fmt.Errorf("getting flag: %w", err)
@@ -136,7 +135,7 @@ func Rate() api.Builder {
 			)
 
 			return &api.Trigger{
-					Trigger:     api.NewIterationWorker(rates.IterationDuration, rates.Rate, tracer),
+					Trigger:     api.NewIterationWorker(rates.IterationDuration, rates.Rate),
 					DryRun:      rates.Rate,
 					Description: description,
 					Duration:    rates.Duration,

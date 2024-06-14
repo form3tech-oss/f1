@@ -8,7 +8,6 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/form3tech-oss/f1/v2/internal/options"
-	"github.com/form3tech-oss/f1/v2/internal/trace"
 	"github.com/form3tech-oss/f1/v2/internal/trigger/api"
 	"github.com/form3tech-oss/f1/v2/internal/trigger/users"
 	"github.com/form3tech-oss/f1/v2/internal/workers"
@@ -16,13 +15,13 @@ import (
 
 const safeDurationBeforeNextStage = 20 * time.Millisecond
 
-func newStagesWorker(stages []runnableStage, tracer trace.Tracer) api.WorkTriggerer {
+func newStagesWorker(stages []runnableStage) api.WorkTriggerer {
 	return func(ctx context.Context, workers *workers.PoolManager, options options.RunOptions) {
 		for _, stage := range stages {
 			if ctx.Err() != nil {
 				return
 			}
-			runStage(ctx, workers, stage, options, tracer)
+			runStage(ctx, workers, stage, options)
 		}
 	}
 }
@@ -32,7 +31,6 @@ func runStage(
 	workers *workers.PoolManager,
 	stage runnableStage,
 	options options.RunOptions,
-	tracer trace.Tracer,
 ) {
 	setEnvs(stage.params)
 	defer unsetEnvs(stage.params)
@@ -47,7 +45,7 @@ func runStage(
 		defer close(stageDone)
 
 		if stage.usersConcurrency == 0 {
-			doWork := api.NewIterationWorker(stage.iterationDuration, stage.rate, tracer)
+			doWork := api.NewIterationWorker(stage.iterationDuration, stage.rate)
 			doWork(stageCtx, workers, options)
 		} else {
 			doWork := users.NewWorker(stage.usersConcurrency)
