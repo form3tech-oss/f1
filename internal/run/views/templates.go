@@ -1,4 +1,4 @@
-package templates
+package views
 
 import (
 	"math"
@@ -9,14 +9,14 @@ import (
 	"github.com/form3tech-oss/f1/v2/internal/termcolor"
 )
 
-type RenderTermColorsType bool
+type renderTermColorsType bool
 
 const (
-	RenderTermColors        RenderTermColorsType = true
-	DisableRenderTermColors RenderTermColorsType = false
+	renderTermColorsEnabled  renderTermColorsType = true
+	renderTermColorsDisabled renderTermColorsType = false
 )
 
-type Templates struct {
+type templates struct {
 	start                *template.Template
 	result               *template.Template
 	setup                *template.Template
@@ -27,7 +27,7 @@ type Templates struct {
 	interrupt            *template.Template
 }
 
-func Parse(renderTermColors RenderTermColorsType) *Templates {
+func parseTemplates(renderTermColors renderTermColorsType) *templates {
 	templateFunctions := template.FuncMap{
 		"rate": func(duration time.Duration, count uint64) uint64 {
 			durationInSeconds := duration.Round(time.Second).Seconds()
@@ -83,7 +83,7 @@ func Parse(renderTermColors RenderTermColorsType) *Templates {
 		Funcs(templateFunctions).
 		Parse(applyReplacements(interruptTemplate, replacements)))
 
-	return &Templates{
+	return &templates{
 		start:                start,
 		result:               result,
 		setup:                setup,
@@ -112,8 +112,8 @@ func applyReplacements(templateString string, replacements map[string]string) st
 	return res
 }
 
-func termReplacements(renderFlag RenderTermColorsType) map[string]string {
-	if renderFlag == RenderTermColors {
+func termReplacements(renderFlag renderTermColorsType) map[string]string {
+	if renderFlag == renderTermColorsEnabled {
 		return map[string]string{
 			"{-}":              termcolor.Reset,
 			"{u}":              termcolor.Underline,

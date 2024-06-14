@@ -10,7 +10,7 @@ func TestSimpleFlow(t *testing.T) {
 
 	given, when, then := NewRunTestStage(t)
 
-	test := TestParam{
+	test := testParam{
 		constantRate:           "10/100ms",
 		testDuration:           100 * time.Millisecond,
 		concurrency:            100,
@@ -43,17 +43,7 @@ func TestSimpleFlow(t *testing.T) {
 		the_number_of_dropped_iterations_should_be(test.expectedDroppedIterations)
 }
 
-type TriggerType int
-
-const (
-	Constant TriggerType = iota
-	Staged
-	Users
-	Ramp
-	File
-)
-
-type TestParam struct {
+type testParam struct {
 	name                      string
 	triggerType               TriggerType
 	constantRate              string
@@ -79,7 +69,7 @@ type TestParam struct {
 func TestParameterised(t *testing.T) {
 	t.Parallel()
 
-	for _, test := range []TestParam{
+	for _, test := range []testParam{
 		{
 			name:                   "basic test",
 			constantRate:           "10/100ms",
@@ -649,7 +639,7 @@ func TestFailureCounts(t *testing.T) {
 func TestParameterisedMaxFailures(t *testing.T) {
 	t.Parallel()
 
-	for _, test := range []TestParam{
+	for _, test := range []testParam{
 		{
 			name:            "pass with 5 max failures",
 			maxFailures:     5,
@@ -718,6 +708,219 @@ func TestParameterisedMaxFailures(t *testing.T) {
 				the_iteration_metric_has_n_results(5, "success").and().
 				the_iteration_metric_has_n_results(5, "fail").and().
 				the_command_finished_with_failure_of(test.expectedFailure)
+		})
+	}
+}
+
+func TestOutput_JSONLogging(t *testing.T) {
+	t.Parallel()
+
+	uiOnlyLogs := []logFieldMatchers{
+		{
+			"message":  anyValue,
+			"level":    "info",
+			"scenario": "scenario_where_each_iteration_takes_200ms",
+		},
+		{
+			"message":  "Running scenario_where_each_iteration_takes_200ms for up to 10 iterations or up to 10s at a rate of Makes requests from a set of users specified by --concurrency",
+			"level":    "info",
+			"scenario": "scenario_where_each_iteration_takes_200ms",
+		},
+		{
+			"message":         "progress",
+			"level":           "info",
+			"scenario":        "scenario_where_each_iteration_takes_200ms",
+			"iteration_stats": anyValue,
+		},
+		{
+			"message":         "progress",
+			"level":           "info",
+			"scenario":        "scenario_where_each_iteration_takes_200ms",
+			"iteration_stats": anyValue,
+		},
+		{
+			"message":  "Max Iterations Reached - waiting for active tests to complete",
+			"level":    "info",
+			"scenario": "scenario_where_each_iteration_takes_200ms",
+			"duration": anyValue,
+		},
+		{
+			"message":  "teardown completed",
+			"level":    "info",
+			"scenario": "scenario_where_each_iteration_takes_200ms",
+		},
+		{
+			"message":         "Load Test Passed",
+			"level":           "info",
+			"scenario":        "scenario_where_each_iteration_takes_200ms",
+			"iteration_stats": anyValue,
+		},
+	}
+
+	scenarioOnlyLogs := []logFieldMatchers{
+		{
+			"message":  "setup",
+			"level":    "error",
+			"scenario": "scenario_where_each_iteration_takes_200ms",
+		},
+		{
+			"message":  "logrus - setup",
+			"level":    "info",
+			"logger":   "logrus",
+			"scenario": "scenario_where_each_iteration_takes_200ms",
+		},
+
+		{
+			"message":  "first iteration",
+			"level":    "error",
+			"scenario": "scenario_where_each_iteration_takes_200ms",
+		},
+		{
+			"message":  "logrus - first iteration",
+			"level":    "info",
+			"logger":   "logrus",
+			"scenario": "scenario_where_each_iteration_takes_200ms",
+		},
+	}
+
+	uiAndScenarioLogs := []logFieldMatchers{
+		{
+			"message":  "Running scenario_where_each_iteration_takes_200ms for up to 10 iterations or up to 10s at a rate of Makes requests from a set of users specified by --concurrency",
+			"level":    "info",
+			"scenario": "scenario_where_each_iteration_takes_200ms",
+		},
+		{
+			"message":  "setup",
+			"level":    "error",
+			"scenario": "scenario_where_each_iteration_takes_200ms",
+		},
+		{
+			"message":  "logrus - setup",
+			"level":    "info",
+			"logger":   "logrus",
+			"scenario": "scenario_where_each_iteration_takes_200ms",
+		},
+
+		{
+			"message":  "first iteration",
+			"level":    "error",
+			"scenario": "scenario_where_each_iteration_takes_200ms",
+		},
+		{
+			"message":  "logrus - first iteration",
+			"level":    "info",
+			"logger":   "logrus",
+			"scenario": "scenario_where_each_iteration_takes_200ms",
+		},
+
+		{
+			"message":         "progress",
+			"level":           "info",
+			"scenario":        "scenario_where_each_iteration_takes_200ms",
+			"iteration_stats": anyValue,
+		},
+		{
+			"message":         "progress",
+			"level":           "info",
+			"scenario":        "scenario_where_each_iteration_takes_200ms",
+			"iteration_stats": anyValue,
+		},
+		{
+			"message":  "Max Iterations Reached - waiting for active tests to complete",
+			"level":    "info",
+			"scenario": "scenario_where_each_iteration_takes_200ms",
+			"duration": anyValue,
+		},
+		{
+			"message":  "teardown completed",
+			"level":    "info",
+			"scenario": "scenario_where_each_iteration_takes_200ms",
+		},
+		{
+			"message":         "Load Test Passed",
+			"level":           "info",
+			"scenario":        "scenario_where_each_iteration_takes_200ms",
+			"iteration_stats": anyValue,
+		},
+	}
+
+	testCases := []struct {
+		name                    string
+		verbose                 bool
+		interactive             bool
+		logFilePath             string
+		expectedStdoutContains  []string
+		expectedStdoutLogLines  []logFieldMatchers
+		expectedStderrLogLines  []logFieldMatchers
+		expectedLogFileLogLines []logFieldMatchers
+	}{
+		{
+			name:        "interactive - scenario logs to file & human readable to stdout",
+			interactive: true,
+			verbose:     false,
+			expectedStdoutContains: []string{
+				"Saving logs to",
+				"F1 Load Tester",
+				"Running scenario_where_each_iteration_takes_200ms scenario for up to 10 iterations or up to 10s at a rate of Makes requests from a set of users specified by --concurrency.",
+				"[   1s]",
+				"[   2s]  Max Iterations Reached - waiting for active tests to complete",
+				"[Teardown] ✔",
+				"Load Test Passed",
+				"10 iterations started in",
+				"Full logs:",
+			},
+			expectedLogFileLogLines: scenarioOnlyLogs,
+		},
+		{
+			name:                   "interactive verbose - only structured logs to stdout",
+			interactive:            true,
+			verbose:                true,
+			expectedStdoutLogLines: uiAndScenarioLogs,
+		},
+		{
+			name:                    "non interactive - structured logs to stdout & scenario logs to file",
+			interactive:             false,
+			verbose:                 false,
+			expectedStdoutLogLines:  uiOnlyLogs,
+			expectedLogFileLogLines: scenarioOnlyLogs,
+		},
+		{
+			name:                   "non interactive verbose - only structured logs to stdout",
+			interactive:            false,
+			verbose:                true,
+			expectedStdoutLogLines: uiAndScenarioLogs,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			given, when, then := NewRunTestStage(t)
+
+			given.
+				verbose_flag_is(testCase.verbose).and().
+				json_logging_is_enabled().and().
+				terminal_is_interactive(testCase.interactive).and().
+				a_trigger_type_of(Users).and().
+				a_scenario_where_each_iteration_takes(200 * time.Millisecond).and().
+				a_duration_of(10 * time.Second).and().
+				a_concurrency_of(1).and().
+				an_iteration_limit_of(10)
+
+			when.
+				the_run_command_is_executed()
+
+			then.
+				the_command_finished_successfully().and().
+				expect_stderr_to_match_json_log(testCase.expectedStderrLogLines).and().
+				expect_the_logfile_to_match_json_log(testCase.expectedLogFileLogLines)
+
+			if len(testCase.expectedStdoutContains) != 0 {
+				then.expect_the_stdout_output_to_include(testCase.expectedStdoutContains)
+			} else {
+				then.expect_stdout_to_match_json_log(testCase.expectedStdoutLogLines)
+			}
 		})
 	}
 }

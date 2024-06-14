@@ -12,6 +12,9 @@ type RunOptions struct {
 	MaxFailures     uint64
 	MaxFailuresRate int
 	Verbose         bool
-	VerboseFail     bool
 	IgnoreDropped   bool
+}
+
+func (o *RunOptions) LogToFile() bool {
+	return !o.Verbose
 }

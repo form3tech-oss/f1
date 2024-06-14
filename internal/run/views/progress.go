@@ -1,8 +1,10 @@
-package templates
+package views
 
 import (
+	"log/slog"
 	"time"
 
+	"github.com/form3tech-oss/f1/v2/internal/log"
 	"github.com/form3tech-oss/f1/v2/internal/progress"
 )
 
@@ -18,6 +20,19 @@ type ProgressData struct {
 	Period                                time.Duration
 }
 
-func (t *Templates) Progress(data ProgressData) string {
-	return render(t.progress, data)
+func (d ProgressData) Log(logger *slog.Logger) {
+	logger.Info("progress", log.IterationStatsGroup(
+		0,
+		d.SuccessfulIterationCount,
+		d.FailedIterationCount,
+		d.DroppedIterationCount,
+		d.Period,
+	))
+}
+
+func (v *Views) Progress(data ProgressData) *ViewContext[ProgressData] {
+	return &ViewContext[ProgressData]{
+		view: v.progress,
+		data: data,
+	}
 }
