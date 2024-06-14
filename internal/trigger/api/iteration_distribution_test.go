@@ -1,4 +1,4 @@
-package api
+package api_test
 
 import (
 	"fmt"
@@ -6,6 +6,8 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/form3tech-oss/f1/v2/internal/trigger/api"
 )
 
 func TestRegularRateDistribution(t *testing.T) {
@@ -158,7 +160,9 @@ func TestRegularRateDistribution(t *testing.T) {
 
 			rateFn := func(time.Time) int { return test.rate }
 
-			distributedIterationDuration, distributedRate := withRegularDistribution(test.iterationDuration, rateFn)
+			distributedIterationDuration, distributedRate, err := api.NewDistribution(api.RegularDistribution, test.iterationDuration, rateFn, nil)
+			require.NoError(t, err)
+
 			var result []int
 			for range len(test.expectedDistributedRates) {
 				result = append(result, distributedRate(time.Now()))
@@ -176,7 +180,8 @@ func TestRegularRateDistributionWithSmallIterationDuration(t *testing.T) {
 	iterationDuration := 10 * time.Millisecond
 	rateFn := func(time.Time) int { return 10_000 }
 
-	distributedIterationDuration, distributedRate := withRegularDistribution(iterationDuration, rateFn)
+	distributedIterationDuration, distributedRate, err := api.NewDistribution(api.RegularDistribution, iterationDuration, rateFn, nil)
+	require.NoError(t, err)
 
 	require.Equal(t, 10*time.Millisecond, distributedIterationDuration)
 	require.Equal(t, 10_000, distributedRate(time.Now()))
@@ -196,7 +201,9 @@ func TestRegularRateDistributionWithVariableRate(t *testing.T) {
 		0, 1, 1, 1, 1, 0, 1, 1, 1, 1,
 	}
 
-	distributedIterationDuration, distributedRate := withRegularDistribution(iterationDuration, rateFn)
+	distributedIterationDuration, distributedRate, err := api.NewDistribution(api.RegularDistribution, iterationDuration, rateFn, nil)
+	require.NoError(t, err)
+
 	result := make([]int, len(expectedDistributedRates))
 	for i := range len(expectedDistributedRates) {
 		result[i] = distributedRate(time.Now())
@@ -265,7 +272,9 @@ func TestRandomRateDistribution(t *testing.T) {
 			idx := -1
 			randFn := func(int) int { idx++; return test.randomValues[idx] }
 
-			distributedIterationDuration, distributedRate := withRandomDistribution(test.iterationDuration, rateFn, randFn)
+			distributedIterationDuration, distributedRate, err := api.NewDistribution(api.RandomDistribution, test.iterationDuration, rateFn, randFn)
+			require.NoError(t, err)
+
 			var result []int
 			for range len(test.expectedDistributedRates) {
 				result = append(result, distributedRate(time.Now()))
@@ -299,7 +308,9 @@ func TestRandomRateDistributionWithVariableRate(t *testing.T) {
 		0, 1, 1, 1, 1, 0, 1, 1, 1, 1,
 	}
 
-	distributedIterationDuration, distributedRate := withRandomDistribution(iterationDuration, rateFn, randFn)
+	distributedIterationDuration, distributedRate, err := api.NewDistribution(api.RandomDistribution, iterationDuration, rateFn, randFn)
+	require.NoError(t, err)
+
 	result := make([]int, len(expectedDistributedRates))
 	for i := range len(expectedDistributedRates) {
 		result[i] = distributedRate(time.Now())

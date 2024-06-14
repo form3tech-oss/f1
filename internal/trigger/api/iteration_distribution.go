@@ -19,7 +19,13 @@ func NewDistribution(
 	distributionTypeArg DistributionType,
 	iterationDuration time.Duration,
 	rateFn RateFunction,
+	randomFnArg func(int) int,
 ) (time.Duration, RateFunction, error) {
+	randomFn := randomFnArg
+	if randomFn == nil {
+		randomFn = rand.Intn
+	}
+
 	switch distributionTypeArg {
 	case NoneDistribution:
 		return iterationDuration, rateFn, nil
@@ -27,7 +33,6 @@ func NewDistribution(
 		distributedIterationDuration, distributedRateFn := withRegularDistribution(iterationDuration, rateFn)
 		return distributedIterationDuration, distributedRateFn, nil
 	case RandomDistribution:
-		randomFn := rand.Intn
 		distributedIterationDuration, distributedRateFn := withRandomDistribution(iterationDuration, rateFn, randomFn)
 		return distributedIterationDuration, distributedRateFn, nil
 	default:

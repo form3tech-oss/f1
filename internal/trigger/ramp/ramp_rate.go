@@ -123,7 +123,7 @@ func CalculateRampRate(
 
 	jitterRateFn := api.WithJitter(rateFn, jitterArg)
 	distributedIterationDuration, distributedRateFn, err := api.NewDistribution(
-		api.DistributionType(distributionTypeArg), startUnit, jitterRateFn,
+		api.DistributionType(distributionTypeArg), startUnit, jitterRateFn, nil,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("new distribution: %w", err)

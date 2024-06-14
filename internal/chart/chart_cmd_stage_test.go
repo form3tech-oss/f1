@@ -1,4 +1,4 @@
-package chart
+package chart_test
 
 import (
 	"io"
@@ -9,6 +9,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 
+	"github.com/form3tech-oss/f1/v2/internal/chart"
 	"github.com/form3tech-oss/f1/v2/internal/console"
 	"github.com/form3tech-oss/f1/v2/internal/trigger"
 )
@@ -36,7 +37,7 @@ func (s *ChartTestStage) and() *ChartTestStage {
 }
 
 func (s *ChartTestStage) i_execute_the_chart_command() *ChartTestStage {
-	cmd := Cmd(trigger.GetBuilders(), console.NewPrinter(io.Discard))
+	cmd := chart.Cmd(trigger.GetBuilders(), console.NewPrinter(io.Discard))
 	cmd.SetArgs(s.args)
 	s.err = cmd.Execute()
 	return s

@@ -1,4 +1,4 @@
-package file
+package file_test
 
 import (
 	"testing"
@@ -6,6 +6,8 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/require"
+
+	"github.com/form3tech-oss/f1/v2/internal/trigger/file"
 )
 
 func TestFileRate_SingleStages(t *testing.T) {
@@ -387,25 +389,25 @@ stages:
 
 			now, _ := time.Parse(time.RFC3339, "2020-12-10T10:00:00+00:00")
 
-			stagesToRun, err := parseConfigFile([]byte(test.fileContent), now)
+			stagesToRun, err := file.ParseConfigFile([]byte(test.fileContent), now)
 
 			require.NoError(t, err)
-			require.Len(t, stagesToRun.stages, 1)
-			require.Equal(t, test.expectedScenario, stagesToRun.scenario)
-			require.Equal(t, test.expectedMaxDuration, stagesToRun.maxDuration)
-			require.Equal(t, test.expectedConcurrency, stagesToRun.concurrency)
-			require.Equal(t, test.expectedMaxIterations, stagesToRun.maxIterations)
-			require.Equal(t, test.expectedIgnoreDropped, stagesToRun.ignoreDropped)
-			require.Equal(t, test.expectedTotalDuration, stagesToRun.stages[0].stageDuration)
-			require.Equal(t, test.expectedIterationDuration, stagesToRun.stages[0].iterationDuration)
-			require.Equal(t, test.expectedParameters, stagesToRun.stages[0].params)
-			require.Equal(t, test.expectedUsersConcurrency, stagesToRun.stages[0].usersConcurrency)
+			require.Len(t, stagesToRun.Stages, 1)
+			require.Equal(t, test.expectedScenario, stagesToRun.Scenario)
+			require.Equal(t, test.expectedMaxDuration, stagesToRun.MaxDuration)
+			require.Equal(t, test.expectedConcurrency, stagesToRun.Concurrency)
+			require.Equal(t, test.expectedMaxIterations, stagesToRun.MaxIterations)
+			require.Equal(t, test.expectedIgnoreDropped, stagesToRun.IgnoreDropped)
+			require.Equal(t, test.expectedTotalDuration, stagesToRun.Stages[0].StageDuration)
+			require.Equal(t, test.expectedIterationDuration, stagesToRun.Stages[0].IterationDuration)
+			require.Equal(t, test.expectedParameters, stagesToRun.Stages[0].Params)
+			require.Equal(t, test.expectedUsersConcurrency, stagesToRun.Stages[0].UsersConcurrency)
 
 			if len(test.expectedRates) > 0 {
 				var rates []int
 				for range test.expectedRates {
 					now = now.Add(test.expectedIterationDuration)
-					rates = append(rates, stagesToRun.stages[0].rate(now))
+					rates = append(rates, stagesToRun.Stages[0].Rate(now))
 				}
 				require.Equal(t, test.expectedRates, rates)
 			}
@@ -655,7 +657,7 @@ invalid file content
 
 			now, _ := time.Parse(time.RFC3339, "2020-12-10T10:00:00+00:00")
 
-			runnableStages, err := parseConfigFile([]byte(test.fileContent), now)
+			runnableStages, err := file.ParseConfigFile([]byte(test.fileContent), now)
 
 			require.Nil(t, runnableStages)
 			require.ErrorContains(t, err, test.expectedError)

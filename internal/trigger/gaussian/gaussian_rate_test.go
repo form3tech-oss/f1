@@ -1,4 +1,4 @@
-package gaussian
+package gaussian_test
 
 import (
 	"fmt"
@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/form3tech-oss/f1/v2/internal/trigger/api"
+	"github.com/form3tech-oss/f1/v2/internal/trigger/gaussian"
 )
 
 func TestTotalVolumes(t *testing.T) {
@@ -164,7 +165,7 @@ func TestTotalVolumes(t *testing.T) {
 		t.Run(fmt.Sprintf("%d: %f every %s, stddev: %s, peak: %s, jitter %f", i, test.volume, test.frequency.String(), test.stddev, test.peak, test.jitter), func(t *testing.T) {
 			t.Parallel()
 
-			c, err := NewCalculator(test.peak, test.stddev, test.frequency, test.weights, test.volume, test.repeat)
+			c, err := gaussian.NewCalculator(test.peak, test.stddev, test.frequency, test.weights, test.volume, test.repeat)
 			require.NoError(t, err)
 
 			total := 0.0
@@ -208,7 +209,7 @@ func TestWeightedVolumes(t *testing.T) {
 			iterationDuration := 10 * time.Second
 			repeatEvery := 10 * time.Minute
 
-			c, err := NewCalculator(repeatEvery/2, 1*time.Minute, iterationDuration, test.weights, float64(test.volume), repeatEvery)
+			c, err := gaussian.NewCalculator(repeatEvery/2, 1*time.Minute, iterationDuration, test.weights, float64(test.volume), repeatEvery)
 			require.NoError(t, err)
 
 			total := 0.0
@@ -333,7 +334,7 @@ func Test_calculateVolume(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			got, err := calculateVolume(tt.peakTps, tt.peakTime, tt.stddev)
+			got, err := gaussian.CalculateVolume(tt.peakTps, tt.peakTime, tt.stddev)
 			if tt.wantErr {
 				require.Error(t, err)
 			}

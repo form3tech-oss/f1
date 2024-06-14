@@ -98,7 +98,7 @@ func Rate() api.Builder {
 				if volume != defaultVolume {
 					logrus.Warn("--peak-rate is provided, the value given for --volume will be ignored")
 				}
-				volume, err = calculateVolume(peakRate, peakDuration, stddevDuration)
+				volume, err = CalculateVolume(peakRate, peakDuration, stddevDuration)
 				if err != nil {
 					return nil, err
 				}
@@ -181,7 +181,7 @@ func CalculateGaussianRate(
 
 	rateFn := api.WithJitter(calculator.For, jitter)
 	distributedIterationDuration, distributedRateFn, err := api.NewDistribution(
-		api.DistributionType(distributionTypeArg), frequency, rateFn,
+		api.DistributionType(distributionTypeArg), frequency, rateFn, nil,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("new distribution: %w", err)
@@ -256,7 +256,7 @@ func NewCalculator(
 	}, nil
 }
 
-func calculateVolume(peakTps string, peakTime, stddev time.Duration) (float64, error) {
+func CalculateVolume(peakTps string, peakTime, stddev time.Duration) (float64, error) {
 	amplitude, err := parseRateToTPS(peakTps) // the desired peak TPS
 	if err != nil {
 		return -1, err

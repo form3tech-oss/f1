@@ -64,7 +64,7 @@ func CalculateConstantRate(jitterArg float64, rateArg, distributionTypeArg strin
 
 	rateFn := api.WithJitter(func(time.Time) int { return rate }, jitterArg)
 	distributedIterationDuration, distributedRateFn, err := api.NewDistribution(
-		api.DistributionType(distributionTypeArg), iterationDuration, rateFn,
+		api.DistributionType(distributionTypeArg), iterationDuration, rateFn, nil,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("new distribution: %w", err)
