@@ -10,7 +10,6 @@ import (
 	"github.com/wcharczuk/go-chart/v2"
 
 	"github.com/form3tech-oss/f1/v2/internal/console"
-	"github.com/form3tech-oss/f1/v2/internal/support/errorh"
 	"github.com/form3tech-oss/f1/v2/internal/trigger/api"
 )
 
@@ -126,7 +125,11 @@ func chartCmdExecute(
 		if err != nil {
 			return fmt.Errorf("creting file: %w", err)
 		}
-		defer errorh.SafeClose(f)
+		defer func() {
+			if err = f.Close(); err != nil {
+				printer.Errorf("unable to close the chart file: %w", err)
+			}
+		}()
 
 		err = graph.Render(chart.PNG, f)
 		if err != nil {

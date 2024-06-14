@@ -27,7 +27,6 @@ func buildRootCmd(s *scenarios.Scenarios, settings envsettings.Settings, p *prof
 		Short:             "F1 load testing tool",
 		PersistentPreRunE: startProfiling(p),
 	}
-	builders := trigger.GetBuilders()
 
 	rootCmd.PersistentFlags().String(flagCPUProfile, "", "write cpu profile to `file`")
 	if err := rootCmd.MarkPersistentFlagFilename(flagCPUProfile); err != nil {
@@ -41,6 +40,8 @@ func buildRootCmd(s *scenarios.Scenarios, settings envsettings.Settings, p *prof
 	printer := console.NewPrinter(os.Stdout, os.Stderr)
 	metrics.Init(settings.PrometheusEnabled())
 	metricsInstance := metrics.Instance()
+
+	builders := trigger.GetBuilders(printer)
 
 	rootCmd.AddCommand(run.Cmd(
 		s,

@@ -2,8 +2,6 @@ package run
 
 import (
 	"fmt"
-	"io"
-	stdlog "log"
 	"os"
 	"path/filepath"
 	"time"
@@ -33,16 +31,15 @@ func GetLogFilePath(scenario string, logPath string) string {
 	return GetGeneratedLogFilePath(scenario)
 }
 
-func redirectLoggingToFile(scenario string, logPath string, output io.Writer) string {
+func redirectLoggingToFile(scenario string, logPath string, logger *logrus.Logger) string {
 	logFilePath := GetLogFilePath(scenario, logPath)
 
 	file, err := os.OpenFile(logFilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o600)
 	if err == nil {
-		logrus.StandardLogger().SetOutput(file)
+		logger.SetOutput(file)
 	} else {
-		logrus.Info("Failed to log to file, using default stderr")
+		logger.Info("Failed to log to file, using default stderr")
 	}
 
-	stdlog.SetOutput(output)
 	return logFilePath
 }

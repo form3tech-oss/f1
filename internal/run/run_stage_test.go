@@ -454,12 +454,12 @@ func (s *RunTestStage) build_trigger() *api.Trigger {
 		t, err = ramp.Rate().New(flags)
 		require.NoError(s.t, err)
 	case File:
-		flags := file.Rate().Flags
+		flags := file.Rate(s.printer).Flags
 
 		err := flags.Parse([]string{s.configFile})
 		require.NoError(s.t, err)
 
-		t, err = file.Rate().New(flags)
+		t, err = file.Rate(s.printer).New(flags)
 		require.NoError(s.t, err)
 	}
 	return t

@@ -1,6 +1,7 @@
 package trigger
 
 import (
+	"github.com/form3tech-oss/f1/v2/internal/console"
 	"github.com/form3tech-oss/f1/v2/internal/trigger/api"
 	"github.com/form3tech-oss/f1/v2/internal/trigger/constant"
 	"github.com/form3tech-oss/f1/v2/internal/trigger/file"
@@ -10,13 +11,13 @@ import (
 	"github.com/form3tech-oss/f1/v2/internal/trigger/users"
 )
 
-func GetBuilders() []api.Builder {
+func GetBuilders(printer *console.Printer) []api.Builder {
 	return []api.Builder{
 		constant.Rate(),
 		staged.Rate(),
-		gaussian.Rate(),
+		gaussian.Rate(printer),
 		users.Rate(),
 		ramp.Rate(),
-		file.Rate(),
+		file.Rate(printer),
 	}
 }

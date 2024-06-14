@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	stdlog "log"
 	"os"
 	"sync"
 	"time"
@@ -32,16 +31,17 @@ const (
 )
 
 type Run struct {
+	pusher          *push.Pusher
 	progressRunner  *raterun.Runner
-	progressStats   *progress.Stats
 	metrics         *metrics.Metrics
 	templates       *templates.Templates
 	activeScenario  *workers.ActiveScenario
 	trigger         *api.Trigger
-	pusher          *push.Pusher
+	progressStats   *progress.Stats
 	printer         *console.Printer
-	RateDescription string
+	logger          *logrus.Logger
 	Settings        envsettings.Settings
+	RateDescription string
 	Options         options.RunOptions
 	result          Result
 	notifyDropped   sync.Once
@@ -62,6 +62,7 @@ func NewRun(
 		metrics:         metricsInstane,
 		printer:         printer,
 		progressStats:   &progress.Stats{},
+		logger:          logrus.New(),
 	}
 
 	run.templates = templates.Parse(templates.RenderTermColors)
@@ -85,7 +86,7 @@ func NewRun(
 		run.printer.Println(run.result.Progress())
 		if run.result.HasDroppedIterations() {
 			run.notifyDropped.Do(func() {
-				logrus.Warn("Dropping requests as workers are too busy. Considering increasing `--concurrency` argument")
+				run.logger.Warn("Dropping requests as workers are too busy. Considering increasing `--concurrency` argument")
 			})
 		}
 	}, []raterun.Schedule{
@@ -122,7 +123,7 @@ func (r *Run) Do(ctx context.Context, s *scenarios.Scenarios) (*Result, error) {
 	if scenario == nil {
 		return nil, fmt.Errorf("scenario not defined: %s", r.Options.Scenario)
 	}
-	r.activeScenario = workers.NewActiveScenario(scenario, r.metrics, r.progressStats)
+	r.activeScenario = workers.NewActiveScenario(scenario, r.metrics, r.progressStats, r.logger)
 	r.pushMetrics(ctx)
 
 	// run teardown even if the context is cancelled
@@ -182,7 +183,7 @@ func (r *Run) teardownActiveScenario(ctx context.Context) {
 
 func (r *Run) configureLogging() {
 	if !r.Options.Verbose {
-		r.result.LogFile = redirectLoggingToFile(r.Options.Scenario, r.Settings.LogFilePath, r.printer.Writer)
+		r.result.LogFile = redirectLoggingToFile(r.Options.Scenario, r.Settings.LogFilePath, r.logger)
 		welcomeMessage := r.templates.Start(templates.StartData{
 			Scenario:        r.Options.Scenario,
 			MaxDuration:     r.Options.MaxDuration,
@@ -190,7 +191,7 @@ func (r *Run) configureLogging() {
 			RateDescription: r.RateDescription,
 		})
 
-		logrus.Info(welcomeMessage)
+		r.logger.Info(welcomeMessage)
 		r.printer.Printf("Saving logs to %s\n\n", r.result.LogFile)
 	}
 }
@@ -199,9 +200,8 @@ func (r *Run) printSummary() {
 	summary := r.result.String()
 	r.printer.Println(summary)
 	if !r.Options.Verbose {
-		logrus.Info(summary)
-		logrus.StandardLogger().SetOutput(r.printer.Writer)
-		stdlog.SetOutput(r.printer.Writer)
+		r.logger.Info(summary)
+		r.logger.SetOutput(r.printer.Writer)
 	}
 }
 
@@ -219,7 +219,7 @@ func (r *Run) run(ctx context.Context) {
 	triggerCtx, triggerCancel := context.WithTimeout(ctx, duration-nextIterationWindow)
 	defer triggerCancel()
 
-	poolManager := workers.New(r.Options.MaxIterations, r.activeScenario)
+	poolManager := workers.New(r.Options.MaxIterations, r.activeScenario, r.logger)
 	r.trigger.Trigger(triggerCtx, poolManager, r.Options)
 
 	select {
@@ -249,7 +249,7 @@ func (r *Run) pushMetrics(ctx context.Context) {
 	}
 	err := r.pusher.PushContext(ctx)
 	if err != nil {
-		logrus.Errorf("unable to push metrics to prometheus: %v", err)
+		r.logger.WithError(err).Error("unable to push metrics to prometheus")
 	}
 }
 
@@ -259,7 +259,7 @@ func (r *Run) printLogOnFailure() {
 	}
 
 	if err := r.printResultLogs(); err != nil {
-		logrus.WithError(err).Error("error printing logs")
+		r.logger.WithError(err).Error("error printing logs")
 	}
 }
 
@@ -273,7 +273,7 @@ func (r *Run) printResultLogs() error {
 			return
 		}
 		if err := fd.Close(); err != nil {
-			logrus.WithError(err).Error("error closing log file")
+			r.logger.WithError(err).Error("error closing log file")
 		}
 	}()
 

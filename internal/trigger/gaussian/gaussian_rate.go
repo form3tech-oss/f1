@@ -7,9 +7,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
 
+	"github.com/form3tech-oss/f1/v2/internal/console"
 	"github.com/form3tech-oss/f1/v2/internal/gaussian"
 	"github.com/form3tech-oss/f1/v2/internal/trigger/api"
 	"github.com/form3tech-oss/f1/v2/internal/trigger/rate"
@@ -28,7 +28,7 @@ const (
 	flagStandardDeviation  = "standard-deviation"
 )
 
-func Rate() api.Builder {
+func Rate(printer *console.Printer) api.Builder {
 	flags := pflag.NewFlagSet("gaussian", pflag.ContinueOnError)
 	flags.Float64(flagVolume, defaultVolume,
 		"The desired volume to be achieved with the calculated load profile. "+
@@ -96,7 +96,7 @@ func Rate() api.Builder {
 			}
 			if peakRate != "" {
 				if volume != defaultVolume {
-					logrus.Warn("--peak-rate is provided, the value given for --volume will be ignored")
+					printer.Warn("--peak-rate is provided, the value given for --volume will be ignored")
 				}
 				volume, err = CalculateVolume(peakRate, peakDuration, stddevDuration)
 				if err != nil {

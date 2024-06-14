@@ -5,6 +5,8 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/form3tech-oss/f1/v2/pkg/f1/testing"
 )
 
@@ -13,27 +15,42 @@ type iterationState struct {
 	t        *testing.T
 }
 
-func newIterationState(scenario string) *iterationState {
+func newIterationState(scenario string, logrusLogger *logrus.Logger) *iterationState {
 	state := &iterationState{}
-	state.t, state.teardown = testing.NewT("", scenario)
+	state.t, state.teardown = testing.NewTWithOptions(scenario, testing.WithLogrusLogger(logrusLogger))
 
 	return state
 }
 
 type PoolManager struct {
 	activeScenario *ActiveScenario
+	logrusLogger   *logrus.Logger
+	runningWorkers sync.WaitGroup
 	iteration      atomic.Uint64
 	maxIterations  uint64
-	runningWorkers sync.WaitGroup
 }
 
-func New(maxIterations uint64, activeScenario *ActiveScenario) *PoolManager {
+func New(maxIterations uint64, activeScenario *ActiveScenario, logrusLogger *logrus.Logger) *PoolManager {
 	w := &PoolManager{
 		activeScenario: activeScenario,
 		maxIterations:  maxIterations,
+		logrusLogger:   logrusLogger,
 	}
 
 	return w
+}
+
+func (m *PoolManager) makeIterationStatePool(numWorkers int) []*iterationState {
+	statePool := make([]*iterationState, numWorkers)
+	for i := range numWorkers {
+		statePool[i] = newIterationState(m.activeScenario.scenario.Name, m.logrusLogger)
+	}
+
+	return statePool
+}
+
+func (m *PoolManager) Logger() *logrus.Logger {
+	return m.logrusLogger
 }
 
 func (m *PoolManager) WaitForCompletion() <-chan struct{} {

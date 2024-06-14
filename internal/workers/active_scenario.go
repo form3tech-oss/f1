@@ -1,6 +1,8 @@
 package workers
 
 import (
+	"github.com/sirupsen/logrus"
+
 	"github.com/form3tech-oss/f1/v2/internal/metrics"
 	"github.com/form3tech-oss/f1/v2/internal/progress"
 	"github.com/form3tech-oss/f1/v2/internal/xtime"
@@ -22,8 +24,12 @@ func NewActiveScenario(
 	scenario *scenarios.Scenario,
 	metricsInstance *metrics.Metrics,
 	stats *progress.Stats,
+	logrusLogger *logrus.Logger,
 ) *ActiveScenario {
-	t, teardown := testing.NewT("setup", scenario.Name)
+	t, teardown := testing.NewTWithOptions(scenario.Name,
+		testing.WithIteration("setup"),
+		testing.WithLogrusLogger(logrusLogger),
+	)
 
 	s := &ActiveScenario{
 		scenario: scenario,

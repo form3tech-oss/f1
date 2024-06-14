@@ -20,7 +20,7 @@ var errFailNow = errors.New("FailNow")
 // reporting methods, such as the variations of Log and Error, may be called simultaneously from
 // multiple goroutines.
 type T struct {
-	logger         *logrus.Logger // logger with user and iteration tags
+	logrusLogger   *logrus.Logger
 	require        *require.Assertions
 	Iteration      string // iteration number or "setup"
 	Scenario       string
@@ -30,14 +30,41 @@ type T struct {
 	tearingDown    bool
 }
 
+type TOption func(*T)
+
+// WithLogrusLogger will be removed in future versions, needed for backwards compatibility
+func WithLogrusLogger(logger *logrus.Logger) TOption {
+	return func(t *T) {
+		t.logrusLogger = logger
+	}
+}
+
+func WithIteration(iteration string) TOption {
+	return func(t *T) {
+		t.Iteration = iteration
+	}
+}
+
 func NewT(iter, scenarioName string) (*T, func()) {
+	t, teardown := NewTWithOptions(scenarioName,
+		WithIteration(iter),
+		WithLogrusLogger(logrus.StandardLogger()),
+	)
+
+	return t, teardown
+}
+
+func NewTWithOptions(scenarioName string, options ...TOption) (*T, func()) {
 	t := &T{
-		Iteration:     iter,
-		logger:        logrus.StandardLogger(),
 		Scenario:      scenarioName,
 		teardownStack: []func(){},
 	}
 	t.require = require.New(t)
+
+	for _, opt := range options {
+		opt(t)
+	}
+
 	return t, t.teardown
 }
 
@@ -50,7 +77,7 @@ func (t *T) Reset(iter string) {
 }
 
 func (t *T) Logger() *logrus.Logger {
-	return t.logger
+	return t.logrusLogger
 }
 
 func (t *T) Require() *require.Assertions {
@@ -112,13 +139,13 @@ func (t *T) Fatal(err error) {
 // Log formats its arguments using default formatting, analogous to Println, and records the text in the error log.
 // The text will be printed only if f1 is running in verbose mode.
 func (t *T) Log(args ...interface{}) {
-	t.logger.Error(args...)
+	t.logrusLogger.Error(args...)
 }
 
 // Logf formats its arguments according to the format, analogous to Printf, and records the text in the error log.
 // A final newline is added if not provided. The text will be printed only if f1 is running in verbose mode.
 func (t *T) Logf(format string, args ...interface{}) {
-	t.logger.Errorf(format, args...)
+	t.logrusLogger.Errorf(format, args...)
 }
 
 // Failed reports whether the function has failed.
@@ -162,7 +189,7 @@ func handlePanic(t *T, recovered any) {
 		return
 	case isError:
 		stack := string(debug.Stack())
-		t.logger.
+		t.logrusLogger.
 			WithField("stack_trace", stack).
 			WithError(err).
 			Errorf("panic in '%s' scenario on %s", t.Scenario, t.Iteration)

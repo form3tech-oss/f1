@@ -36,3 +36,7 @@ func (t *Printer) Warn(a ...any) {
 func (t *Printer) Warnf(format string, a ...any) {
 	fmt.Fprintf(t.ErrWriter, format, a...)
 }
+
+func (t *Printer) Errorf(format string, a ...any) {
+	fmt.Fprint(t.ErrWriter, fmt.Errorf(format, a...).Error())
+}

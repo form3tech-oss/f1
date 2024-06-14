@@ -32,8 +32,8 @@ func runStage(
 	stage runnableStage,
 	options options.RunOptions,
 ) {
-	setEnvs(stage.Params)
-	defer unsetEnvs(stage.Params)
+	setEnvs(stage.Params, workers.Logger())
+	defer unsetEnvs(stage.Params, workers.Logger())
 
 	// stop the stage early to avoid starting a new tick
 	stageCtx, stageCancel := context.WithTimeout(ctx, stage.StageDuration-safeDurationBeforeNextStage)
@@ -62,20 +62,20 @@ func runStage(
 	}
 }
 
-func setEnvs(envs map[string]string) {
+func setEnvs(envs map[string]string, logger *logrus.Logger) {
 	for key, value := range envs {
 		err := os.Setenv(key, value)
 		if err != nil {
-			logrus.WithError(err).Error("unable set environment variables for given scenario")
+			logger.WithError(err).Error("unable set environment variables for given scenario")
 		}
 	}
 }
 
-func unsetEnvs(envs map[string]string) {
+func unsetEnvs(envs map[string]string, logger *logrus.Logger) {
 	for key := range envs {
 		err := os.Unsetenv(key)
 		if err != nil {
-			logrus.WithError(err).Error("unable unset environment variables for given scenario")
+			logger.WithError(err).Error("unable unset environment variables for given scenario")
 		}
 	}
 }
