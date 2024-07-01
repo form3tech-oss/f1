@@ -1,17 +1,15 @@
 package chart_test
 
 import (
-	"io"
 	"strconv"
 	"testing"
 	"time"
 
-	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/form3tech-oss/f1/v2/internal/chart"
-	"github.com/form3tech-oss/f1/v2/internal/console"
 	"github.com/form3tech-oss/f1/v2/internal/trigger"
+	"github.com/form3tech-oss/f1/v2/internal/ui"
 )
 
 type ChartTestStage struct {
@@ -23,7 +21,6 @@ type ChartTestStage struct {
 
 func NewChartTestStage(t *testing.T) (*ChartTestStage, *ChartTestStage, *ChartTestStage) {
 	t.Helper()
-	logrus.SetLevel(logrus.WarnLevel)
 
 	stage := &ChartTestStage{
 		t:      t,
@@ -37,7 +34,8 @@ func (s *ChartTestStage) and() *ChartTestStage {
 }
 
 func (s *ChartTestStage) i_execute_the_chart_command() *ChartTestStage {
-	cmd := chart.Cmd(trigger.GetBuilders(), console.NewPrinter(io.Discard, io.Discard))
+	outputer := ui.NewDiscardOutput()
+	cmd := chart.Cmd(trigger.GetBuilders(outputer), outputer)
 	cmd.SetArgs(s.args)
 	s.err = cmd.Execute()
 	return s

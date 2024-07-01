@@ -53,13 +53,22 @@ linters-settings:
       - prefix(github.com/form3tech-oss/f1)
   exhaustruct:
     include:
-      - github.com/form3tech-oss/f1/v2/internal/run/templates.*
+      - github.com/form3tech-oss/f1/v2/internal/run/views.*
+  nolintlint:
+    allow-unused: false
+    require-explanation: true
+    require-specific: true
 issues:
   exclude-dirs:
     - vendor$
   max-issues-per-linter: 0
   max-same-issues: 0
   exclude-rules:
+    # Allow use of deprecated API
+    - path: \.go
+      linters:
+        - staticcheck
+      text: "SA1019: (.*.Logger|testing.WithLogrusLogger)"
     - path: _test\.go
       linters:
         # unwrapped errors are ok in tests
@@ -68,6 +77,8 @@ issues:
         - unparam
         # long lines are OK in tests
         - lll
+        # prefer duplicated literal asserts
+        - dupword
     - path: _test\.go
       # ST1003: Poorly chosen identifiers (https://staticcheck.io/docs/checks/#ST1003)
       # This is to allow identifiers to be snake_cased in favor of BDD integration tests

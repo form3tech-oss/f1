@@ -9,14 +9,14 @@ import (
 
 	"github.com/form3tech-oss/f1/v2/internal/options"
 	"github.com/form3tech-oss/f1/v2/internal/progress"
-	"github.com/form3tech-oss/f1/v2/internal/run/templates"
+	"github.com/form3tech-oss/f1/v2/internal/run/views"
 )
 
 type Result struct {
 	startTime     time.Time
 	progressStats *progress.Stats
-	templates     *templates.Templates
-	LogFile       string
+	views         *views.Views
+	LogFilePath   string
 	errors        []error
 	runOptions    options.RunOptions
 	snapshot      progress.Snapshot
@@ -26,12 +26,12 @@ type Result struct {
 
 func NewResult(
 	runOptions options.RunOptions,
-	templates *templates.Templates,
+	views *views.Views,
 	progressStats *progress.Stats,
-) Result {
-	return Result{
+) *Result {
+	return &Result{
 		runOptions:    runOptions,
-		templates:     templates,
+		views:         views,
 		progressStats: progressStats,
 	}
 }
@@ -85,11 +85,11 @@ func (r *Result) Error() error {
 	return errors.New(strings.Join(errorStrings, "; "))
 }
 
-func (r *Result) String() string {
+func (r *Result) Summary() *views.ViewContext[views.ResultData] {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
-	return r.templates.Result(templates.ResultData{
+	return r.views.Result(views.ResultData{
 		SuccessfulIterationCount:     r.snapshot.SuccessfulIterationDurations.Count,
 		DroppedIterationCount:        r.snapshot.DroppedIterationCount,
 		FailedIterationCount:         r.snapshot.FailedIterationDurations.Count,
@@ -98,7 +98,7 @@ func (r *Result) String() string {
 		FailedIterationDurations:     r.snapshot.FailedIterationDurations,
 		Error:                        r.Error(),
 		Failed:                       r.Failed(),
-		LogFile:                      r.LogFile,
+		LogFilePath:                  r.LogFilePath,
 		Iterations:                   r.snapshot.Iterations(),
 		IterationsStarted:            r.snapshot.IterationsStarted(),
 	})
@@ -117,11 +117,11 @@ func (r *Result) Failed() bool {
 		(opts.MaxFailuresRate > 0 && (r.snapshot.FailedIterationsRate() > uint64(opts.MaxFailuresRate)))
 }
 
-func (r *Result) Progress() string {
+func (r *Result) Progress() *views.ViewContext[views.ProgressData] {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
-	return r.templates.Progress(templates.ProgressData{
+	return r.views.Progress(views.ProgressData{
 		Duration:                              r.duration(),
 		SuccessfulIterationDurationsForPeriod: r.snapshot.SuccessfulIterationDurationsForPeriod,
 		Period:                                r.snapshot.Period,
@@ -138,38 +138,38 @@ func (r *Result) HasDroppedIterations() bool {
 	return r.snapshot.DroppedIterationCount > 0
 }
 
-func (r *Result) Setup() string {
+func (r *Result) Setup() *views.ViewContext[views.SetupData] {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
-	return r.templates.Setup(templates.SetupData{
+	return r.views.Setup(views.SetupData{
 		Error: r.Error(),
 	})
 }
 
-func (r *Result) Teardown() string {
+func (r *Result) Teardown() *views.ViewContext[views.TeardownData] {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
-	return r.templates.Teardown(templates.TeardownData{
+	return r.views.Teardown(views.TeardownData{
 		Error: r.Error(),
 	})
 }
 
-func (r *Result) MaxDurationElapsed() string {
+func (r *Result) MaxDurationElapsed() *views.ViewContext[views.TimeoutData] {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
-	return r.templates.Timeout(templates.TimeoutData{
+	return r.views.Timeout(views.TimeoutData{
 		Duration: r.duration(),
 	})
 }
 
-func (r *Result) Interrupted() string {
+func (r *Result) Interrupted() *views.ViewContext[views.InterruptData] {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
-	return r.templates.Interrupt(templates.InterruptData{
+	return r.views.Interrupt(views.InterruptData{
 		Duration: r.duration(),
 	})
 }
@@ -187,11 +187,11 @@ func (r *Result) RecordTestFinished() {
 	r.TestDuration = time.Since(r.startTime)
 }
 
-func (r *Result) MaxIterationsReached() string {
+func (r *Result) MaxIterationsReached() *views.ViewContext[views.MaxIterationsReachedData] {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
-	return r.templates.MaxIterationsReached(templates.MaxIterationsReachedData{
+	return r.views.MaxIterationsReached(views.MaxIterationsReachedData{
 		Duration: r.duration(),
 	})
 }

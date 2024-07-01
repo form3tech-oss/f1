@@ -2,6 +2,8 @@ package testing
 
 import (
 	"errors"
+	"fmt"
+	"log/slog"
 	"runtime/debug"
 	"sync/atomic"
 	"time"
@@ -9,6 +11,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/require"
 
+	"github.com/form3tech-oss/f1/v2/internal/log"
 	"github.com/form3tech-oss/f1/v2/internal/metrics"
 )
 
@@ -20,7 +23,8 @@ var errFailNow = errors.New("FailNow")
 // reporting methods, such as the variations of Log and Error, may be called simultaneously from
 // multiple goroutines.
 type T struct {
-	logger         *logrus.Logger // logger with user and iteration tags
+	logrusLogger   *logrus.Logger
+	logger         *slog.Logger
 	require        *require.Assertions
 	Iteration      string // iteration number or "setup"
 	Scenario       string
@@ -30,14 +34,55 @@ type T struct {
 	tearingDown    bool
 }
 
+type TOption func(*T)
+
+// WithLogrusLogger will be removed in future versions, needed for backwards compatibility
+//
+// Deprecated: Will be removed in future versions.
+func WithLogrusLogger(logrusLogger *logrus.Logger) TOption {
+	return func(t *T) {
+		t.logrusLogger = logrusLogger
+	}
+}
+
+func WithLogger(logger *slog.Logger) TOption {
+	return func(t *T) {
+		t.logger = logger
+	}
+}
+
+func WithIteration(iteration string) TOption {
+	return func(t *T) {
+		t.Iteration = iteration
+	}
+}
+
+// NewT returns a new T state
+//
+// Deprecated: Will be removed in favour of NewTWithOptions
 func NewT(iter, scenarioName string) (*T, func()) {
+	logger := slog.Default()
+
+	t, teardown := NewTWithOptions(scenarioName,
+		WithIteration(iter),
+		WithLogrusLogger(log.NewSlogLogrusLogger(logger)),
+		WithLogger(logger),
+	)
+
+	return t, teardown
+}
+
+func NewTWithOptions(scenarioName string, options ...TOption) (*T, func()) {
 	t := &T{
-		Iteration:     iter,
-		logger:        logrus.StandardLogger(),
 		Scenario:      scenarioName,
 		teardownStack: []func(){},
 	}
 	t.require = require.New(t)
+
+	for _, opt := range options {
+		opt(t)
+	}
+
 	return t, t.teardown
 }
 
@@ -49,7 +94,17 @@ func (t *T) Reset(iter string) {
 	t.teardownStack = []func(){}
 }
 
+// Logger returns a logrus logger, needed for backwards compatibility. Use StandardLogger
+// instead.
+//
+// Internally it uses slog as a logging backend.
+//
+// Deprecated: logrus will be removed in future versions.
 func (t *T) Logger() *logrus.Logger {
+	return t.logrusLogger
+}
+
+func (t *T) StandardLogger() *slog.Logger {
 	return t.logger
 }
 
@@ -111,14 +166,14 @@ func (t *T) Fatal(err error) {
 
 // Log formats its arguments using default formatting, analogous to Println, and records the text in the error log.
 // The text will be printed only if f1 is running in verbose mode.
-func (t *T) Log(args ...interface{}) {
-	t.logger.Error(args...)
+func (t *T) Log(args ...any) {
+	t.logger.Error(fmt.Sprint(args...))
 }
 
 // Logf formats its arguments according to the format, analogous to Printf, and records the text in the error log.
 // A final newline is added if not provided. The text will be printed only if f1 is running in verbose mode.
-func (t *T) Logf(format string, args ...interface{}) {
-	t.logger.Errorf(format, args...)
+func (t *T) Logf(format string, args ...any) {
+	t.logger.Error(fmt.Sprintf(format, args...))
 }
 
 // Failed reports whether the function has failed.
@@ -161,14 +216,21 @@ func handlePanic(t *T, recovered any) {
 	case isError && errors.Is(err, errFailNow):
 		return
 	case isError:
-		stack := string(debug.Stack())
-		t.logger.
-			WithField("stack_trace", stack).
-			WithError(err).
-			Errorf("panic in '%s' scenario on %s", t.Scenario, t.Iteration)
+		stack := debug.Stack()
+		t.logger.Error("recovered panic in scenario",
+			log.StackTraceAttr(stack),
+			log.IterationAttr(t.Iteration),
+			log.ErrorAttr(err),
+		)
 		t.Fail()
 	default:
-		t.Errorf("panic in '%s' scenario on %s: %v", t.Scenario, t.Iteration, recovered)
+		stack := debug.Stack()
+		t.logger.Error("recovered panic in scenario",
+			log.StackTraceAttr(stack),
+			log.IterationAttr(t.Iteration),
+			log.ErrorAnyAttr(recovered),
+		)
+		t.Fail()
 	}
 }
 

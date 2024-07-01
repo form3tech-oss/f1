@@ -8,18 +8,12 @@ import (
 )
 
 func newTriggerPool(m *PoolManager, numWorkers int) *TriggerPool {
-	p := &TriggerPool{
+	return &TriggerPool{
 		numWorkers:         numWorkers,
-		iterationStatePool: make([]*iterationState, numWorkers),
+		iterationStatePool: m.makeIterationStatePool(numWorkers),
 		manager:            m,
 		jobsAvailableCond:  sync.NewCond(&sync.Mutex{}),
 	}
-
-	for i := range numWorkers {
-		p.iterationStatePool[i] = newIterationState(m.activeScenario.scenario.Name)
-	}
-
-	return p
 }
 
 type TriggerPool struct {

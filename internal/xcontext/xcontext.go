@@ -9,7 +9,7 @@ import (
 // but detaches from the cancellation and error handling.
 func Detach(ctx context.Context) context.Context { return detachedContext{ctx} }
 
-//nolint:containedctx
+//nolint:containedctx // purpose is to wrap the context
 type detachedContext struct{ parent context.Context }
 
 func (v detachedContext) Deadline() (time.Time, bool)       { return time.Time{}, false }
