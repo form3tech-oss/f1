@@ -22,12 +22,12 @@ func Rate() api.Builder {
 		New: func(*pflag.FlagSet) (*api.Trigger, error) {
 			trigger := func(
 				ctx context.Context,
-				outputer ui.Outputer,
+				output *ui.Output,
 				workers *workers.PoolManager,
 				options options.RunOptions,
 			) {
 				doWork := NewWorker(options.Concurrency)
-				doWork(ctx, outputer, workers, options)
+				doWork(ctx, output, workers, options)
 			}
 
 			return &api.Trigger{
@@ -45,7 +45,7 @@ func Rate() api.Builder {
 }
 
 func NewWorker(concurrency int) api.WorkTriggerer {
-	return func(ctx context.Context, _ ui.Outputer, workers *workers.PoolManager, _ options.RunOptions) {
+	return func(ctx context.Context, _ *ui.Output, workers *workers.PoolManager, _ options.RunOptions) {
 		pool := workers.NewContinuousPool(concurrency)
 		pool.Start(ctx)
 	}

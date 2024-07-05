@@ -10,34 +10,34 @@ import (
 )
 
 type ScenarioLogger struct {
-	Logger   *slog.Logger
-	outputer ui.Outputer
+	Logger *slog.Logger
+	output *ui.Output
 
 	logFile *os.File
 }
 
-func NewScenarioLogger(outputer ui.Outputer) *ScenarioLogger {
+func NewScenarioLogger(output *ui.Output) *ScenarioLogger {
 	return &ScenarioLogger{
-		outputer: outputer,
+		output: output,
 	}
 }
 
 func (s *ScenarioLogger) Open(logFilePath string, logConfig *log.Config, runName string, logToFile bool) string {
 	if !logToFile {
-		s.Logger = s.outputer.Logger()
+		s.Logger = s.output.Logger
 		return ""
 	}
 
 	logFile, err := s.openLogFile(logFilePath)
 	if err != nil {
-		s.Logger = s.outputer.Logger()
-		s.outputer.Display(ui.ErrorMessage{Message: "Error opening log file. Using default logger", Error: err})
+		s.Logger = s.output.Logger
+		s.output.Display(ui.ErrorMessage{Message: "Error opening log file. Using default logger", Error: err})
 		return ""
 	}
 
 	s.Logger = log.NewLogger(logFile, logConfig).With(log.ScenarioAttr(runName))
 	s.logFile = logFile
-	s.outputer.Display(ui.InfoMessage{Message: "Saving logs to " + logFilePath})
+	s.output.Display(ui.InfoMessage{Message: "Saving logs to " + logFilePath})
 
 	return logFilePath
 }

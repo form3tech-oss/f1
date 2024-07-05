@@ -70,7 +70,7 @@ type (
 type RunTestStage struct {
 	startTime              time.Time
 	metrics                *metrics.Metrics
-	outputer               ui.Outputer
+	output                 *ui.Output
 	runInstance            *run.Run
 	runResult              *run.Result
 	t                      *testing.T
@@ -116,7 +116,7 @@ func NewRunTestStage(t *testing.T) (*RunTestStage, *RunTestStage, *RunTestStage)
 		f1:          f1.New(),
 		settings:    envsettings.Get(),
 		metricData:  NewMetricData(),
-		outputer:    ui.NewDiscardOutput(),
+		output:      ui.NewDiscardOutput(),
 		metrics:     metrics.NewInstance(prometheus.NewRegistry(), true),
 		stdout:      syncWriter{writer: &bytes.Buffer{}},
 		stderr:      syncWriter{writer: &bytes.Buffer{}},
@@ -186,9 +186,9 @@ func (s *RunTestStage) a_ramp_duration_of(rampDuration string) *RunTestStage {
 }
 
 func (s *RunTestStage) setupRun() {
-	printer := ui.NewPrinter(&s.stdout, &s.stderr, s.interactive)
+	printer := ui.NewPrinter(&s.stdout, &s.stderr)
 	logger := log.NewLogger(&s.stdout, logutils.NewLogConfigFromSettings(s.settings))
-	outputer := ui.NewOutput(logger, printer)
+	outputer := ui.NewOutput(logger, printer, s.interactive, false)
 
 	r, err := run.NewRun(options.RunOptions{
 		Scenario:        s.scenario,
@@ -497,12 +497,12 @@ func (s *RunTestStage) build_trigger() *api.Trigger {
 		t, err = ramp.Rate().New(flags)
 		require.NoError(s.t, err)
 	case File:
-		flags := file.Rate(s.outputer).Flags
+		flags := file.Rate(s.output).Flags
 
 		err := flags.Parse([]string{s.configFile})
 		require.NoError(s.t, err)
 
-		t, err = file.Rate(s.outputer).New(flags)
+		t, err = file.Rate(s.output).New(flags)
 		require.NoError(s.t, err)
 	}
 	return t

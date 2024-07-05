@@ -33,7 +33,7 @@ type runnableStage struct {
 	UsersConcurrency  int
 }
 
-func Rate(outputer ui.Outputer) api.Builder {
+func Rate(output *ui.Output) api.Builder {
 	flags := pflag.NewFlagSet("file", pflag.ContinueOnError)
 
 	return api.Builder{
@@ -42,7 +42,7 @@ func Rate(outputer ui.Outputer) api.Builder {
 		Flags:       flags,
 		New: func(flags *pflag.FlagSet) (*api.Trigger, error) {
 			filename := flags.Arg(0)
-			fileContent, err := readFile(filename, outputer)
+			fileContent, err := readFile(filename, output)
 			if err != nil {
 				return nil, err
 			}
@@ -71,14 +71,14 @@ func Rate(outputer ui.Outputer) api.Builder {
 	}
 }
 
-func readFile(filename string, outputer ui.Outputer) (*[]byte, error) {
+func readFile(filename string, output *ui.Output) (*[]byte, error) {
 	file, err := os.Open(filepath.Clean(filename))
 	if err != nil {
 		return nil, fmt.Errorf("opening file: %w", err)
 	}
 	defer func() {
 		if err = file.Close(); err != nil {
-			outputer.Display(ui.ErrorMessage{
+			output.Display(ui.ErrorMessage{
 				Message: "unable to close the config file",
 				Error:   err,
 			})

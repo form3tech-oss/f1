@@ -25,7 +25,7 @@ func buildRootCmd(
 	scenarioList *scenarios.Scenarios,
 	settings envsettings.Settings,
 	p *profiling,
-	outputer ui.Outputer,
+	output *ui.Output,
 ) (*cobra.Command, error) {
 	rootCmd := &cobra.Command{
 		Use:               getCmdName(),
@@ -46,16 +46,16 @@ func buildRootCmd(
 	metrics.Init(settings.PrometheusEnabled())
 	metricsInstance := metrics.Instance()
 
-	builders := trigger.GetBuilders(outputer)
+	builders := trigger.GetBuilders(output)
 
 	rootCmd.AddCommand(run.Cmd(
 		scenarioList,
 		builders,
 		settings,
 		metricsInstance,
-		outputer,
+		output,
 	))
-	rootCmd.AddCommand(chart.Cmd(builders, outputer))
+	rootCmd.AddCommand(chart.Cmd(builders, output))
 	rootCmd.AddCommand(scenarios.Cmd(scenarioList))
 	rootCmd.AddCommand(completionsCmd(rootCmd))
 	return rootCmd, nil

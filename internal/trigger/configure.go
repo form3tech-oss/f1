@@ -11,13 +11,13 @@ import (
 	"github.com/form3tech-oss/f1/v2/internal/ui"
 )
 
-func GetBuilders(outputer ui.Outputer) []api.Builder {
+func GetBuilders(output *ui.Output) []api.Builder {
 	return []api.Builder{
 		constant.Rate(),
 		staged.Rate(),
-		gaussian.Rate(outputer),
+		gaussian.Rate(output),
 		users.Rate(),
 		ramp.Rate(),
-		file.Rate(outputer),
+		file.Rate(output),
 	}
 }

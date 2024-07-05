@@ -15,25 +15,25 @@ import (
 const safeDurationBeforeNextStage = 20 * time.Millisecond
 
 func newStagesWorker(stages []runnableStage) api.WorkTriggerer {
-	return func(ctx context.Context, outputer ui.Outputer, workers *workers.PoolManager, options options.RunOptions) {
+	return func(ctx context.Context, output *ui.Output, workers *workers.PoolManager, options options.RunOptions) {
 		for _, stage := range stages {
 			if ctx.Err() != nil {
 				return
 			}
-			runStage(ctx, outputer, workers, stage, options)
+			runStage(ctx, output, workers, stage, options)
 		}
 	}
 }
 
 func runStage(
 	ctx context.Context,
-	outputer ui.Outputer,
+	output *ui.Output,
 	workers *workers.PoolManager,
 	stage runnableStage,
 	options options.RunOptions,
 ) {
-	setEnvs(stage.Params, outputer)
-	defer unsetEnvs(stage.Params, outputer)
+	setEnvs(stage.Params, output)
+	defer unsetEnvs(stage.Params, output)
 
 	// stop the stage early to avoid starting a new tick
 	stageCtx, stageCancel := context.WithTimeout(ctx, stage.StageDuration-safeDurationBeforeNextStage)
@@ -46,10 +46,10 @@ func runStage(
 
 		if stage.UsersConcurrency == 0 {
 			doWork := api.NewIterationWorker(stage.IterationDuration, stage.Rate)
-			doWork(stageCtx, outputer, workers, options)
+			doWork(stageCtx, output, workers, options)
 		} else {
 			doWork := users.NewWorker(stage.UsersConcurrency)
-			doWork(stageCtx, outputer, workers, options)
+			doWork(stageCtx, output, workers, options)
 		}
 	}()
 
@@ -62,11 +62,11 @@ func runStage(
 	}
 }
 
-func setEnvs(envs map[string]string, outputer ui.Outputer) {
+func setEnvs(envs map[string]string, output *ui.Output) {
 	for key, value := range envs {
 		err := os.Setenv(key, value)
 		if err != nil {
-			outputer.Display(ui.ErrorMessage{
+			output.Display(ui.ErrorMessage{
 				Message: "unable set environment variables for given scenario",
 				Error:   err,
 			})
@@ -74,11 +74,11 @@ func setEnvs(envs map[string]string, outputer ui.Outputer) {
 	}
 }
 
-func unsetEnvs(envs map[string]string, outputer ui.Outputer) {
+func unsetEnvs(envs map[string]string, output *ui.Output) {
 	for key := range envs {
 		err := os.Unsetenv(key)
 		if err != nil {
-			outputer.Display(ui.ErrorMessage{
+			output.Display(ui.ErrorMessage{
 				Message: "unable unset environment variables for given scenario",
 				Error:   err,
 			})

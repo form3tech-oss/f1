@@ -4,25 +4,25 @@ import (
 	"fmt"
 	"io"
 	"os"
-
-	"github.com/mattn/go-isatty"
 )
 
 type Printer struct {
-	Writer      io.Writer
-	ErrWriter   io.Writer
-	Interactive bool
+	Writer    io.Writer
+	ErrWriter io.Writer
 }
 
 func NewDefaultPrinter() *Printer {
-	return NewPrinter(os.Stdout, os.Stderr, isatty.IsTerminal(os.Stdin.Fd()))
+	return NewPrinter(os.Stdout, os.Stderr)
 }
 
-func NewPrinter(writer io.Writer, errWriter io.Writer, interactive bool) *Printer {
+func NewDiscardPrinter() *Printer {
+	return NewPrinter(io.Discard, io.Discard)
+}
+
+func NewPrinter(writer io.Writer, errWriter io.Writer) *Printer {
 	return &Printer{
-		Writer:      writer,
-		ErrWriter:   errWriter,
-		Interactive: interactive,
+		Writer:    writer,
+		ErrWriter: errWriter,
 	}
 }
 

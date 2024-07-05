@@ -12,7 +12,7 @@ import (
 )
 
 type (
-	WorkTriggerer func(ctx context.Context, outputer ui.Outputer, workers *workers.PoolManager, options options.RunOptions)
+	WorkTriggerer func(ctx context.Context, output *ui.Output, workers *workers.PoolManager, options options.RunOptions)
 	RateFunction  func(time.Time) int
 )
 

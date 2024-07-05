@@ -28,7 +28,7 @@ const (
 	flagStandardDeviation  = "standard-deviation"
 )
 
-func Rate(outputer ui.Outputer) api.Builder {
+func Rate(output *ui.Output) api.Builder {
 	flags := pflag.NewFlagSet("gaussian", pflag.ContinueOnError)
 	flags.Float64(flagVolume, defaultVolume,
 		"The desired volume to be achieved with the calculated load profile. "+
@@ -96,7 +96,7 @@ func Rate(outputer ui.Outputer) api.Builder {
 			}
 			if peakRate != "" {
 				if volume != defaultVolume {
-					outputer.Display(ui.WarningMessage{
+					output.Display(ui.WarningMessage{
 						Message: "--peak-rate is provided, the value given for --volume will be ignored",
 					})
 				}

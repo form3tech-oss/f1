@@ -2,6 +2,9 @@ package ui
 
 import (
 	"log/slog"
+	"os"
+
+	"github.com/mattn/go-isatty"
 
 	"github.com/form3tech-oss/f1/v2/internal/log"
 )
@@ -11,65 +14,36 @@ type Outputable interface {
 	Log(logger *slog.Logger)
 }
 
-type Outputer interface {
-	Display(outputable Outputable)
-	Logger() *slog.Logger
-	Printer() *Printer
+type Output struct {
+	Logger        *slog.Logger
+	Printer       *Printer
+	Interactive   bool
+	AllowPrinting bool
 }
 
-var _ Outputer = (*Output)(nil)
-
-type Output struct {
-	logger  *slog.Logger
-	printer *Printer
+func NewOutput(logger *slog.Logger, printer *Printer, interactive bool, allowPrinting bool) *Output {
+	return &Output{
+		Logger:        logger,
+		Printer:       printer,
+		Interactive:   interactive,
+		AllowPrinting: allowPrinting,
+	}
 }
 
 func (o *Output) Display(outputable Outputable) {
-	if o.printer.Interactive {
-		outputable.Print(o.printer)
+	if o.AllowPrinting && o.Interactive {
+		outputable.Print(o.Printer)
 		return
 	}
 
-	outputable.Log(o.logger)
-}
-
-func (o *Output) Logger() *slog.Logger {
-	return o.logger
-}
-
-func (o *Output) Printer() *Printer {
-	return o.printer
-}
-
-var _ Outputer = (*ConsoleOutput)(nil)
-
-type ConsoleOutput struct {
-	printer *Printer
-}
-
-func (o *ConsoleOutput) Display(outputable Outputable) {
-	outputable.Print(o.printer)
-}
-
-func (o *ConsoleOutput) Logger() *slog.Logger {
-	return nil
-}
-
-func (o *ConsoleOutput) Printer() *Printer {
-	return o.printer
-}
-
-func NewConoleOnlyOutput() *ConsoleOutput {
-	printer := NewDefaultPrinter()
-
-	return &ConsoleOutput{printer: printer}
+	outputable.Log(o.Logger)
 }
 
 func NewDiscardOutput() *Output {
-	printer := NewDefaultPrinter()
+	printer := NewDiscardPrinter()
 	logger := log.NewDiscardLogger()
 
-	return NewOutput(logger, printer)
+	return NewOutput(logger, printer, false, false)
 }
 
 func NewDefaultOutput(logLevel slog.Level, jsonFormat bool) *Output {
@@ -78,12 +52,7 @@ func NewDefaultOutput(logLevel slog.Level, jsonFormat bool) *Output {
 	config := log.NewConfig().WithLevel(logLevel).WithJSONFormat(jsonFormat)
 	logger := log.NewConsoleLogger(config)
 
-	return NewOutput(logger, printer)
-}
+	interactive := isatty.IsTerminal(os.Stdin.Fd())
 
-func NewOutput(logger *slog.Logger, printer *Printer) *Output {
-	return &Output{
-		logger:  logger,
-		printer: printer,
-	}
+	return NewOutput(logger, printer, interactive, true)
 }

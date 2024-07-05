@@ -36,7 +36,7 @@ type Run struct {
 	views          *views.Views
 	activeScenario *workers.ActiveScenario
 	trigger        *api.Trigger
-	outputer       ui.Outputer
+	output         *ui.Output
 	scenarioLogger *ScenarioLogger
 	result         *Result
 	options        options.RunOptions
@@ -48,7 +48,7 @@ func NewRun(
 	trigger *api.Trigger,
 	settings envsettings.Settings,
 	metricsInstance *metrics.Metrics,
-	parentOutputer ui.Outputer,
+	parentOutput *ui.Output,
 ) (*Run, error) {
 	progressStats := &progress.Stats{}
 	viewsInstance := views.New()
@@ -60,9 +60,10 @@ func NewRun(
 
 	result := NewResult(options, viewsInstance, progressStats)
 
-	outputer := NewOutput(
-		parentOutputer.Logger().With(log.ScenarioAttr(scenario.Name)),
-		parentOutputer.Printer(),
+	outputer := ui.NewOutput(
+		parentOutput.Logger.With(log.ScenarioAttr(scenario.Name)),
+		parentOutput.Printer,
+		parentOutput.Interactive,
 		options.LogToFile(),
 	)
 
@@ -96,7 +97,7 @@ func NewRun(
 		views:          viewsInstance,
 		result:         result,
 		pusher:         pusher,
-		outputer:       outputer,
+		output:         outputer,
 		progressRunner: progressRunner,
 		activeScenario: activeScenario,
 		scenarioLogger: scenarioLogger,
@@ -126,15 +127,15 @@ func newMetricsPusher(
 	return pusher
 }
 
-func newProgressRunner(result *Result, outputer ui.Outputer) (*raterun.Runner, error) {
+func newProgressRunner(result *Result, output *ui.Output) (*raterun.Runner, error) {
 	notifyDropped := sync.Once{}
 
 	r, err := raterun.New(func(rate time.Duration) {
 		result.SnapshotProgress(rate)
-		outputer.Display(result.Progress())
+		output.Display(result.Progress())
 		if result.HasDroppedIterations() {
 			notifyDropped.Do(func() {
-				outputer.Display(ui.WarningMessage{
+				output.Display(ui.WarningMessage{
 					Message: "Dropping requests as workers are too busy. " +
 						"Considering increasing `--concurrency` argument",
 				})
@@ -163,7 +164,7 @@ func (r *Run) Do(ctx context.Context) (*Result, error) {
 		RateDescription: r.trigger.Description,
 	})
 
-	r.outputer.Display(welcomeMessage)
+	r.output.Display(welcomeMessage)
 
 	defer r.printSummary()
 
@@ -215,7 +216,7 @@ func (r *Run) Do(ctx context.Context) (*Result, error) {
 func (r *Run) reportSetupFailure(ctx context.Context) *Result {
 	r.fail("setup failed")
 	r.pushMetrics(ctx)
-	r.outputer.Display(r.result.Setup())
+	r.output.Display(r.result.Setup())
 	return r.result
 }
 
@@ -225,11 +226,11 @@ func (r *Run) teardownActiveScenario(ctx context.Context) {
 		r.fail("teardown failed")
 	}
 	r.pushMetrics(ctx)
-	r.outputer.Display(r.result.Teardown())
+	r.output.Display(r.result.Teardown())
 }
 
 func (r *Run) printSummary() {
-	r.outputer.Display(r.result.Summary())
+	r.output.Display(r.result.Summary())
 }
 
 func (r *Run) run(ctx context.Context) {
@@ -247,21 +248,21 @@ func (r *Run) run(ctx context.Context) {
 	defer triggerCancel()
 
 	poolManager := workers.New(r.options.MaxIterations, r.activeScenario)
-	r.trigger.Trigger(triggerCtx, r.outputer, poolManager, r.options)
+	r.trigger.Trigger(triggerCtx, r.output, poolManager, r.options)
 
 	select {
 	case <-ctx.Done():
-		r.outputer.Display(r.result.Interrupted())
+		r.output.Display(r.result.Interrupted())
 		r.progressRunner.Restart()
 		<-poolManager.WaitForCompletion()
 	case <-triggerCtx.Done():
 		if triggerCtx.Err() == context.DeadlineExceeded {
-			r.outputer.Display(r.result.MaxDurationElapsed())
+			r.output.Display(r.result.MaxDurationElapsed())
 		}
 		<-poolManager.WaitForCompletion()
 	case <-poolManager.WaitForCompletion():
 		if poolManager.MaxIterationsReached() {
-			r.outputer.Display(r.result.MaxIterationsReached())
+			r.output.Display(r.result.MaxIterationsReached())
 		}
 	}
 }
@@ -276,7 +277,7 @@ func (r *Run) pushMetrics(ctx context.Context) {
 	}
 	err := r.pusher.PushContext(ctx)
 	if err != nil {
-		r.outputer.Display(ui.ErrorMessage{
+		r.output.Display(ui.ErrorMessage{
 			Message: "unable to push metrics to prometheus",
 			Error:   err,
 		})

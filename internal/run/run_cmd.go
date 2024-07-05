@@ -21,7 +21,7 @@ func Cmd(
 	builders []api.Builder,
 	settings envsettings.Settings,
 	metricsInstance *metrics.Metrics,
-	output ui.Outputer,
+	output *ui.Output,
 ) *cobra.Command {
 	runCmd := &cobra.Command{
 		Use:   "run <subcommand>",
@@ -67,7 +67,7 @@ func runCmdExecute(
 	t api.Builder,
 	settings envsettings.Settings,
 	metricsInstance *metrics.Metrics,
-	outputer ui.Outputer,
+	output *ui.Output,
 ) func(cmd *cobra.Command, args []string) error {
 	return func(cmd *cobra.Command, args []string) error {
 		cmd.SilenceUsage = true
@@ -135,11 +135,11 @@ func runCmdExecute(
 			return fmt.Errorf("getting flag: %w", err)
 		}
 		if verboseFail {
-			outputer.Display(ui.WarningMessage{Message: "--verbose-fail option has been removed"})
+			output.Display(ui.WarningMessage{Message: "--verbose-fail option has been removed"})
 		}
 
 		if settings.Fluentd.Present() {
-			outputer.Display(ui.WarningMessage{
+			output.Display(ui.WarningMessage{
 				Message: fmt.Sprintf("WARNING: fluentd integration has been removed. %s and %s have no effect.",
 					envsettings.EnvFluentdHost,
 					envsettings.EnvFluentdPort,
@@ -157,7 +157,7 @@ func runCmdExecute(
 			MaxFailures:     maxFailures,
 			MaxFailuresRate: maxFailuresRate,
 			IgnoreDropped:   ignoreDropped,
-		}, s, trig, settings, metricsInstance, outputer)
+		}, s, trig, settings, metricsInstance, output)
 		if err != nil {
 			return fmt.Errorf("new run: %w", err)
 		}

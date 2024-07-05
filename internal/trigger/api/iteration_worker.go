@@ -11,7 +11,7 @@ import (
 
 // NewIterationWorker produces a WorkTriggerer which triggers work at fixed intervals.
 func NewIterationWorker(iterationDuration time.Duration, rate RateFunction) WorkTriggerer {
-	return func(ctx context.Context, _ ui.Outputer, workers *workers.PoolManager, opts options.RunOptions) {
+	return func(ctx context.Context, _ *ui.Output, workers *workers.PoolManager, opts options.RunOptions) {
 		startRate := rate(time.Now())
 
 		pool := workers.NewTriggerPool(opts.Concurrency)

@@ -26,7 +26,7 @@ const (
 // Represents an F1 CLI instance. Instantiate this struct to create an instance
 // of the F1 CLI and to register new test scenarios.
 type F1 struct {
-	outputer  ui.Outputer
+	output    *ui.Output
 	scenarios *scenarios.Scenarios
 	profiling *profiling
 	settings  envsettings.Settings
@@ -40,7 +40,7 @@ func New() *F1 {
 		scenarios: scenarios.New(),
 		profiling: &profiling{},
 		settings:  settings,
-		outputer:  ui.NewDefaultOutput(settings.Log.SlogLevel(), settings.Log.IsFormatJSON()),
+		output:    ui.NewDefaultOutput(settings.Log.SlogLevel(), settings.Log.IsFormatJSON()),
 	}
 }
 
@@ -95,7 +95,7 @@ func newSignalContext(stopCh <-chan struct{}) context.Context {
 }
 
 func (f *F1) execute(args []string) error {
-	rootCmd, err := buildRootCmd(f.scenarios, f.settings, f.profiling, f.outputer)
+	rootCmd, err := buildRootCmd(f.scenarios, f.settings, f.profiling, f.output)
 	if err != nil {
 		return fmt.Errorf("building root command: %w", err)
 	}
@@ -126,7 +126,7 @@ func (f *F1) execute(args []string) error {
 // function.
 func (f *F1) Execute() {
 	if err := f.execute(nil); err != nil {
-		f.outputer.Display(ui.ErrorMessage{Message: "f1 failed", Error: err})
+		f.output.Display(ui.ErrorMessage{Message: "f1 failed", Error: err})
 		os.Exit(1)
 	}
 }

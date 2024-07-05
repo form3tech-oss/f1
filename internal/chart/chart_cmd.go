@@ -19,7 +19,7 @@ const (
 	flagFilename      = "filename"
 )
 
-func Cmd(builders []api.Builder, outputer ui.Outputer) *cobra.Command {
+func Cmd(builders []api.Builder, output *ui.Output) *cobra.Command {
 	chartCmd := &cobra.Command{
 		Use:   "chart <subcommand>",
 		Short: "plots a chart of the test scenarios that would be triggered over time with the provided run function",
@@ -29,7 +29,7 @@ func Cmd(builders []api.Builder, outputer ui.Outputer) *cobra.Command {
 		triggerCmd := &cobra.Command{
 			Use:   t.Name,
 			Short: t.Description,
-			RunE:  chartCmdExecute(t, outputer),
+			RunE:  chartCmdExecute(t, output),
 		}
 		triggerCmd.Flags().String(flagChartStart, time.Now().Format(time.RFC3339), "Optional start time for the chart")
 		triggerCmd.Flags().Duration(flagChartDuration, 10*time.Minute, "Duration for the chart")
@@ -43,7 +43,7 @@ func Cmd(builders []api.Builder, outputer ui.Outputer) *cobra.Command {
 
 func chartCmdExecute(
 	t api.Builder,
-	outputer ui.Outputer,
+	output *ui.Output,
 ) func(cmd *cobra.Command, args []string) error {
 	return func(cmd *cobra.Command, _ []string) error {
 		cmd.SilenceUsage = true
@@ -87,7 +87,7 @@ func chartCmdExecute(
 			times = append(times, current)
 		}
 
-		outputer.Display(ui.InteractiveMessage{
+		output.Display(ui.InteractiveMessage{
 			Message: asciigraph.Plot(rates, asciigraph.Height(15), asciigraph.Width(width)),
 		})
 
@@ -129,7 +129,7 @@ func chartCmdExecute(
 		}
 		defer func() {
 			if err = f.Close(); err != nil {
-				outputer.Display(ui.ErrorMessage{
+				output.Display(ui.ErrorMessage{
 					Message: "unable to close the chart file",
 					Error:   err,
 				})
@@ -140,7 +140,7 @@ func chartCmdExecute(
 		if err != nil {
 			return fmt.Errorf("rendering graph: %w", err)
 		}
-		outputer.Display(ui.InteractiveMessage{Message: "Detailed chart written to " + filename})
+		output.Display(ui.InteractiveMessage{Message: "Detailed chart written to " + filename})
 		return nil
 	}
 }
