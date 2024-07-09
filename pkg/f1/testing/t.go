@@ -142,38 +142,38 @@ func (t *T) Fail() {
 
 // Errorf is equivalent to Logf followed by Fail.
 func (t *T) Errorf(format string, args ...interface{}) {
-	t.Logf(format, args...)
+	t.logger.Error(fmt.Sprintf(format, args...))
 	t.Fail()
 }
 
 // Error is equivalent to Log followed by Fail.
 func (t *T) Error(err error) {
-	t.Logf("%s failed due to: %s", t.Iteration, err.Error())
+	t.logger.Error("iteration failed", log.IterationAttr(t.Iteration), log.ErrorAttr(err))
 	t.Fail()
 }
 
 // Fatalf is equivalent to Logf followed by FailNow.
 func (t *T) Fatalf(format string, args ...interface{}) {
-	t.Logf(format, args...)
+	t.logger.Error(fmt.Sprintf(format, args...))
 	t.FailNow()
 }
 
 // Fatal is equivalent to Log followed by FailNow.
 func (t *T) Fatal(err error) {
-	t.Logf("%s failed due to: %s", t.Iteration, err.Error())
+	t.logger.Error("iteration failed", log.IterationAttr(t.Iteration), log.ErrorAttr(err))
 	t.FailNow()
 }
 
 // Log formats its arguments using default formatting, analogous to Println, and records the text in the error log.
 // The text will be printed only if f1 is running in verbose mode.
 func (t *T) Log(args ...any) {
-	t.logger.Error(fmt.Sprint(args...))
+	t.logger.Info(fmt.Sprint(args...))
 }
 
 // Logf formats its arguments according to the format, analogous to Printf, and records the text in the error log.
 // A final newline is added if not provided. The text will be printed only if f1 is running in verbose mode.
 func (t *T) Logf(format string, args ...any) {
-	t.logger.Error(fmt.Sprintf(format, args...))
+	t.logger.Info(fmt.Sprintf(format, args...))
 }
 
 // Failed reports whether the function has failed.
