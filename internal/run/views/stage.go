@@ -4,6 +4,7 @@ import (
 	"log/slog"
 
 	"github.com/form3tech-oss/f1/v2/internal/log"
+	"github.com/form3tech-oss/f1/v2/internal/ui"
 )
 
 const (
@@ -14,6 +15,11 @@ const (
 type stageData struct {
 	Error error
 }
+
+var (
+	_ ui.Outputable = (*ViewContext[SetupData])(nil)
+	_ ui.Outputable = (*ViewContext[TeardownData])(nil)
+)
 
 type (
 	SetupData    stageData

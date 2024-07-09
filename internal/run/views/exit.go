@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/form3tech-oss/f1/v2/internal/log"
+	"github.com/form3tech-oss/f1/v2/internal/ui"
 )
 
 //nolint:lll // templates read better with long lines
@@ -17,6 +18,12 @@ const (
 type exitData struct {
 	Duration time.Duration
 }
+
+var (
+	_ ui.Outputable = (*ViewContext[TimeoutData])(nil)
+	_ ui.Outputable = (*ViewContext[MaxIterationsReachedData])(nil)
+	_ ui.Outputable = (*ViewContext[InterruptData])(nil)
+)
 
 type (
 	TimeoutData              exitData
@@ -38,6 +45,8 @@ func (v *Views) Timeout(data TimeoutData) *ViewContext[TimeoutData] {
 func (d MaxIterationsReachedData) Log(logger *slog.Logger) {
 	logger.Info("Max Iterations Reached - waiting for active tests to complete", log.DurationAttr(d.Duration))
 }
+
+var _ ui.Outputable = (*ViewContext[TimeoutData])(nil)
 
 func (v *Views) MaxIterationsReached(data MaxIterationsReachedData) *ViewContext[MaxIterationsReachedData] {
 	return &ViewContext[MaxIterationsReachedData]{

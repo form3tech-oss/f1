@@ -4,12 +4,16 @@ import (
 	"log/slog"
 	"strconv"
 	"time"
+
+	"github.com/form3tech-oss/f1/v2/internal/ui"
 )
 
 //nolint:lll // templates read better with long lines
 const startTemplate = `{u}{bold}{intensive_blue}F1 Load Tester{-}
 Running {yellow}{{.Scenario}}{-} scenario for {{if .MaxIterations}}up to {{.MaxIterations}} iterations or up to {{end}}{{duration .MaxDuration}} at a rate of {{.RateDescription}}.
 `
+
+var _ ui.Outputable = (*ViewContext[StartData])(nil)
 
 type StartData struct {
 	Scenario        string

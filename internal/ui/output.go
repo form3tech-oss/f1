@@ -9,6 +9,8 @@ import (
 	"github.com/form3tech-oss/f1/v2/internal/log"
 )
 
+// Outputable may be a type of message (like [ErrorMessage], [InfoMessage], etc) or
+// [github.com/form3tech-oss/f1/v2/internal/run/views.ViewContext]
 type Outputable interface {
 	Print(printer *Printer)
 	Log(logger *slog.Logger)
