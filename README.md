@@ -76,8 +76,8 @@ Once you have written a load test and compiled a binary test runner, you can use
 #### Output description
 
 Currently, output from running f1 load tests looks like that:
-```bash
-[   1s]  ✔    20  ✘     0 (20/s)   p(50): 16.899154ms,  p(95): 19.1134ms, p(100): 21.435088ms
+```
+[   1s]  ✔    20  ✘     0 (20/s)   avg: 72ns, min: 125ns, max: 27.590042ms
 ```
 
 It provides the following information:
@@ -85,7 +85,7 @@ It provides the following information:
 - `✔    20` number of successful iterations,
 - `✘     0` number of failed iterations,
 - `(20/s)` (attempted) rate,
-- `p(50): 16.899154ms p(95): 19.1134ms p(100): 21.435088ms` average time per iteration, for a given percentile.
+- `avg: 72ns, min: 125ns, max: 27.590042ms` average, min and max iteration times.
 
 ### Environment variables
 
@@ -94,21 +94,9 @@ It provides the following information:
 | `PROMETHEUS_PUSH_GATEWAY` | string - `host:port` or `ip:port` | `""` | Configures the address of a [Prometheus Push Gateway](https://prometheus.io/docs/instrumenting/pushing/) for exposing metrics. The prometheus job name configured will be `f1-{scenario_name}`. Disabled by default.|
 | `PROMETHEUS_NAMESPACE` | string | `""` | Sets the metric label `namespace` to the specified value. Label is omitted if the value provided is empty.|
 | `PROMETHEUS_LABEL_ID` | string | `""` | Sets the metric label `id` to the specified value. Label is omitted if the value provided is empty.|
-| `LOG_FILE_PATH` | string | `""`| Specify the log file path if `--verbose` is enabled. The logfile path will be an automatically generated temp file if not specified. |
-
-## Design decisions
-### Why did we decide to write our own load testing tool?
-At Form3, we invest a lot of engineering time into load and performance testing of our platform. We initially used [`k6`](https://github.com/loadimpact/k6) to develop and run these tests, but this was problematic for us for a couple of reasons:
-
-1. The tests that `k6` executes are written in Javascript - in order to test our platform, we often need to do things not easily done in Javascript (e.g. connect to SQS queues). The tests themselves can get quite complicated, and Javascript is not well suited to testing these sorts of tests.
-2. `k6` only really supports a single model for applying load - users. This model assumes you have a finite pool of users, repeatedly making requests in sequence. This doesn't really work for us, since the payments industry has a pool of millions of users, each of whom could make a payment at any moment - when they do, they don't wait around for the previous customer to finish!
-
-### Enter `f1`
-We started working on `f1`, because we already had a suite of load test scenarios that we had started writing in Go. `k6` interfaced with these by making web requests to a server that actually ran the tests - a bit of a hack.
-
-We wanted to be able to write the tests in Go in a native load testing framework, which also supported our use case of applying load more aggressively (without waiting for requests to finish).
-
-`f1` is the result. It supports writing load test scenarios natively in Go, which means you can make your tests as complicated as you like and test them well. It also has a variety of "trigger modes" (see above), which allow load to be applied in the same way as `k6`, but also in other, more aggressive modes. Writing new trigger modes is easy, so we welcome contributations to expand the list.
+| `LOG_FILE_PATH` | string | `""`| Specify the log file path used if `--verbose` is disabled. The logfile path will be an automatically generated temp file if not specified. |
+| `LOG_LEVEL` | string | `"info"`| Specify the log level of the default logger, one of: `debug`, `warn`, `error`  |
+| `LOG_FORMAT` | string | `""`| Specify the log format of the default logger, defaults to `text` formatter, allows `json`  |
 
 ## Contributions
 If you'd like to help improve `f1`, please fork this repo and raise a PR!
