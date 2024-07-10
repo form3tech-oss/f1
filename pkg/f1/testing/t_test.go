@@ -3,60 +3,65 @@ package testing_test
 import (
 	"bytes"
 	"errors"
-	"os"
+	"log/slog"
 	"regexp"
-	go_testing "testing"
+	"testing"
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/form3tech-oss/f1/v2/pkg/f1/testing"
+	"github.com/form3tech-oss/f1/v2/internal/log"
+	f1testing "github.com/form3tech-oss/f1/v2/pkg/f1/testing"
 )
 
-func TestNewTIsNotFailed(t *go_testing.T) {
-	newT, _ := testing.NewT("iteration 0", "test")
+func TestNewTIsNotFailed(t *testing.T) {
+	t.Parallel()
+
+	newT, teardown := newT()
+	defer teardown()
+
 	require.False(t, newT.Failed())
 }
 
-func TestReportsPanicReasonWhenCleanupFails(t *go_testing.T) {
+func TestReportsPanicReasonWhenCleanupFails(t *testing.T) {
+	t.Parallel()
+
 	var buf bytes.Buffer
-	newT, teardown := testing.NewT("iteration 0", "test")
+	logger := slog.New(slog.NewTextHandler(&buf, nil))
 
-	defer func() {
-		newT.Logger().SetOutput(os.Stderr)
-	}()
+	newT, teardown := f1testing.NewTWithOptions("test", f1testing.WithLogger(logger))
 
-	newT.Logger().SetOutput(&buf)
 	newT.Cleanup(func() {
 		panic("boom")
 	})
 
 	teardown()
 	logs := buf.String()
-	require.Contains(t, logs, "panic in 'test' scenario on iteration 0")
+	require.Contains(t, logs, "recovered panic in scenario")
 }
 
-func TestReportsErrorMessageWhenCleanupFails(t *go_testing.T) {
+func TestReportsErrorMessageWhenCleanupFails(t *testing.T) {
+	t.Parallel()
+
 	var buf bytes.Buffer
-	newT, teardown := testing.NewT("iteration 0", "test")
+	logger := slog.New(slog.NewTextHandler(&buf, nil))
 
-	defer func() {
-		newT.Logger().SetOutput(os.Stderr)
-	}()
+	newT, teardown := f1testing.NewTWithOptions("test", f1testing.WithLogger(logger))
 
-	newT.Logger().SetOutput(&buf)
 	newT.Cleanup(func() {
 		panic(errors.New("boom"))
 	})
 
 	teardown()
 	logs := buf.String()
-	require.Contains(t, logs, "panic in 'test' scenario on iteration 0")
+	require.Contains(t, logs, "recovered panic in scenario")
 	require.Regexp(t, regexp.MustCompile("stack_trace=\"goroutine"), logs)
 }
 
-func TestCleanupCalledInReverseOrder(t *go_testing.T) {
+func TestCleanupCalledInReverseOrder(t *testing.T) {
+	t.Parallel()
+
 	var actual []int
-	newT, teardown := testing.NewT("iteration 0", "test")
+	newT, teardown := newT()
 
 	newT.Cleanup(func() {
 		actual = append(actual, 1)
@@ -72,8 +77,11 @@ func TestCleanupCalledInReverseOrder(t *go_testing.T) {
 	require.Equal(t, expected, actual)
 }
 
-func TestFailNowSetsTheFailedState(t *go_testing.T) {
-	newT, _ := testing.NewT("iteration 0", "test")
+func TestFailNowSetsTheFailedState(t *testing.T) {
+	t.Parallel()
+
+	newT, teardown := newT()
+	defer teardown()
 
 	done := make(chan struct{})
 	go func() {
@@ -85,8 +93,11 @@ func TestFailNowSetsTheFailedState(t *go_testing.T) {
 	require.True(t, newT.Failed())
 }
 
-func TestFailSetsTheFailedState(t *go_testing.T) {
-	newT, _ := testing.NewT("iteration 0", "test")
+func TestFailSetsTheFailedState(t *testing.T) {
+	t.Parallel()
+
+	newT, teardown := newT()
+	defer teardown()
 
 	done := make(chan struct{})
 	go func() {
@@ -98,22 +109,31 @@ func TestFailSetsTheFailedState(t *go_testing.T) {
 	require.True(t, newT.Failed())
 }
 
-func TestErrorSetsTheFailedState(t *go_testing.T) {
-	newT, _ := testing.NewT("iteration 0", "test")
+func TestErrorSetsTheFailedState(t *testing.T) {
+	t.Parallel()
+
+	newT, teardown := newT()
+	defer teardown()
 
 	newT.Error(errors.New("boom"))
 	require.True(t, newT.Failed())
 }
 
-func TestErrorfSetsTheFailedState(t *go_testing.T) {
-	newT, _ := testing.NewT("iteration 0", "test")
+func TestErrorfSetsTheFailedState(t *testing.T) {
+	t.Parallel()
+
+	newT, teardown := newT()
+	defer teardown()
 
 	newT.Errorf("boom")
 	require.True(t, newT.Failed())
 }
 
-func TestFatalSetsTheFailedState(t *go_testing.T) {
-	newT, _ := testing.NewT("iteration 0", "test")
+func TestFatalSetsTheFailedState(t *testing.T) {
+	t.Parallel()
+
+	newT, teardown := newT()
+	defer teardown()
 
 	done := make(chan struct{})
 	go func() {
@@ -125,8 +145,11 @@ func TestFatalSetsTheFailedState(t *go_testing.T) {
 	require.True(t, newT.Failed())
 }
 
-func TestFatalfSetsTheFailedState(t *go_testing.T) {
-	newT, _ := testing.NewT("iteration 0", "test")
+func TestFatalfSetsTheFailedState(t *testing.T) {
+	t.Parallel()
+
+	newT, teardown := newT()
+	defer teardown()
 
 	done := make(chan struct{})
 	go func() {
@@ -138,12 +161,28 @@ func TestFatalfSetsTheFailedState(t *go_testing.T) {
 	require.True(t, newT.Failed())
 }
 
-func TestNameReturnsScenarioName(t *go_testing.T) {
-	newT, _ := testing.NewT("iteration 0", "test")
+func TestNameReturnsScenarioName(t *testing.T) {
+	t.Parallel()
+
+	newT, teardown := newT()
+	defer teardown()
+
 	require.Equal(t, "test", newT.Name())
 }
 
 func catchPanics(done chan<- struct{}) {
 	_ = recover()
 	close(done)
+}
+
+func newT() (*f1testing.T, func()) {
+	logger := log.NewDiscardLogger()
+	logrus := log.NewSlogLogrusLogger(logger)
+
+	return f1testing.NewTWithOptions(
+		"test",
+		f1testing.WithIteration("iteration 0"),
+		f1testing.WithLogger(logger),
+		f1testing.WithLogrusLogger(logrus),
+	)
 }

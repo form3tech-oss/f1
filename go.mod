@@ -4,6 +4,7 @@ go 1.22.0
 
 require (
 	github.com/guptarohit/asciigraph v0.7.1
+	github.com/mattn/go-isatty v0.0.20
 	github.com/prometheus/client_golang v1.19.1
 	github.com/prometheus/client_model v0.6.1
 	github.com/prometheus/common v0.55.0

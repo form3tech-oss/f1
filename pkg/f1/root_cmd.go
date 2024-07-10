@@ -8,11 +8,11 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/form3tech-oss/f1/v2/internal/chart"
-	"github.com/form3tech-oss/f1/v2/internal/console"
 	"github.com/form3tech-oss/f1/v2/internal/envsettings"
 	"github.com/form3tech-oss/f1/v2/internal/metrics"
 	"github.com/form3tech-oss/f1/v2/internal/run"
 	"github.com/form3tech-oss/f1/v2/internal/trigger"
+	"github.com/form3tech-oss/f1/v2/internal/ui"
 	"github.com/form3tech-oss/f1/v2/pkg/f1/scenarios"
 )
 
@@ -21,13 +21,18 @@ const (
 	flagMemProfile = "memprofile"
 )
 
-func buildRootCmd(s *scenarios.Scenarios, settings envsettings.Settings, p *profiling) (*cobra.Command, error) {
+func buildRootCmd(
+	scenarioList *scenarios.Scenarios,
+	settings envsettings.Settings,
+	p *profiling,
+	output *ui.Output,
+) (*cobra.Command, error) {
 	rootCmd := &cobra.Command{
 		Use:               getCmdName(),
 		Short:             "F1 load testing tool",
 		PersistentPreRunE: startProfiling(p),
+		SilenceErrors:     true,
 	}
-	builders := trigger.GetBuilders()
 
 	rootCmd.PersistentFlags().String(flagCPUProfile, "", "write cpu profile to `file`")
 	if err := rootCmd.MarkPersistentFlagFilename(flagCPUProfile); err != nil {
@@ -38,19 +43,20 @@ func buildRootCmd(s *scenarios.Scenarios, settings envsettings.Settings, p *prof
 		return nil, fmt.Errorf("marking flag as filename: %w", err)
 	}
 
-	printer := console.NewPrinter(os.Stdout, os.Stderr)
 	metrics.Init(settings.PrometheusEnabled())
 	metricsInstance := metrics.Instance()
 
+	builders := trigger.GetBuilders(output)
+
 	rootCmd.AddCommand(run.Cmd(
-		s,
+		scenarioList,
 		builders,
 		settings,
 		metricsInstance,
-		printer,
+		output,
 	))
-	rootCmd.AddCommand(chart.Cmd(builders, printer))
-	rootCmd.AddCommand(scenarios.Cmd(s))
+	rootCmd.AddCommand(chart.Cmd(builders, output))
+	rootCmd.AddCommand(scenarios.Cmd(scenarioList))
 	rootCmd.AddCommand(completionsCmd(rootCmd))
 	return rootCmd, nil
 }

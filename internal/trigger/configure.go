@@ -8,15 +8,16 @@ import (
 	"github.com/form3tech-oss/f1/v2/internal/trigger/ramp"
 	"github.com/form3tech-oss/f1/v2/internal/trigger/staged"
 	"github.com/form3tech-oss/f1/v2/internal/trigger/users"
+	"github.com/form3tech-oss/f1/v2/internal/ui"
 )
 
-func GetBuilders() []api.Builder {
+func GetBuilders(output *ui.Output) []api.Builder {
 	return []api.Builder{
 		constant.Rate(),
 		staged.Rate(),
-		gaussian.Rate(),
+		gaussian.Rate(output),
 		users.Rate(),
 		ramp.Rate(),
-		file.Rate(),
+		file.Rate(output),
 	}
 }

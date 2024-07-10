@@ -1,11 +1,14 @@
 package run_test
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
-	"io"
 	"math"
 	"net/http/httptest"
+	"os"
+	"slices"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -18,8 +21,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/form3tech-oss/f1/v2/internal/console"
 	"github.com/form3tech-oss/f1/v2/internal/envsettings"
+	"github.com/form3tech-oss/f1/v2/internal/log"
+	"github.com/form3tech-oss/f1/v2/internal/logutils"
 	"github.com/form3tech-oss/f1/v2/internal/metrics"
 	"github.com/form3tech-oss/f1/v2/internal/options"
 	"github.com/form3tech-oss/f1/v2/internal/run"
@@ -29,6 +33,7 @@ import (
 	"github.com/form3tech-oss/f1/v2/internal/trigger/ramp"
 	"github.com/form3tech-oss/f1/v2/internal/trigger/staged"
 	"github.com/form3tech-oss/f1/v2/internal/trigger/users"
+	"github.com/form3tech-oss/f1/v2/internal/ui"
 	"github.com/form3tech-oss/f1/v2/pkg/f1"
 	f1_testing "github.com/form3tech-oss/f1/v2/pkg/f1/testing"
 )
@@ -39,11 +44,33 @@ const (
 	iterationMetricFamily   = "form3_loadtest_iteration"
 )
 
+type TriggerType int
+
+const (
+	Constant TriggerType = iota
+	Staged
+	Users
+	Ramp
+	File
+)
+
+const anyValue = "{__any__}"
+
+type parsedLogLines []parsedLogLine
+
+type parsedLogLine struct {
+	parsed map[string]any
+	raw    string
+}
+
+type (
+	logFieldMatchers map[string]string
+)
+
 type RunTestStage struct {
 	startTime              time.Time
-	runError               error
 	metrics                *metrics.Metrics
-	printer                *console.Printer
+	output                 *ui.Output
 	runInstance            *run.Run
 	runResult              *run.Result
 	t                      *testing.T
@@ -73,6 +100,10 @@ type RunTestStage struct {
 	iterationTeardownCount atomic.Uint32
 	setupTeardownCount     atomic.Uint32
 	runCount               atomic.Uint32
+	stdout                 syncWriter
+	stderr                 syncWriter
+	interactive            bool
+	verbose                bool
 }
 
 func NewRunTestStage(t *testing.T) (*RunTestStage, *RunTestStage, *RunTestStage) {
@@ -85,8 +116,10 @@ func NewRunTestStage(t *testing.T) (*RunTestStage, *RunTestStage, *RunTestStage)
 		f1:          f1.New(),
 		settings:    envsettings.Get(),
 		metricData:  NewMetricData(),
-		printer:     console.NewPrinter(io.Discard, io.Discard),
+		output:      ui.NewDiscardOutput(),
 		metrics:     metrics.NewInstance(prometheus.NewRegistry(), true),
+		stdout:      syncWriter{writer: &bytes.Buffer{}},
+		stderr:      syncWriter{writer: &bytes.Buffer{}},
 	}
 
 	handler := FakePrometheusHandler(t, stage.metricData)
@@ -153,19 +186,21 @@ func (s *RunTestStage) a_ramp_duration_of(rampDuration string) *RunTestStage {
 }
 
 func (s *RunTestStage) setupRun() {
-	r, err := run.NewRun(
-		options.RunOptions{
-			Scenario:        s.scenario,
-			MaxDuration:     s.duration,
-			Concurrency:     s.concurrency,
-			MaxIterations:   s.maxIterations,
-			MaxFailures:     s.maxFailures,
-			MaxFailuresRate: s.maxFailuresRate,
-		},
-		s.build_trigger(), s.settings, s.metrics, s.printer)
-	if err != nil {
-		s.runError = fmt.Errorf("run create: %w", err)
-	}
+	printer := ui.NewPrinter(&s.stdout, &s.stderr)
+	logger := log.NewLogger(&s.stdout, logutils.NewLogConfigFromSettings(s.settings))
+	outputer := ui.NewOutput(logger, printer, s.interactive, false)
+
+	r, err := run.NewRun(options.RunOptions{
+		Scenario:        s.scenario,
+		MaxDuration:     s.duration,
+		Concurrency:     s.concurrency,
+		MaxIterations:   s.maxIterations,
+		MaxFailures:     s.maxFailures,
+		MaxFailuresRate: s.maxFailuresRate,
+		Verbose:         s.verbose,
+	}, s.f1.GetScenarios(), s.build_trigger(), s.settings, s.metrics, outputer)
+
+	s.require.NoError(err)
 	s.runInstance = r
 }
 
@@ -173,11 +208,8 @@ func (s *RunTestStage) the_run_command_is_executed() *RunTestStage {
 	s.setupRun()
 
 	var err error
-	s.runResult, err = s.runInstance.Do(context.TODO(), s.f1.GetScenarios())
-	if err != nil {
-		s.runError = fmt.Errorf("run do: %w", err)
-		return s
-	}
+	s.runResult, err = s.runInstance.Do(context.TODO())
+	s.require.NoError(err)
 
 	return s
 }
@@ -189,11 +221,8 @@ func (s *RunTestStage) the_run_command_is_executed_and_cancelled_after(duration 
 	ctx, cancel := context.WithTimeout(context.TODO(), duration)
 	defer cancel()
 
-	s.runResult, err = s.runInstance.Do(ctx, s.f1.GetScenarios())
-	if err != nil {
-		s.runError = fmt.Errorf("run do: %w", err)
-		return s
-	}
+	s.runResult, err = s.runInstance.Do(ctx)
+	s.require.NoError(err)
 
 	return s
 }
@@ -291,9 +320,16 @@ func (s *RunTestStage) a_scenario_where_each_iteration_takes(duration time.Durat
 	s.f1.Add(s.scenario, func(scenarioT *f1_testing.T) f1_testing.RunFn {
 		scenarioT.Cleanup(s.scenarioCleanup)
 
+		scenarioT.Log("setup")
+		scenarioT.Logger().WithField("logger", "logrus").Info("logrus - setup")
+
 		s.runCount.Store(0)
 
 		return func(iterationT *f1_testing.T) {
+			if s.runCount.Load() == 0 {
+				scenarioT.Log("first iteration")
+				scenarioT.Logger().WithField("logger", "logrus").Info("logrus - first iteration")
+			}
 			iterationT.Cleanup(s.iterationCleanup)
 
 			s.runCount.Add(1)
@@ -386,6 +422,13 @@ func (s *RunTestStage) the_command_finished_with_failure_of(expected bool) *RunT
 	return s
 }
 
+func (s *RunTestStage) the_command_finished_successfully() *RunTestStage {
+	s.require.NoError(s.runResult.Error())
+	s.assert.False(s.runResult.Failed(), "command failed")
+
+	return s
+}
+
 func (s *RunTestStage) an_iteration_limit_of(iterations uint64) *RunTestStage {
 	s.maxIterations = iterations
 	return s
@@ -454,12 +497,12 @@ func (s *RunTestStage) build_trigger() *api.Trigger {
 		t, err = ramp.Rate().New(flags)
 		require.NoError(s.t, err)
 	case File:
-		flags := file.Rate().Flags
+		flags := file.Rate(s.output).Flags
 
 		err := flags.Parse([]string{s.configFile})
 		require.NoError(s.t, err)
 
-		t, err = file.Rate().New(flags)
+		t, err = file.Rate(s.output).New(flags)
 		require.NoError(s.t, err)
 	}
 	return t
@@ -585,6 +628,124 @@ func (s *RunTestStage) all_exported_metrics_contain_label(labelName string, labe
 	return s
 }
 
+func (s *RunTestStage) terminal_is_interactive(interactive bool) *RunTestStage {
+	s.interactive = interactive
+	return s
+}
+
+func (s *RunTestStage) verbose_flag_is(verbose bool) *RunTestStage {
+	s.verbose = verbose
+	return s
+}
+
+func (s *RunTestStage) json_logging_is_enabled() *RunTestStage {
+	s.settings.Log.Format = "json"
+	return s
+}
+
+func (s *RunTestStage) expect_the_stdout_output_to_include(expectedList []string) *RunTestStage {
+	assertOutputIs(s.t, s.stdout.String(), expectedList, "error matching stdout")
+	return s
+}
+
+func (s *RunTestStage) expect_stderr_to_match_json_log(expectedLogLines []logFieldMatchers) *RunTestStage {
+	s.assertJSONLogMatches(s.t, s.stderr.String(), expectedLogLines, "error matching stderr")
+	return s
+}
+
+func (s *RunTestStage) expect_stdout_to_match_json_log(expectedLogLines []logFieldMatchers) *RunTestStage {
+	s.assertJSONLogMatches(s.t, s.stdout.String(), expectedLogLines, "error matching stdout")
+	return s
+}
+
+func (s *RunTestStage) expect_the_logfile_to_match_json_log(expectedLogLines []logFieldMatchers) *RunTestStage {
+	if s.runResult.LogFilePath == "" {
+		return s
+	}
+
+	logContents, err := os.ReadFile(s.runResult.LogFilePath)
+	s.require.NoError(err)
+
+	s.assertJSONLogMatches(s.t, string(logContents), expectedLogLines, fmt.Sprintf("matching logfile '%s'", s.runResult.LogFilePath))
+
+	return s
+}
+
+func parseJSONLogs(rawLogs string) (parsedLogLines, error) {
+	lines := strings.Split(rawLogs, "\n")
+
+	res := make(parsedLogLines, 0, len(lines))
+
+	for _, line := range lines {
+		if line != "" {
+			parsedLine := make(map[string]any)
+			err := json.Unmarshal([]byte(line), &parsedLine)
+			if err != nil {
+				return nil, fmt.Errorf("unmarshaling '%s': %w", line, err)
+			}
+
+			res = append(res, parsedLogLine{raw: line, parsed: parsedLine})
+		}
+	}
+
+	return res, nil
+}
+
+func (s *RunTestStage) assertJSONLogMatches(t *testing.T, output string, expectedLogLines []logFieldMatchers, errMsg string) {
+	t.Helper()
+
+	parsedLines, err := parseJSONLogs(output)
+	s.require.NoError(err)
+
+	if len(expectedLogLines) == 0 {
+		assert.Empty(t, output, errMsg)
+	}
+
+	s.require.Equalf(len(parsedLines), len(expectedLogLines), "Logs have %d lines, but only %d expectations defined: %s", len(parsedLines), len(expectedLogLines), output)
+
+	for lineIndex, parsedLine := range parsedLines {
+		_, timeStampExists := parsedLine.parsed["@timestamp"]
+		s.assert.True(timeStampExists, "@timestamp key not found in %s", parsedLine.raw)
+
+		_, levelExists := parsedLine.parsed["level"]
+		s.assert.True(levelExists, "level key not found in %s", parsedLine.raw)
+
+		s.assert.Equalf(s.scenario, parsedLine.parsed["scenario"], "scenario attr not found in '%s'", parsedLine.raw)
+
+		for logField := range parsedLine.parsed {
+			s.assert.Equalf(1, strings.Count(parsedLine.raw, "\""+logField+"\":"), "duplicate key %s found in %s", logField, parsedLine.raw)
+		}
+
+		matchers := expectedLogLines[lineIndex]
+		for key, value := range matchers {
+			if value != anyValue {
+				s.assert.Equal(value, parsedLine.parsed[key])
+			}
+		}
+
+		for key := range parsedLine.parsed {
+			if slices.Contains([]string{"@timestamp"}, key) {
+				continue
+			}
+			s.assert.Containsf(matchers, key, "log field '%s' not asserted in matcher %#v for line '%s'", key, matchers, parsedLine.raw)
+		}
+	}
+}
+
+func assertOutputIs(t *testing.T, output string, expectedList []string, errMsg string) {
+	t.Helper()
+
+	if len(expectedList) == 0 {
+		assert.Emptyf(t, output, errMsg)
+	}
+
+	for _, expected := range expectedList {
+		assert.Containsf(t, output, expected, "%s: '%s' is not in '%s'", errMsg, expected, output)
+		matchCount := strings.Count(output, expected)
+		assert.Equalf(t, 1, matchCount, "%s: '%s' should be exactly once in '%s' but was found %d times", errMsg, expected, output, matchCount)
+	}
+}
+
 func getMetricByResult(metricFamily *io_prometheus_client.MetricFamily, result string) *io_prometheus_client.Metric {
 	for _, metric := range metricFamily.GetMetric() {
 		for _, label := range metric.GetLabel() {
@@ -607,4 +768,23 @@ func retry(retryable func() error, retries int, delay time.Duration) error {
 		time.Sleep(delay)
 	}
 	return err
+}
+
+type syncWriter struct {
+	writer *bytes.Buffer
+	mu     sync.Mutex
+}
+
+func (s *syncWriter) Write(p []byte) (int, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	return s.writer.Write(p)
+}
+
+func (s *syncWriter) String() string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	return s.writer.String()
 }

@@ -8,6 +8,7 @@ import (
 
 	"github.com/form3tech-oss/f1/v2/internal/options"
 	"github.com/form3tech-oss/f1/v2/internal/trigger/api"
+	"github.com/form3tech-oss/f1/v2/internal/ui"
 	"github.com/form3tech-oss/f1/v2/internal/workers"
 )
 
@@ -19,9 +20,14 @@ func Rate() api.Builder {
 		Description: "triggers test iterations from a static set of users controlled by the --concurrency flag",
 		Flags:       flags,
 		New: func(*pflag.FlagSet) (*api.Trigger, error) {
-			trigger := func(ctx context.Context, workers *workers.PoolManager, options options.RunOptions) {
+			trigger := func(
+				ctx context.Context,
+				output *ui.Output,
+				workers *workers.PoolManager,
+				options options.RunOptions,
+			) {
 				doWork := NewWorker(options.Concurrency)
-				doWork(ctx, workers, options)
+				doWork(ctx, output, workers, options)
 			}
 
 			return &api.Trigger{
@@ -39,7 +45,7 @@ func Rate() api.Builder {
 }
 
 func NewWorker(concurrency int) api.WorkTriggerer {
-	return func(ctx context.Context, workers *workers.PoolManager, _ options.RunOptions) {
+	return func(ctx context.Context, _ *ui.Output, workers *workers.PoolManager, _ options.RunOptions) {
 		pool := workers.NewContinuousPool(concurrency)
 		pool.Start(ctx)
 	}

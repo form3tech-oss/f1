@@ -9,9 +9,8 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/wcharczuk/go-chart/v2"
 
-	"github.com/form3tech-oss/f1/v2/internal/console"
-	"github.com/form3tech-oss/f1/v2/internal/support/errorh"
 	"github.com/form3tech-oss/f1/v2/internal/trigger/api"
+	"github.com/form3tech-oss/f1/v2/internal/ui"
 )
 
 const (
@@ -20,7 +19,7 @@ const (
 	flagFilename      = "filename"
 )
 
-func Cmd(builders []api.Builder, printer *console.Printer) *cobra.Command {
+func Cmd(builders []api.Builder, output *ui.Output) *cobra.Command {
 	chartCmd := &cobra.Command{
 		Use:   "chart <subcommand>",
 		Short: "plots a chart of the test scenarios that would be triggered over time with the provided run function",
@@ -30,7 +29,7 @@ func Cmd(builders []api.Builder, printer *console.Printer) *cobra.Command {
 		triggerCmd := &cobra.Command{
 			Use:   t.Name,
 			Short: t.Description,
-			RunE:  chartCmdExecute(t, printer),
+			RunE:  chartCmdExecute(t, output),
 		}
 		triggerCmd.Flags().String(flagChartStart, time.Now().Format(time.RFC3339), "Optional start time for the chart")
 		triggerCmd.Flags().Duration(flagChartDuration, 10*time.Minute, "Duration for the chart")
@@ -44,7 +43,7 @@ func Cmd(builders []api.Builder, printer *console.Printer) *cobra.Command {
 
 func chartCmdExecute(
 	t api.Builder,
-	printer *console.Printer,
+	output *ui.Output,
 ) func(cmd *cobra.Command, args []string) error {
 	return func(cmd *cobra.Command, _ []string) error {
 		cmd.SilenceUsage = true
@@ -88,7 +87,9 @@ func chartCmdExecute(
 			times = append(times, current)
 		}
 
-		printer.Println(asciigraph.Plot(rates, asciigraph.Height(15), asciigraph.Width(width)))
+		output.Display(ui.InteractiveMessage{
+			Message: asciigraph.Plot(rates, asciigraph.Height(15), asciigraph.Width(width)),
+		})
 
 		if filename == "" {
 			return nil
@@ -126,13 +127,20 @@ func chartCmdExecute(
 		if err != nil {
 			return fmt.Errorf("creting file: %w", err)
 		}
-		defer errorh.SafeClose(f)
+		defer func() {
+			if err = f.Close(); err != nil {
+				output.Display(ui.ErrorMessage{
+					Message: "unable to close the chart file",
+					Error:   err,
+				})
+			}
+		}()
 
 		err = graph.Render(chart.PNG, f)
 		if err != nil {
 			return fmt.Errorf("rendering graph: %w", err)
 		}
-		printer.Printf("Detailed chart written to %s\n", filename)
+		output.Display(ui.InteractiveMessage{Message: "Detailed chart written to " + filename})
 		return nil
 	}
 }

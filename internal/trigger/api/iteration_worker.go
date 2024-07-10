@@ -5,12 +5,13 @@ import (
 	"time"
 
 	"github.com/form3tech-oss/f1/v2/internal/options"
+	"github.com/form3tech-oss/f1/v2/internal/ui"
 	"github.com/form3tech-oss/f1/v2/internal/workers"
 )
 
 // NewIterationWorker produces a WorkTriggerer which triggers work at fixed intervals.
 func NewIterationWorker(iterationDuration time.Duration, rate RateFunction) WorkTriggerer {
-	return func(ctx context.Context, workers *workers.PoolManager, opts options.RunOptions) {
+	return func(ctx context.Context, _ *ui.Output, workers *workers.PoolManager, opts options.RunOptions) {
 		startRate := rate(time.Now())
 
 		pool := workers.NewTriggerPool(opts.Concurrency)

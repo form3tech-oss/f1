@@ -8,17 +8,11 @@ import (
 )
 
 func newContinuousPool(m *PoolManager, numWorkers int) *ContinuousPool {
-	p := &ContinuousPool{
+	return &ContinuousPool{
 		numWorkers:         numWorkers,
-		iterationStatePool: make([]*iterationState, numWorkers),
+		iterationStatePool: m.makeIterationStatePool(numWorkers),
 		manager:            m,
 	}
-
-	for i := range numWorkers {
-		p.iterationStatePool[i] = newIterationState(m.activeScenario.scenario.Name)
-	}
-
-	return p
 }
 
 type ContinuousPool struct {

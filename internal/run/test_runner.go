@@ -4,23 +4,21 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
-	stdlog "log"
-	"os"
 	"sync"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus/push"
-	"github.com/sirupsen/logrus"
 
-	"github.com/form3tech-oss/f1/v2/internal/console"
 	"github.com/form3tech-oss/f1/v2/internal/envsettings"
+	"github.com/form3tech-oss/f1/v2/internal/log"
+	"github.com/form3tech-oss/f1/v2/internal/logutils"
 	"github.com/form3tech-oss/f1/v2/internal/metrics"
 	"github.com/form3tech-oss/f1/v2/internal/options"
 	"github.com/form3tech-oss/f1/v2/internal/progress"
 	"github.com/form3tech-oss/f1/v2/internal/raterun"
-	"github.com/form3tech-oss/f1/v2/internal/run/templates"
+	"github.com/form3tech-oss/f1/v2/internal/run/views"
 	"github.com/form3tech-oss/f1/v2/internal/trigger/api"
+	"github.com/form3tech-oss/f1/v2/internal/ui"
 	"github.com/form3tech-oss/f1/v2/internal/workers"
 	"github.com/form3tech-oss/f1/v2/internal/xcontext"
 	"github.com/form3tech-oss/f1/v2/pkg/f1/scenarios"
@@ -32,60 +30,115 @@ const (
 )
 
 type Run struct {
-	progressRunner  *raterun.Runner
-	progressStats   *progress.Stats
-	metrics         *metrics.Metrics
-	templates       *templates.Templates
-	activeScenario  *workers.ActiveScenario
-	trigger         *api.Trigger
-	pusher          *push.Pusher
-	printer         *console.Printer
-	RateDescription string
-	Settings        envsettings.Settings
-	Options         options.RunOptions
-	result          Result
-	notifyDropped   sync.Once
+	pusher         *push.Pusher
+	progressRunner *raterun.Runner
+	metrics        *metrics.Metrics
+	views          *views.Views
+	activeScenario *workers.ActiveScenario
+	trigger        *api.Trigger
+	output         *ui.Output
+	scenarioLogger *ScenarioLogger
+	result         *Result
+	options        options.RunOptions
 }
 
 func NewRun(
 	options options.RunOptions,
-	t *api.Trigger,
+	scenarios *scenarios.Scenarios,
+	trigger *api.Trigger,
 	settings envsettings.Settings,
-	metricsInstane *metrics.Metrics,
-	printer *console.Printer,
+	metricsInstance *metrics.Metrics,
+	parentOutput *ui.Output,
 ) (*Run, error) {
-	run := Run{
-		Options:         options,
-		Settings:        settings,
-		RateDescription: t.Description,
-		trigger:         t,
-		metrics:         metricsInstane,
-		printer:         printer,
-		progressStats:   &progress.Stats{},
+	progressStats := &progress.Stats{}
+	viewsInstance := views.New()
+
+	scenario := scenarios.GetScenario(options.Scenario)
+	if scenario == nil {
+		return nil, fmt.Errorf("scenario not defined: %s", options.Scenario)
 	}
 
-	run.templates = templates.Parse(templates.RenderTermColors)
-	run.result = NewResult(options, run.templates, run.progressStats)
+	result := NewResult(options, viewsInstance, progressStats)
 
-	if run.Settings.Prometheus.PushGateway != "" {
-		run.pusher = push.New(settings.Prometheus.PushGateway, "f1-"+options.Scenario).
-			Gatherer(run.metrics.Registry)
+	outputer := ui.NewOutput(
+		parentOutput.Logger.With(log.ScenarioAttr(scenario.Name)),
+		parentOutput.Printer,
+		parentOutput.Interactive,
+		options.LogToFile(),
+	)
 
-		if run.Settings.Prometheus.Namespace != "" {
-			run.pusher = run.pusher.Grouping("namespace", run.Settings.Prometheus.Namespace)
-		}
+	scenarioLogger := NewScenarioLogger(outputer)
+	result.LogFilePath = scenarioLogger.Open(
+		LogFilePathOrDefault(settings.Log.FilePath, scenario.Name),
+		logutils.NewLogConfigFromSettings(settings),
+		scenario.Name,
+		options.LogToFile(),
+	)
 
-		if run.Settings.Prometheus.LabelID != "" {
-			run.pusher = run.pusher.Grouping("id", run.Settings.Prometheus.LabelID)
-		}
+	progressRunner, err := newProgressRunner(result, outputer)
+	if err != nil {
+		return nil, fmt.Errorf("creating progress runner: %w", err)
 	}
 
-	progressRunner, err := raterun.New(func(rate time.Duration) {
-		run.result.SnapshotProgress(rate)
-		run.printer.Println(run.result.Progress())
-		if run.result.HasDroppedIterations() {
-			run.notifyDropped.Do(func() {
-				logrus.Warn("Dropping requests as workers are too busy. Considering increasing `--concurrency` argument")
+	activeScenario := workers.NewActiveScenario(
+		scenario,
+		metricsInstance,
+		progressStats,
+		scenarioLogger.Logger,
+		log.NewSlogLogrusLogger(scenarioLogger.Logger),
+	)
+
+	pusher := newMetricsPusher(settings, scenario.Name, metricsInstance)
+
+	return &Run{
+		options:        options,
+		trigger:        trigger,
+		metrics:        metricsInstance,
+		views:          viewsInstance,
+		result:         result,
+		pusher:         pusher,
+		output:         outputer,
+		progressRunner: progressRunner,
+		activeScenario: activeScenario,
+		scenarioLogger: scenarioLogger,
+	}, nil
+}
+
+func newMetricsPusher(
+	settings envsettings.Settings,
+	scenarioName string,
+	metricsInstance *metrics.Metrics,
+) *push.Pusher {
+	if settings.Prometheus.PushGateway == "" {
+		return nil
+	}
+
+	pusher := push.New(settings.Prometheus.PushGateway, "f1-"+scenarioName).
+		Gatherer(metricsInstance.Registry)
+
+	if settings.Prometheus.Namespace != "" {
+		pusher = pusher.Grouping("namespace", settings.Prometheus.Namespace)
+	}
+
+	if settings.Prometheus.LabelID != "" {
+		pusher = pusher.Grouping("id", settings.Prometheus.LabelID)
+	}
+
+	return pusher
+}
+
+func newProgressRunner(result *Result, output *ui.Output) (*raterun.Runner, error) {
+	notifyDropped := sync.Once{}
+
+	r, err := raterun.New(func(rate time.Duration) {
+		result.SnapshotProgress(rate)
+		output.Display(result.Progress())
+		if result.HasDroppedIterations() {
+			notifyDropped.Do(func() {
+				output.Display(ui.WarningMessage{
+					Message: "Dropping requests as workers are too busy. " +
+						"Considering increasing `--concurrency` argument",
+				})
 			})
 		}
 	}, []raterun.Schedule{
@@ -95,34 +148,30 @@ func NewRun(
 		{StartDelay: 10 * time.Minute, Frequency: time.Minute},
 	})
 	if err != nil {
-		return nil, fmt.Errorf("creating progress runner: %w", err)
+		return nil, fmt.Errorf("new progress runner: %w", err)
 	}
 
-	run.progressRunner = progressRunner
-
-	return &run, nil
+	return r, nil
 }
 
-func (r *Run) Do(ctx context.Context, s *scenarios.Scenarios) (*Result, error) {
-	r.printer.Print(r.templates.Start(templates.StartData{
-		Scenario:        r.Options.Scenario,
-		MaxDuration:     r.Options.MaxDuration,
-		MaxIterations:   r.Options.MaxIterations,
-		RateDescription: r.RateDescription,
-	}))
+func (r *Run) Do(ctx context.Context) (*Result, error) {
+	defer r.scenarioLogger.Close()
+
+	welcomeMessage := r.views.Start(views.StartData{
+		Scenario:        r.options.Scenario,
+		MaxDuration:     r.options.MaxDuration,
+		MaxIterations:   r.options.MaxIterations,
+		RateDescription: r.trigger.Description,
+	})
+
+	r.output.Display(welcomeMessage)
 
 	defer r.printSummary()
-	defer r.printLogOnFailure()
-
-	r.configureLogging()
 
 	r.metrics.Reset()
 
-	scenario := s.GetScenario(r.Options.Scenario)
-	if scenario == nil {
-		return nil, fmt.Errorf("scenario not defined: %s", r.Options.Scenario)
-	}
-	r.activeScenario = workers.NewActiveScenario(scenario, r.metrics, r.progressStats)
+	r.activeScenario.Setup()
+
 	r.pushMetrics(ctx)
 
 	// run teardown even if the context is cancelled
@@ -161,14 +210,14 @@ func (r *Run) Do(ctx context.Context, s *scenarios.Scenarios) (*Result, error) {
 	close(metricsCloseCh)
 	r.result.GetTotals()
 
-	return &r.result, nil
+	return r.result, nil
 }
 
 func (r *Run) reportSetupFailure(ctx context.Context) *Result {
 	r.fail("setup failed")
 	r.pushMetrics(ctx)
-	r.printer.Println(r.result.Setup())
-	return &r.result
+	r.output.Display(r.result.Setup())
+	return r.result
 }
 
 func (r *Run) teardownActiveScenario(ctx context.Context) {
@@ -177,38 +226,17 @@ func (r *Run) teardownActiveScenario(ctx context.Context) {
 		r.fail("teardown failed")
 	}
 	r.pushMetrics(ctx)
-	r.printer.Println(r.result.Teardown())
-}
-
-func (r *Run) configureLogging() {
-	if !r.Options.Verbose {
-		r.result.LogFile = redirectLoggingToFile(r.Options.Scenario, r.Settings.LogFilePath, r.printer.Writer)
-		welcomeMessage := r.templates.Start(templates.StartData{
-			Scenario:        r.Options.Scenario,
-			MaxDuration:     r.Options.MaxDuration,
-			MaxIterations:   r.Options.MaxIterations,
-			RateDescription: r.RateDescription,
-		})
-
-		logrus.Info(welcomeMessage)
-		r.printer.Printf("Saving logs to %s\n\n", r.result.LogFile)
-	}
+	r.output.Display(r.result.Teardown())
 }
 
 func (r *Run) printSummary() {
-	summary := r.result.String()
-	r.printer.Println(summary)
-	if !r.Options.Verbose {
-		logrus.Info(summary)
-		logrus.StandardLogger().SetOutput(r.printer.Writer)
-		stdlog.SetOutput(r.printer.Writer)
-	}
+	r.output.Display(r.result.Summary())
 }
 
 func (r *Run) run(ctx context.Context) {
 	// if the trigger has a limited duration, restrict the run to that duration.
-	duration := r.Options.MaxDuration
-	if r.trigger.Duration > 0 && r.trigger.Duration < r.Options.MaxDuration {
+	duration := r.options.MaxDuration
+	if r.trigger.Duration > 0 && r.trigger.Duration < r.options.MaxDuration {
 		duration = r.trigger.Duration
 	}
 
@@ -219,22 +247,22 @@ func (r *Run) run(ctx context.Context) {
 	triggerCtx, triggerCancel := context.WithTimeout(ctx, duration-nextIterationWindow)
 	defer triggerCancel()
 
-	poolManager := workers.New(r.Options.MaxIterations, r.activeScenario)
-	r.trigger.Trigger(triggerCtx, poolManager, r.Options)
+	poolManager := workers.New(r.options.MaxIterations, r.activeScenario)
+	r.trigger.Trigger(triggerCtx, r.output, poolManager, r.options)
 
 	select {
 	case <-ctx.Done():
-		r.printer.Println(r.result.Interrupted())
+		r.output.Display(r.result.Interrupted())
 		r.progressRunner.Restart()
 		<-poolManager.WaitForCompletion()
 	case <-triggerCtx.Done():
 		if triggerCtx.Err() == context.DeadlineExceeded {
-			r.printer.Println(r.result.MaxDurationElapsed())
+			r.output.Display(r.result.MaxDurationElapsed())
 		}
 		<-poolManager.WaitForCompletion()
 	case <-poolManager.WaitForCompletion():
 		if poolManager.MaxIterationsReached() {
-			r.printer.Println(r.result.MaxIterationsReached())
+			r.output.Display(r.result.MaxIterationsReached())
 		}
 	}
 }
@@ -249,39 +277,9 @@ func (r *Run) pushMetrics(ctx context.Context) {
 	}
 	err := r.pusher.PushContext(ctx)
 	if err != nil {
-		logrus.Errorf("unable to push metrics to prometheus: %v", err)
+		r.output.Display(ui.ErrorMessage{
+			Message: "unable to push metrics to prometheus",
+			Error:   err,
+		})
 	}
-}
-
-func (r *Run) printLogOnFailure() {
-	if r.Options.Verbose || !r.Options.VerboseFail || !r.result.Failed() {
-		return
-	}
-
-	if err := r.printResultLogs(); err != nil {
-		logrus.WithError(err).Error("error printing logs")
-	}
-}
-
-func (r *Run) printResultLogs() error {
-	fd, err := os.Open(r.result.LogFile)
-	if err != nil {
-		return fmt.Errorf("opening log file: %w", err)
-	}
-	defer func() {
-		if fd == nil {
-			return
-		}
-		if err := fd.Close(); err != nil {
-			logrus.WithError(err).Error("error closing log file")
-		}
-	}()
-
-	if fd != nil {
-		if _, err := io.Copy(r.printer.Writer, fd); err != nil {
-			return fmt.Errorf("printing logs: %w", err)
-		}
-	}
-
-	return nil
 }

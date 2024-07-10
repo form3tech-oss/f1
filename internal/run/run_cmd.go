@@ -7,12 +7,12 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/form3tech-oss/f1/v2/internal/console"
 	"github.com/form3tech-oss/f1/v2/internal/envsettings"
 	"github.com/form3tech-oss/f1/v2/internal/metrics"
 	"github.com/form3tech-oss/f1/v2/internal/options"
 	"github.com/form3tech-oss/f1/v2/internal/trigger/api"
 	"github.com/form3tech-oss/f1/v2/internal/triggerflags"
+	"github.com/form3tech-oss/f1/v2/internal/ui"
 	"github.com/form3tech-oss/f1/v2/pkg/f1/scenarios"
 )
 
@@ -21,7 +21,7 @@ func Cmd(
 	builders []api.Builder,
 	settings envsettings.Settings,
 	metricsInstance *metrics.Metrics,
-	printer *console.Printer,
+	output *ui.Output,
 ) *cobra.Command {
 	runCmd := &cobra.Command{
 		Use:   "run <subcommand>",
@@ -32,12 +32,12 @@ func Cmd(
 		triggerCmd := &cobra.Command{
 			Use:   t.Name,
 			Short: t.Description,
-			RunE:  runCmdExecute(s, t, settings, metricsInstance, printer),
+			RunE:  runCmdExecute(s, t, settings, metricsInstance, output),
 			Args:  cobra.MatchAll(cobra.ExactArgs(1)),
 		}
 
 		triggerCmd.Flags().BoolP(triggerflags.FlagVerbose, "v", false, "enables log output to stdout")
-		triggerCmd.Flags().Bool(triggerflags.FlagVerboseFail, false, "log output to stdout on failure")
+		triggerCmd.Flags().Bool(triggerflags.FlagVerboseFail, false, "DEPRECATED: log output to stdout on failure")
 
 		if !t.IgnoreCommonFlags {
 			triggerCmd.ValidArgs = s.GetScenarioNames()
@@ -67,10 +67,11 @@ func runCmdExecute(
 	t api.Builder,
 	settings envsettings.Settings,
 	metricsInstance *metrics.Metrics,
-	printer *console.Printer,
+	output *ui.Output,
 ) func(cmd *cobra.Command, args []string) error {
 	return func(cmd *cobra.Command, args []string) error {
 		cmd.SilenceUsage = true
+		cmd.SilenceErrors = true
 
 		trig, err := t.New(cmd.Flags())
 		if err != nil {
@@ -133,11 +134,17 @@ func runCmdExecute(
 		if err != nil {
 			return fmt.Errorf("getting flag: %w", err)
 		}
+		if verboseFail {
+			output.Display(ui.WarningMessage{Message: "--verbose-fail option has been removed"})
+		}
 
 		if settings.Fluentd.Present() {
-			printer.Warnf("WARNING: fluentd integration has been removed. %s and %s have no effect.",
-				envsettings.EnvFluentdHost,
-				envsettings.EnvFluentdPort,
+			output.Display(ui.WarningMessage{
+				Message: fmt.Sprintf("WARNING: fluentd integration has been removed. %s and %s have no effect.",
+					envsettings.EnvFluentdHost,
+					envsettings.EnvFluentdPort,
+				),
+			},
 			)
 		}
 
@@ -146,16 +153,15 @@ func runCmdExecute(
 			MaxDuration:     duration,
 			Concurrency:     concurrency,
 			Verbose:         verbose,
-			VerboseFail:     verboseFail,
 			MaxIterations:   maxIterations,
 			MaxFailures:     maxFailures,
 			MaxFailuresRate: maxFailuresRate,
 			IgnoreDropped:   ignoreDropped,
-		}, trig, settings, metricsInstance, printer)
+		}, s, trig, settings, metricsInstance, output)
 		if err != nil {
 			return fmt.Errorf("new run: %w", err)
 		}
-		result, err := run.Do(cmd.Context(), s)
+		result, err := run.Do(cmd.Context())
 		if err != nil {
 			return fmt.Errorf("internal error on run: %w", err)
 		}
