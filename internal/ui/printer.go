@@ -34,14 +34,6 @@ func (t *Printer) Error(a ...any) {
 	fmt.Fprintln(t.ErrWriter, a...)
 }
 
-func (t *Printer) Printf(format string, a ...any) {
-	fmt.Fprintf(t.Writer, format, a...)
-}
-
 func (t *Printer) Warn(a ...any) {
-	fmt.Fprint(t.ErrWriter, a...)
-}
-
-func (t *Printer) Warnf(format string, a ...any) {
-	fmt.Fprintf(t.ErrWriter, format, a...)
+	fmt.Fprintln(t.ErrWriter, a...)
 }

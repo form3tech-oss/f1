@@ -68,58 +68,60 @@ type (
 )
 
 type RunTestStage struct {
-	startTime              time.Time
-	metrics                *metrics.Metrics
-	output                 *ui.Output
-	runInstance            *run.Run
-	runResult              *run.Result
-	t                      *testing.T
-	require                *require.Assertions
-	metricData             *MetricData
-	scenarioCleanup        func()
-	assert                 *assert.Assertions
-	iterationCleanup       func()
-	f1                     *f1.F1
-	durations              sync.Map
-	frequency              string
-	rate                   string
-	stages                 string
-	distributionType       string
-	configFile             string
-	startRate              string
-	endRate                string
-	rampDuration           string
-	scenario               string
-	settings               envsettings.Settings
-	maxFailures            uint64
-	maxIterations          uint64
-	maxFailuresRate        int
-	duration               time.Duration
-	concurrency            int
-	triggerType            TriggerType
-	iterationTeardownCount atomic.Uint32
-	setupTeardownCount     atomic.Uint32
-	runCount               atomic.Uint32
-	stdout                 syncWriter
-	stderr                 syncWriter
-	interactive            bool
-	verbose                bool
+	startTime                time.Time
+	metrics                  *metrics.Metrics
+	output                   *ui.Output
+	runInstance              *run.Run
+	runResult                *run.Result
+	t                        *testing.T
+	require                  *require.Assertions
+	metricData               *MetricData
+	scenarioCleanup          func()
+	assert                   *assert.Assertions
+	iterationCleanup         func()
+	f1                       *f1.F1
+	durations                sync.Map
+	frequency                string
+	rate                     string
+	stages                   string
+	distributionType         string
+	configFile               string
+	startRate                string
+	endRate                  string
+	rampDuration             string
+	scenario                 string
+	settings                 envsettings.Settings
+	maxFailures              uint64
+	maxIterations            uint64
+	maxFailuresRate          int
+	duration                 time.Duration
+	waitForCompletionTimeout time.Duration
+	concurrency              int
+	triggerType              TriggerType
+	iterationTeardownCount   atomic.Uint32
+	setupTeardownCount       atomic.Uint32
+	runCount                 atomic.Uint32
+	stdout                   syncWriter
+	stderr                   syncWriter
+	interactive              bool
+	verbose                  bool
 }
 
 func NewRunTestStage(t *testing.T) (*RunTestStage, *RunTestStage, *RunTestStage) {
 	t.Helper()
 	stage := &RunTestStage{
-		t:           t,
-		concurrency: 100,
-		assert:      assert.New(t),
-		require:     require.New(t),
-		f1:          f1.New(),
-		settings:    envsettings.Get(),
-		metricData:  NewMetricData(),
-		output:      ui.NewDiscardOutput(),
-		metrics:     metrics.NewInstance(prometheus.NewRegistry(), true),
-		stdout:      syncWriter{writer: &bytes.Buffer{}},
-		stderr:      syncWriter{writer: &bytes.Buffer{}},
+		t:                        t,
+		concurrency:              100,
+		assert:                   assert.New(t),
+		require:                  require.New(t),
+		f1:                       f1.New(),
+		settings:                 envsettings.Get(),
+		metricData:               NewMetricData(),
+		output:                   ui.NewDiscardOutput(),
+		metrics:                  metrics.NewInstance(prometheus.NewRegistry(), true),
+		stdout:                   syncWriter{writer: &bytes.Buffer{}},
+		stderr:                   syncWriter{writer: &bytes.Buffer{}},
+		waitForCompletionTimeout: 5 * time.Second,
 	}
 
 	handler := FakePrometheusHandler(t, stage.metricData)
@@ -138,6 +140,11 @@ func NewRunTestStage(t *testing.T) (*RunTestStage, *RunTestStage, *RunTestStage)
 
 func (s *RunTestStage) a_rate_of(rate string) *RunTestStage {
 	s.rate = rate
+	return s
+}
+
+func (s *RunTestStage) wait_for_completion_timeout_of(timeout time.Duration) *RunTestStage {
+	s.waitForCompletionTimeout = timeout
 	return s
 }
 
@@ -198,7 +205,7 @@ func (s *RunTestStage) setupRun() {
 		MaxFailures:     s.maxFailures,
 		MaxFailuresRate: s.maxFailuresRate,
 		Verbose:         s.verbose,
-	}, s.f1.GetScenarios(), s.build_trigger(), s.settings, s.metrics, outputer)
+	}, s.f1.GetScenarios(), s.build_trigger(), s.waitForCompletionTimeout, s.settings, s.metrics, outputer)
 
 	s.require.NoError(err)
 	s.runInstance = r
@@ -218,8 +225,11 @@ func (s *RunTestStage) the_run_command_is_executed_and_cancelled_after(duration 
 	s.setupRun()
 
 	var err error
-	ctx, cancel := context.WithTimeout(context.TODO(), duration)
-	defer cancel()
+	ctx, cancel := context.WithCancel(context.TODO())
+	go func() {
+		<-time.After(duration)
+		cancel()
+	}()
 
 	s.runResult, err = s.runInstance.Do(ctx)
 	s.require.NoError(err)
