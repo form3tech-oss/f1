@@ -45,3 +45,20 @@ func TestMissingScenario(t *testing.T) {
 	then.
 		the_execute_command_returns_an_error("scenario not defined: unknownScenario")
 }
+
+func TestWithCustomLogger(t *testing.T) {
+	given, when, then := newF1Stage(t)
+
+	given.
+		a_custom_logger_is_configured_with_attr("custom", "value").and().
+		a_scenario_that_logs()
+
+	when.
+		the_f1_scenario_is_executed_with_constant_rate_and_args(
+			"--rate", "1/1s",
+			"--max-duration", "2s",
+		)
+
+	then.
+		expect_all_log_lines_to_contain_attr("custom", "value")
+}

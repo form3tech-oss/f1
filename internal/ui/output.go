@@ -58,3 +58,10 @@ func NewDefaultOutput(logLevel slog.Level, jsonFormat bool) *Output {
 
 	return NewOutput(logger, printer, interactive, true)
 }
+
+func NewDefaultOutputWithLogger(logger *slog.Logger) *Output {
+	printer := NewDefaultPrinter()
+	interactive := isatty.IsTerminal(os.Stdin.Fd())
+
+	return NewOutput(logger, printer, interactive, true)
+}

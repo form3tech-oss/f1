@@ -1,7 +1,10 @@
 package f1_test
 
 import (
+	"bytes"
+	"fmt"
 	"os"
+	"strings"
 	"sync/atomic"
 	"syscall"
 	"testing"
@@ -11,21 +14,21 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/goleak"
 
+	"github.com/form3tech-oss/f1/v2/internal/log"
 	"github.com/form3tech-oss/f1/v2/pkg/f1"
 	f1_testing "github.com/form3tech-oss/f1/v2/pkg/f1/testing"
 )
 
 type f1Stage struct {
-	t       *testing.T
-	assert  *assert.Assertions
-	require *require.Assertions
-
-	f1       *f1.F1
-	errCh    chan error
-	scenario string
-	runCount atomic.Uint32
-
 	executeErr error
+	t          *testing.T
+	assert     *assert.Assertions
+	require    *require.Assertions
+	f1         *f1.F1
+	errCh      chan error
+	scenario   string
+	logOutput  bytes.Buffer
+	runCount   atomic.Uint32
 }
 
 func newF1Stage(t *testing.T) (*f1Stage, *f1Stage, *f1Stage) {
@@ -43,6 +46,13 @@ func newF1Stage(t *testing.T) (*f1Stage, *f1Stage, *f1Stage) {
 }
 
 func (s *f1Stage) and() *f1Stage {
+	return s
+}
+
+func (s *f1Stage) a_custom_logger_is_configured_with_attr(key, value string) *f1Stage {
+	logger := log.NewTestLogger(&s.logOutput).With(key, value)
+	s.f1 = f1.New().WithLogger(logger)
+
 	return s
 }
 
@@ -68,6 +78,20 @@ func (s *f1Stage) a_scenario_where_each_iteration_takes(duration time.Duration) 
 		return func(*f1_testing.T) {
 			s.runCount.Add(1)
 			time.Sleep(duration)
+		}
+	})
+
+	return s
+}
+
+func (s *f1Stage) a_scenario_that_logs() *f1Stage {
+	s.scenario = "logging_scenario"
+	s.f1.Add(s.scenario, func(sceanrioT *f1_testing.T) f1_testing.RunFn {
+		sceanrioT.Log("scenario")
+
+		return func(*f1_testing.T) {
+			sceanrioT.Log("iteration")
+			sceanrioT.Logger().Info("iteration")
 		}
 	})
 
@@ -112,6 +136,20 @@ func (s *f1Stage) expect_no_error_sending_signals() *f1Stage {
 
 func (s *f1Stage) expect_no_goroutines_to_run() *f1Stage {
 	s.require.NoError(goleak.Find())
+
+	return s
+}
+
+func (s *f1Stage) expect_all_log_lines_to_contain_attr(key, value string) *f1Stage {
+	lines := strings.Split(s.logOutput.String(), "\n")
+
+	s.require.Len(lines, 7)
+
+	for _, line := range lines {
+		if line != "" {
+			s.require.Contains(line, fmt.Sprintf(" %s=%s ", key, value))
+		}
+	}
 
 	return s
 }
