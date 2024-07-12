@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"os"
 	"os/signal"
 	"syscall"
@@ -32,7 +33,7 @@ type F1 struct {
 	settings  envsettings.Settings
 }
 
-// Instantiates a new instance of an F1 CLI.
+// New instantiates a new instance of an F1 CLI.
 func New() *F1 {
 	settings := envsettings.Get()
 
@@ -42,6 +43,17 @@ func New() *F1 {
 		settings:  settings,
 		output:    ui.NewDefaultOutput(settings.Log.SlogLevel(), settings.Log.IsFormatJSON()),
 	}
+}
+
+// WithLogger allows specifying logger to be used for all internal and scenario logs
+//
+// This will disable the LOG_LEVEL and LOG_FORMAT options, as they only relate to the built-in
+// logger.
+//
+// The logger will be used for non-interactive output, file logs or when `--verbose` is specified.
+func (f *F1) WithLogger(logger *slog.Logger) *F1 {
+	f.output = ui.NewDefaultOutputWithLogger(logger)
+	return f
 }
 
 // Registers a new test scenario with the given name. This is the name used when running
