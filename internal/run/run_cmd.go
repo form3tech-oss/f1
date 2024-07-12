@@ -16,6 +16,8 @@ import (
 	"github.com/form3tech-oss/f1/v2/pkg/f1/scenarios"
 )
 
+const waitForCompletionTimeout = 10 * time.Second
+
 func Cmd(
 	s *scenarios.Scenarios,
 	builders []api.Builder,
@@ -157,7 +159,7 @@ func runCmdExecute(
 			MaxFailures:     maxFailures,
 			MaxFailuresRate: maxFailuresRate,
 			IgnoreDropped:   ignoreDropped,
-		}, s, trig, settings, metricsInstance, output)
+		}, s, trig, waitForCompletionTimeout, settings, metricsInstance, output)
 		if err != nil {
 			return fmt.Errorf("new run: %w", err)
 		}

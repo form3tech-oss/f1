@@ -563,7 +563,68 @@ func TestInterruptedRun(t *testing.T) {
 	then.
 		setup_teardown_is_called_within(600 * time.Millisecond).and().
 		metrics_are_pushed_to_prometheus().and().
-		there_is_a_metric_called("form3_loadtest_iteration")
+		there_is_a_metric_called("form3_loadtest_iteration").and().
+		expect_the_stdout_output_to_include([]string{
+			"Interrupted - waiting for active tests to complete",
+		})
+}
+
+func TestInterruptedRun_TimesOut(t *testing.T) {
+	t.Parallel()
+
+	given, when, then := NewRunTestStage(t)
+
+	given.
+		a_timer_is_started().
+		a_rate_of("1/1s").and().
+		a_duration_of(5 * time.Second).and().
+		a_scenario_where_each_iteration_takes(3 * time.Second).and().
+		wait_for_completion_timeout_of(1 * time.Second).and().
+		a_distribution_type("none")
+
+	when.
+		the_run_command_is_executed_and_cancelled_after(500 * time.Millisecond)
+
+	then.
+		setup_teardown_is_called_within(600*time.Millisecond + 1*time.Second).and().
+		metrics_are_pushed_to_prometheus().and().
+		expect_the_stdout_output_to_include([]string{
+			"Interrupted - waiting for active tests to complete",
+			"Active tests not completed after 1s. Stopping...",
+		})
+
+	// needed for goroutine checker
+	// sleep is the time left in the interation duration after the timeout
+	time.Sleep(3 * time.Second)
+}
+
+func TestMaxDurationReached_TimesOut(t *testing.T) {
+	t.Parallel()
+
+	given, when, then := NewRunTestStage(t)
+
+	given.
+		a_timer_is_started().
+		a_rate_of("1/1s").and().
+		a_duration_of(500 * time.Millisecond).and().
+		a_scenario_where_each_iteration_takes(3 * time.Second).and().
+		wait_for_completion_timeout_of(1 * time.Second).and().
+		a_distribution_type("none")
+
+	when.
+		the_run_command_is_executed()
+
+	then.
+		setup_teardown_is_called_within(600*time.Millisecond + 1*time.Second).and().
+		metrics_are_pushed_to_prometheus().and().
+		expect_the_stdout_output_to_include([]string{
+			"Max Duration Elapsed - waiting for active tests to complete",
+			"Active tests not completed after 1s. Stopping...",
+		})
+
+	// needed for goroutine checker
+	// sleep is the time left in the interation duration after the timeout
+	time.Sleep(3 * time.Second)
 }
 
 func TestFinalRunMetrics(t *testing.T) {

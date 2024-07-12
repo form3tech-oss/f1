@@ -30,22 +30,24 @@ const (
 )
 
 type Run struct {
-	pusher         *push.Pusher
-	progressRunner *raterun.Runner
-	metrics        *metrics.Metrics
-	views          *views.Views
-	activeScenario *workers.ActiveScenario
-	trigger        *api.Trigger
-	output         *ui.Output
-	scenarioLogger *ScenarioLogger
-	result         *Result
-	options        options.RunOptions
+	pusher                   *push.Pusher
+	progressRunner           *raterun.Runner
+	metrics                  *metrics.Metrics
+	views                    *views.Views
+	activeScenario           *workers.ActiveScenario
+	trigger                  *api.Trigger
+	output                   *ui.Output
+	scenarioLogger           *ScenarioLogger
+	result                   *Result
+	options                  options.RunOptions
+	waitForCompletionTimeout time.Duration
 }
 
 func NewRun(
 	options options.RunOptions,
 	scenarios *scenarios.Scenarios,
 	trigger *api.Trigger,
+	waitForCompletionTimeout time.Duration,
 	settings envsettings.Settings,
 	metricsInstance *metrics.Metrics,
 	parentOutput *ui.Output,
@@ -91,16 +93,17 @@ func NewRun(
 	pusher := newMetricsPusher(settings, scenario.Name, metricsInstance)
 
 	return &Run{
-		options:        options,
-		trigger:        trigger,
-		metrics:        metricsInstance,
-		views:          viewsInstance,
-		result:         result,
-		pusher:         pusher,
-		output:         outputer,
-		progressRunner: progressRunner,
-		activeScenario: activeScenario,
-		scenarioLogger: scenarioLogger,
+		options:                  options,
+		trigger:                  trigger,
+		metrics:                  metricsInstance,
+		views:                    viewsInstance,
+		result:                   result,
+		pusher:                   pusher,
+		output:                   outputer,
+		progressRunner:           progressRunner,
+		activeScenario:           activeScenario,
+		scenarioLogger:           scenarioLogger,
+		waitForCompletionTimeout: waitForCompletionTimeout,
 	}, nil
 }
 
@@ -254,12 +257,27 @@ func (r *Run) run(ctx context.Context) {
 	case <-ctx.Done():
 		r.output.Display(r.result.Interrupted())
 		r.progressRunner.Restart()
-		<-poolManager.WaitForCompletion()
+		select {
+		case <-poolManager.WaitForCompletion():
+		case <-time.After(r.waitForCompletionTimeout):
+			r.output.Display(ui.WarningMessage{
+				Message: fmt.Sprintf("Active tests not completed after %s. Stopping...", r.waitForCompletionTimeout.String()),
+			})
+		}
+
 	case <-triggerCtx.Done():
 		if triggerCtx.Err() == context.DeadlineExceeded {
 			r.output.Display(r.result.MaxDurationElapsed())
+		} else {
+			r.output.Display(r.result.Interrupted())
 		}
-		<-poolManager.WaitForCompletion()
+		select {
+		case <-poolManager.WaitForCompletion():
+		case <-time.After(r.waitForCompletionTimeout):
+			r.output.Display(ui.WarningMessage{
+				Message: fmt.Sprintf("Active tests not completed after %s. Stopping...", r.waitForCompletionTimeout.String()),
+			})
+		}
 	case <-poolManager.WaitForCompletion():
 		if poolManager.MaxIterationsReached() {
 			r.output.Display(r.result.MaxIterationsReached())
