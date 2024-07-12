@@ -20,7 +20,7 @@ require (
 require (
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/blend/go-sdk v1.20220411.3 // indirect
-	github.com/cespare/xxhash/v2 v2.2.0 // indirect
+	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
@@ -28,7 +28,7 @@ require (
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/prometheus/procfs v0.15.1 // indirect
-	golang.org/x/image v0.15.0 // indirect
-	golang.org/x/sys v0.21.0 // indirect
+	golang.org/x/image v0.18.0 // indirect
+	golang.org/x/sys v0.22.0 // indirect
 	google.golang.org/protobuf v1.34.2 // indirect
 )
