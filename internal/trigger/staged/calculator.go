@@ -62,9 +62,9 @@ func (s *RateCalculator) Rate(now time.Time) int {
 }
 
 func (s *RateCalculator) MaxDuration() time.Duration {
-	max := 0 * time.Second
+	maxDuration := 0 * time.Second
 	for _, stage := range s.stages {
-		max += stage.Duration
+		maxDuration += stage.Duration
 	}
-	return max
+	return maxDuration
 }
