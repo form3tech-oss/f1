@@ -41,8 +41,8 @@ func (i *IterationDurations) Add(nanoseconds int64) {
 		i.max.Store(nanoseconds)
 	}
 
-	min := i.min.Load()
-	if min == 0 || nanoseconds < min {
+	currentMin := i.min.Load()
+	if currentMin == 0 || nanoseconds < currentMin {
 		i.min.Store(nanoseconds)
 	}
 }
@@ -72,14 +72,14 @@ func (i *IterationDurations) Update(other *IterationDurations) {
 	i.sum.Add(other.sum.Load())
 	i.count.Add(other.count.Load())
 
-	min := other.min.Load()
-	if i.min.Load() == 0 || (i.min.Load() > min && min > 0) {
-		i.min.Store(min)
+	currentMin := other.min.Load()
+	if i.min.Load() == 0 || (i.min.Load() > currentMin && currentMin > 0) {
+		i.min.Store(currentMin)
 	}
 
-	max := other.max.Load()
-	if i.max.Load() < max {
-		i.max.Store(max)
+	currentMax := other.max.Load()
+	if i.max.Load() < currentMax {
+		i.max.Store(currentMax)
 	}
 }
 
