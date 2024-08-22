@@ -377,22 +377,22 @@ func (s *RunTestStage) a_test_scenario_that_fails_intermittently() *RunTestStage
 }
 
 func (s *RunTestStage) the_results_should_show_n_failures(expectedFailures uint64) *RunTestStage {
-	s.assert.Equal(int(expectedFailures), int(s.runResult.Snapshot().FailedIterationDurations.Count), "failure count does not match expected")
+	s.assert.Equal(expectedFailures, s.runResult.Snapshot().FailedIterationDurations.Count, "failure count does not match expected")
 	return s
 }
 
 func (s *RunTestStage) the_results_should_show_n_successful_iterations(expected uint64) *RunTestStage {
-	s.assert.Equal(int(expected), int(s.runResult.Snapshot().SuccessfulIterationDurations.Count), "success count does not match expected")
+	s.assert.Equal(expected, s.runResult.Snapshot().SuccessfulIterationDurations.Count, "success count does not match expected")
 	return s
 }
 
 func (s *RunTestStage) the_number_of_dropped_iterations_should_be(expected uint64) *RunTestStage {
-	s.assert.Equal(int(expected), int(s.runResult.Snapshot().DroppedIterationCount), "dropped count does not match expected")
+	s.assert.Equal(expected, s.runResult.Snapshot().DroppedIterationCount, "dropped count does not match expected")
 	return s
 }
 
-func (s *RunTestStage) distribution_duration_map_of_requests() map[time.Duration]int32 {
-	distributionMap := make(map[time.Duration]int32)
+func (s *RunTestStage) distribution_duration_map_of_requests() map[time.Duration]int {
+	distributionMap := make(map[time.Duration]int)
 	s.durations.Range(func(_, value interface{}) bool {
 		requestDuration, ok := value.(time.Duration)
 		s.require.True(ok)
@@ -406,10 +406,10 @@ func (s *RunTestStage) distribution_duration_map_of_requests() map[time.Duration
 }
 
 func (s *RunTestStage) there_should_be_x_requests_sent_over_y_intervals_of_z_ms(requests, intervals, ms int) *RunTestStage {
-	expectedDistribution := map[time.Duration]int32{}
+	expectedDistribution := map[time.Duration]int{}
 	for i := range intervals {
 		key := time.Duration(i) * time.Duration(ms) * time.Millisecond
-		expectedDistribution[key] = int32(requests)
+		expectedDistribution[key] = requests
 	}
 
 	distributionMap := s.distribution_duration_map_of_requests()

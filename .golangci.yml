@@ -1,4 +1,4 @@
-# Using golangci-lint@v1.60.1
+# Using golangci-lint@v1.60.2
 run:
   timeout: 5m
   tests: true
@@ -11,6 +11,7 @@ linters:
   # Deprecated (see https://golangci-lint.run/usage/linters/)
   - execinquery
   - gomnd
+  - exportloopref
 
   # Annoying style guides that are very subjective
   - funlen

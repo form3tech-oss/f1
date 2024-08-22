@@ -27,7 +27,7 @@ type IterationDurations struct {
 	// int64 can hold ~290 years of total execution durations in nanoseconds,
 	// which should be enough for almost all realistic use cases.
 	sum   atomic.Int64
-	count atomic.Uint64
+	count atomic.Int64
 
 	min atomic.Int64
 	max atomic.Int64
@@ -65,7 +65,7 @@ func (i *IterationDurations) average() (int64, uint64) {
 	}
 	sum := i.sum.Load()
 
-	return sum / int64(count), count
+	return sum / count, uint64(count)
 }
 
 func (i *IterationDurations) Update(other *IterationDurations) {
