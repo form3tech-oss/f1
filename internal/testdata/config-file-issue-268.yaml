@@ -1,0 +1,9 @@
+scenario: test
+limits:
+  max-duration: 5s
+  max-iterations: 0
+  concurrency: 5
+  ignore-dropped: true
+stages:
+  - duration: 3s
+    mode: users

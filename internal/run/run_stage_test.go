@@ -261,8 +261,12 @@ func (s *RunTestStage) the_command_should_have_run_for_approx(expectedDuration t
 	return s
 }
 
-func (s *RunTestStage) the_number_of_started_iterations_should_be(expected uint32) *RunTestStage {
-	s.assert.Equal(int(expected), int(s.runCount.Load()), "number of started iterations")
+func (s *RunTestStage) the_number_of_started_iterations_should_be(expected int64) *RunTestStage {
+	if expected == Any {
+		s.assert.Positive(s.runCount.Load())
+	} else {
+		s.assert.Equal(int(expected), int(s.runCount.Load()), "number of started iterations")
+	}
 	return s
 }
 
@@ -355,8 +359,12 @@ func (s *RunTestStage) setup_teardown_is_called() *RunTestStage {
 	return s
 }
 
-func (s *RunTestStage) iteration_teardown_is_called_n_times(n uint32) *RunTestStage {
-	s.assert.Equal(int(n), int(s.iterationTeardownCount.Load()), "iteration teardown was not called expected times")
+func (s *RunTestStage) iteration_teardown_is_called_n_times(n int64) *RunTestStage {
+	if n == Any {
+		s.assert.Positive(s.iterationTeardownCount.Load())
+	} else {
+		s.assert.Equal(int(n), int(s.iterationTeardownCount.Load()), "iteration teardown was not called expected times")
+	}
 	return s
 }
 

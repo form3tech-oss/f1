@@ -5,6 +5,8 @@ import (
 	"time"
 )
 
+const Any = int64(-1)
+
 func TestSimpleFlow(t *testing.T) {
 	t.Parallel()
 
@@ -49,7 +51,7 @@ type testParam struct {
 	constantRate              string
 	testDuration              time.Duration
 	expectedRunTime           time.Duration
-	expectedCompletedTests    uint32
+	expectedCompletedTests    int64
 	concurrency               int
 	iterationDuration         time.Duration
 	expectedDroppedIterations uint64
@@ -348,6 +350,15 @@ func TestParameterised(t *testing.T) {
 			iterationDuration:      150 * time.Millisecond,
 			expectedRunTime:        1800 * time.Millisecond,
 			expectedCompletedTests: 105,
+		},
+		{
+			name:                   "staged users without max iterations",
+			triggerType:            File,
+			configFile:             "../testdata/config-file-issue-268.yaml",
+			testDuration:           5 * time.Second,
+			iterationDuration:      0,
+			expectedRunTime:        3000 * time.Millisecond,
+			expectedCompletedTests: Any,
 		},
 		{
 			name:                   "config file test using limited max-duration",
