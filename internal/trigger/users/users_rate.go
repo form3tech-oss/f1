@@ -48,5 +48,6 @@ func NewWorker(concurrency int) api.WorkTriggerer {
 	return func(ctx context.Context, _ *ui.Output, workers *workers.PoolManager, _ options.RunOptions) {
 		pool := workers.NewContinuousPool(concurrency)
 		pool.Start(ctx)
+		<-workers.WaitForCompletion()
 	}
 }
