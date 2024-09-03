@@ -51,6 +51,7 @@ type TF interface {
 	Name() string
 }
 
+// Check T implements TF
 var _ TF = (*T)(nil)
 
 // WithLogrusLogger will be removed in future versions, needed for backwards compatibility
