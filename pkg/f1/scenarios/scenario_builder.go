@@ -17,9 +17,11 @@ type Scenario struct {
 	Name        string
 	Description string
 	Parameters  []ScenarioParameter
-	ScenarioFn  testing.ScenarioFn
+	ScenarioFn  testing.ScenarioFn	// Provided for backwards compatibility
+	ScenarioFunc  testing.ScenarioFunc
 	// The function that is invoked on each iteration of the test scenario.
-	RunFn testing.RunFn
+	RunFn testing.RunFn	// Provided for backwards compatibility
+	RunFunc testing.RunFunc
 }
 
 type ScenarioParameter struct {

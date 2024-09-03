@@ -78,6 +78,20 @@ func (f *F1) Add(name string, scenarioFn testing.ScenarioFn, options ...scenario
 	return f
 }
 
+func (f *F1) Register(name string, scenarioFunc testing.ScenarioFunc, options ...scenarios.ScenarioOption) *F1 {
+	info := &scenarios.Scenario{
+		Name:       name,
+		ScenarioFunc: scenarioFunc,
+	}
+
+	for _, opt := range options {
+		opt(info)
+	}
+
+	f.scenarios.Add(info)
+	return f
+}
+
 // NewSignalContext returns a context.Context that is cancelled whenever
 // 'SIGINT' or 'SIGTERM' are received.
 // If one of these two signals is received a second time, the application exits.
