@@ -172,11 +172,11 @@ func (t *T) error(err error) {
 func (t *T) Error(args ...interface{}) {
 	// TODO: Handle non-error/multiple arguments better
 	if len(args) != 1 {
-		panic("Error should be called with a single Error argument")
+		panic("Error should be called with a single error argument")
 	}
 	err, ok := args[0].(error)
 	if !ok || len(args) != 1 {
-		panic("Error should be called with a single Error argument")
+		panic("Error should be called with a single error argument")
 	}
 	t.error(err)
 }
@@ -196,11 +196,11 @@ func (t *T) fatal(err error) {
 func (t *T) Fatal(args ...interface{}) {
 	// TODO: Handle non-error/multiple arguments better
 	if len(args) != 1 {
-		panic("Error should be called with a single Error argument")
+		panic("Fatal should be called with a single error argument")
 	}
 	err, ok := args[0].(error)
 	if !ok || len(args) != 1 {
-		panic("Error should be called with a single Error argument")
+		panic("Fatal should be called with a single error argument")
 	}
 	t.fatal(err)
 }
