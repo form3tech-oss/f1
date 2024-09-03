@@ -64,10 +64,10 @@ func (f *F1) WithLogger(logger *slog.Logger) *F1 {
 // will result in the test "myTest" being runnable from the command line:
 //
 //	f1 run constant -r 1/s -d 10s myTest
-func (f *F1) Add(name string, scenarioFn testing.ScenarioFn, options ...scenarios.ScenarioOption) *F1 {
+func (f *F1) Register(name string, scenarioFunc testing.ScenarioFunc, options ...scenarios.ScenarioOption) *F1 {
 	info := &scenarios.Scenario{
 		Name:       name,
-		ScenarioFn: scenarioFn,
+		ScenarioFunc: scenarioFunc,
 	}
 
 	for _, opt := range options {
@@ -78,10 +78,11 @@ func (f *F1) Add(name string, scenarioFn testing.ScenarioFn, options ...scenario
 	return f
 }
 
-func (f *F1) Register(name string, scenarioFunc testing.ScenarioFunc, options ...scenarios.ScenarioOption) *F1 {
+// Deprecated: Use Register instead.
+func (f *F1) Add(name string, scenarioFn testing.ScenarioFn, options ...scenarios.ScenarioOption) *F1 {
 	info := &scenarios.Scenario{
 		Name:       name,
-		ScenarioFunc: scenarioFunc,
+		ScenarioFn: scenarioFn,
 	}
 
 	for _, opt := range options {
