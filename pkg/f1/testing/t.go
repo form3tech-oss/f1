@@ -36,6 +36,23 @@ type T struct {
 
 type TOption func(*T)
 
+// TF is the interface common to T and testing.TB
+type TF interface {
+	Cleanup(func())
+	Error(args ...any)
+	Errorf(format string, args ...any)
+	Fail()
+	FailNow()
+	Failed() bool
+	Fatal(args ...any)
+	Fatalf(format string, args ...any)
+	Log(args ...any)
+	Logf(format string, args ...any)
+	Name() string
+}
+
+var _ TF = (*T)(nil)
+
 // WithLogrusLogger will be removed in future versions, needed for backwards compatibility
 //
 // Deprecated: Will be removed in future versions.
@@ -147,9 +164,21 @@ func (t *T) Errorf(format string, args ...interface{}) {
 }
 
 // Error is equivalent to Log followed by Fail.
-func (t *T) Error(err error) {
+func (t *T) error(err error) {
 	t.logger.Error("iteration failed", log.IterationAttr(t.Iteration), log.ErrorAttr(err))
 	t.Fail()
+}
+
+func (t *T) Error(args ...interface{}) {
+	// TODO: Handle non-error/multiple arguments better
+	if len(args) != 1 {
+		panic("Error should be called with a single Error argument")
+	}
+	err, ok := args[0].(error)
+	if !ok || len(args) != 1 {
+		panic("Error should be called with a single Error argument")
+	}
+	t.error(err)
 }
 
 // Fatalf is equivalent to Logf followed by FailNow.
@@ -159,9 +188,21 @@ func (t *T) Fatalf(format string, args ...interface{}) {
 }
 
 // Fatal is equivalent to Log followed by FailNow.
-func (t *T) Fatal(err error) {
+func (t *T) fatal(err error) {
 	t.logger.Error("iteration failed", log.IterationAttr(t.Iteration), log.ErrorAttr(err))
 	t.FailNow()
+}
+
+func (t *T) Fatal(args ...interface{}) {
+	// TODO: Handle non-error/multiple arguments better
+	if len(args) != 1 {
+		panic("Error should be called with a single Error argument")
+	}
+	err, ok := args[0].(error)
+	if !ok || len(args) != 1 {
+		panic("Error should be called with a single Error argument")
+	}
+	t.fatal(err)
 }
 
 // Log formats its arguments using default formatting, analogous to Println, and records the text in the error log.
