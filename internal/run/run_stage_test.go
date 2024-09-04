@@ -378,7 +378,7 @@ func (s *RunTestStage) a_test_scenario_that_fails_intermittently() *RunTestStage
 			t.Cleanup(s.iterationCleanup)
 
 			count := s.runCount.Add(1)
-			t.Require().Equal(t, uint32(0), count%2)
+			t.Require().Equal(uint32(0), count%2)
 		}
 	})
 	return s
