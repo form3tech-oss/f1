@@ -55,11 +55,8 @@ func (s *ActiveScenario) Setup() {
 	func() {
 		defer testing.CheckResults(s.t, nil)
 
-		if s.scenario.ScenarioFunc != nil {
-			s.scenario.RunFunc = s.scenario.ScenarioFunc(s.t)
-		} else {
-			s.scenario.RunFn = s.scenario.ScenarioFn(s.t)
-		}
+		s.scenario.RunFunc = s.scenario.ScenarioFunc(s.t)
+		s.scenario.RunFn = s.scenario.ScenarioFn(s.t)
 	}()
 	duration := xtime.NanoTime() - start
 

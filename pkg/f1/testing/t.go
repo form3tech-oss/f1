@@ -165,12 +165,12 @@ func (t *T) Errorf(format string, args ...interface{}) {
 	t.Fail()
 }
 
-// Error is equivalent to Log followed by Fail.
 func (t *T) error(err error) {
 	t.logger.Error("iteration failed", log.IterationAttr(t.Iteration), log.ErrorAttr(err))
 	t.Fail()
 }
 
+// Error is equivalent to Log followed by Fail.
 func (t *T) Error(args ...interface{}) {
 	// TODO: Handle non-error/multiple arguments better
 	if len(args) != 1 {
@@ -189,12 +189,12 @@ func (t *T) Fatalf(format string, args ...interface{}) {
 	t.FailNow()
 }
 
-// Fatal is equivalent to Log followed by FailNow.
 func (t *T) fatal(err error) {
 	t.logger.Error("iteration failed", log.IterationAttr(t.Iteration), log.ErrorAttr(err))
 	t.FailNow()
 }
 
+// Fatal is equivalent to Log followed by FailNow.
 func (t *T) Fatal(args ...interface{}) {
 	// TODO: Handle non-error/multiple arguments better
 	if len(args) != 1 {
