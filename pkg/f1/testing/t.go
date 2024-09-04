@@ -126,7 +126,6 @@ func (t *T) StandardLogger() *slog.Logger {
 	return t.logger
 }
 
-// Deprecated: use testify's require package instead.
 func (t *T) Require() *require.Assertions {
 	return t.require
 }
