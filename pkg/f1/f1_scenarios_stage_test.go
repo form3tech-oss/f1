@@ -22,10 +22,10 @@ type scenario struct {
 	iterations atomic.Uint32
 }
 
-func (s *scenario) scenariofn(*f1_testing.T) f1_testing.RunFn {
+func (s *scenario) scenariofunc(f1_testing.TF) f1_testing.RunFunc {
 	s.setups.Add(1)
 
-	return func(*f1_testing.T) {
+	return func(f1_testing.TF) {
 		s.iterations.Add(1)
 	}
 }
@@ -54,13 +54,13 @@ func newF1ScenarioStage(t *testing.T) (*f1ScenariosStage, *f1ScenariosStage, *f1
 }
 
 func (s *f1ScenariosStage) f1_is_configured_to_run_a_combined_scenario() {
-	scenarios := make([]f1_testing.ScenarioFn, len(s.scenarios))
+	scenarios := make([]f1_testing.ScenarioFunc, len(s.scenarios))
 	for i, scn := range s.scenarios {
-		fn := scn.scenariofn
+		fn := scn.scenariofunc
 		scenarios[i] = fn
 	}
 
-	s.runner = f1.New().Add("combined", f1.CombineScenarios(scenarios...))
+	s.runner = f1.New().Register("combined", f1.CombineScenarios(scenarios...))
 }
 
 func (s *f1ScenariosStage) the_f1_scenario_is_executed() {
