@@ -56,6 +56,7 @@ func (s *ActiveScenario) Setup() {
 		defer testing.CheckResults(s.t, nil)
 
 		s.scenario.RunFunc = s.scenario.ScenarioFunc(s.t)
+		// For backward compatibility with f1.Add()
 		s.scenario.RunFn = s.scenario.ScenarioFn(s.t)
 	}()
 	duration := xtime.NanoTime() - start
@@ -91,11 +92,12 @@ func (s *ActiveScenario) Run(state *iterationState) {
 	start := xtime.NanoTime()
 	func() {
 		defer testing.CheckResults(state.t, nil)
-		if s.scenario.RunFunc != nil {
-			s.scenario.RunFunc(state.t)
-		} else {
+		// For backward compatibility with f1.Add()
+		if s.scenario.RunFn != nil {
 			s.scenario.RunFn(state.t)
+			return
 		}
+		s.scenario.RunFunc(state.t)
 	}()
 
 	failed := state.t.Failed()
