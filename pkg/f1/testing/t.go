@@ -164,22 +164,19 @@ func (t *T) Errorf(format string, args ...interface{}) {
 	t.Fail()
 }
 
-func (t *T) error(err error) {
-	t.logger.Error("iteration failed", log.IterationAttr(t.Iteration), log.ErrorAttr(err))
-	t.Fail()
-}
-
-// Error is equivalent to Log followed by Fail.
+// Error logs an error then calls Fail()
 func (t *T) Error(args ...interface{}) {
-	// TODO: Handle non-error/multiple arguments better
-	if len(args) != 1 {
-		panic("Error should be called with a single error argument")
+	// Special case, single error argument
+	if len(args) == 1 {
+		err, ok := args[0].(error)
+		if ok {
+			t.logger.Error("iteration failed", log.IterationAttr(t.Iteration), log.ErrorAttr(err))
+			t.Fail()
+			return
+		}
 	}
-	err, ok := args[0].(error)
-	if !ok || len(args) != 1 {
-		panic("Error should be called with a single error argument")
-	}
-	t.error(err)
+	t.Log(args...)
+	t.Fail()
 }
 
 // Fatalf is equivalent to Logf followed by FailNow.
@@ -188,22 +185,20 @@ func (t *T) Fatalf(format string, args ...interface{}) {
 	t.FailNow()
 }
 
-func (t *T) fatal(err error) {
-	t.logger.Error("iteration failed", log.IterationAttr(t.Iteration), log.ErrorAttr(err))
-	t.FailNow()
-}
-
-// Fatal is equivalent to Log followed by FailNow.
+// Fatal logs an error then calls FailNow.
 func (t *T) Fatal(args ...interface{}) {
-	// TODO: Handle non-error/multiple arguments better
-	if len(args) != 1 {
-		panic("Fatal should be called with a single error argument")
+	// Special case, single error argument
+	if len(args) == 1 {
+		err, ok := args[0].(error)
+		if ok {
+			t.logger.Error("iteration failed", log.IterationAttr(t.Iteration), log.ErrorAttr(err))
+			t.FailNow()
+			return
+		}
 	}
-	err, ok := args[0].(error)
-	if !ok || len(args) != 1 {
-		panic("Fatal should be called with a single error argument")
-	}
-	t.fatal(err)
+	t.Log(args...)
+	t.FailNow()
+
 }
 
 // Log formats its arguments using default formatting, analogous to Println, and records the text in the error log.
