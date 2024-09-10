@@ -95,8 +95,8 @@ It provides the following information:
 | `PROMETHEUS_NAMESPACE` | string | `""` | Sets the metric label `namespace` to the specified value. Label is omitted if the value provided is empty.|
 | `PROMETHEUS_LABEL_ID` | string | `""` | Sets the metric label `id` to the specified value. Label is omitted if the value provided is empty.|
 | `LOG_FILE_PATH` | string | `""`| Specify the log file path used if `--verbose` is disabled. The logfile path will be an automatically generated temp file if not specified. |
-| `LOG_LEVEL` | string | `"info"`| Specify the log level of the default logger, one of: `debug`, `warn`, `error`  |
-| `LOG_FORMAT` | string | `""`| Specify the log format of the default logger, defaults to `text` formatter, allows `json`  |
+| `F1_LOG_LEVEL` | string | `"info"`| Specify the log level of the default logger, one of: `debug`, `warn`, `error`  |
+| `F1_LOG_FORMAT` | string | `""`| Specify the log format of the default logger, defaults to `text` formatter, allows `json`  |
 
 ## Contributions
 If you'd like to help improve `f1`, please fork this repo and raise a PR!

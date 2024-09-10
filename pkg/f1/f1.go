@@ -47,7 +47,7 @@ func New() *F1 {
 
 // WithLogger allows specifying logger to be used for all internal and scenario logs
 //
-// This will disable the LOG_LEVEL and LOG_FORMAT options, as they only relate to the built-in
+// This will disable the F1_LOG_LEVEL and F1_LOG_FORMAT options, as they only relate to the built-in
 // logger.
 //
 // The logger will be used for non-interactive output, file logs or when `--verbose` is specified.
