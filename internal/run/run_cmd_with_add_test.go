@@ -5,9 +5,8 @@ import (
 	"time"
 )
 
-const Any = int64(-1)
 
-func TestSimpleFlow(t *testing.T) {
+func TestWithAddSimpleFlow(t *testing.T) {
 	t.Parallel()
 
 	given, when, then := NewRunWithAddTestStage(t)
@@ -45,30 +44,7 @@ func TestSimpleFlow(t *testing.T) {
 		the_number_of_dropped_iterations_should_be(test.expectedDroppedIterations)
 }
 
-type testParam struct {
-	name                      string
-	triggerType               TriggerType
-	constantRate              string
-	testDuration              time.Duration
-	expectedRunTime           time.Duration
-	expectedCompletedTests    int64
-	concurrency               int
-	iterationDuration         time.Duration
-	expectedDroppedIterations uint64
-	expectedFailure           bool
-	maxIterations             uint64
-	maxFailures               uint64
-	maxFailuresRate           int
-	stages                    string
-	iterationFrequency        string
-	distributionType          string
-	configFile                string
-	startRate                 string
-	endRate                   string
-	rampDuration              string
-}
-
-func TestParameterised(t *testing.T) {
+func TestWithAddParameterised(t *testing.T) {
 	t.Parallel()
 
 	for _, test := range []testParam{
@@ -406,7 +382,7 @@ func TestParameterised(t *testing.T) {
 	}
 }
 
-func TestNoneDistribution(t *testing.T) {
+func TestWithAddNoneDistribution(t *testing.T) {
 	t.Parallel()
 
 	given, when, then := NewRunWithAddTestStage(t)
@@ -426,7 +402,7 @@ func TestNoneDistribution(t *testing.T) {
 	then.there_should_be_x_requests_sent_over_y_intervals_of_z_ms(10, 1, 1000)
 }
 
-func TestRegularDistribution(t *testing.T) {
+func TestWithAddRegularDistribution(t *testing.T) {
 	t.Parallel()
 
 	given, when, then := NewRunWithAddTestStage(t)
@@ -446,7 +422,7 @@ func TestRegularDistribution(t *testing.T) {
 	then.there_should_be_x_requests_sent_over_y_intervals_of_z_ms(1, 5, 100)
 }
 
-func TestRandomDistribution(t *testing.T) {
+func TestWithAddRandomDistribution(t *testing.T) {
 	t.Parallel()
 
 	given, when, then := NewRunWithAddTestStage(t)
@@ -466,7 +442,7 @@ func TestRandomDistribution(t *testing.T) {
 	then.the_requests_are_not_sent_all_at_once()
 }
 
-func TestRunScenarioThatFailsSetup(t *testing.T) {
+func TestWithAddRunScenarioThatFailsSetup(t *testing.T) {
 	t.Parallel()
 
 	given, when, then := NewRunWithAddTestStage(t)
@@ -482,7 +458,7 @@ func TestRunScenarioThatFailsSetup(t *testing.T) {
 		metrics_are_pushed_to_prometheus()
 }
 
-func TestRunScenarioThatFails(t *testing.T) {
+func TestWithAddRunScenarioThatFails(t *testing.T) {
 	t.Parallel()
 
 	given, when, then := NewRunWithAddTestStage(t)
@@ -500,7 +476,7 @@ func TestRunScenarioThatFails(t *testing.T) {
 		metrics_are_pushed_to_prometheus()
 }
 
-func TestRunScenarioThatPanics(t *testing.T) {
+func TestWithAddRunScenarioThatPanics(t *testing.T) {
 	t.Parallel()
 
 	given, when, then := NewRunWithAddTestStage(t)
@@ -518,7 +494,7 @@ func TestRunScenarioThatPanics(t *testing.T) {
 		metrics_are_pushed_to_prometheus()
 }
 
-func TestRunScenarioThatFailsAnAssertion(t *testing.T) {
+func TestWithAddRunScenarioThatFailsAnAssertion(t *testing.T) {
 	t.Parallel()
 
 	given, when, then := NewRunWithAddTestStage(t)
@@ -536,7 +512,7 @@ func TestRunScenarioThatFailsAnAssertion(t *testing.T) {
 		metrics_are_pushed_to_prometheus()
 }
 
-func TestRunScenarioThatFailsOccasionally(t *testing.T) {
+func TestWithAddRunScenarioThatFailsOccasionally(t *testing.T) {
 	t.Parallel()
 
 	given, when, then := NewRunWithAddTestStage(t)
@@ -556,7 +532,7 @@ func TestRunScenarioThatFailsOccasionally(t *testing.T) {
 		iteration_teardown_is_called_n_times(100)
 }
 
-func TestInterruptedRun(t *testing.T) {
+func TestWithAddInterruptedRun(t *testing.T) {
 	t.Parallel()
 
 	given, when, then := NewRunWithAddTestStage(t)
@@ -580,7 +556,7 @@ func TestInterruptedRun(t *testing.T) {
 		})
 }
 
-func TestInterruptedRun_TimesOut(t *testing.T) {
+func TestWithAddInterruptedRun_TimesOut(t *testing.T) {
 	t.Parallel()
 
 	given, when, then := NewRunWithAddTestStage(t)
@@ -609,7 +585,7 @@ func TestInterruptedRun_TimesOut(t *testing.T) {
 	time.Sleep(3 * time.Second)
 }
 
-func TestMaxDurationReached_TimesOut(t *testing.T) {
+func TestWithAddMaxDurationReached_TimesOut(t *testing.T) {
 	t.Parallel()
 
 	given, when, then := NewRunWithAddTestStage(t)
@@ -638,7 +614,7 @@ func TestMaxDurationReached_TimesOut(t *testing.T) {
 	time.Sleep(3 * time.Second)
 }
 
-func TestFinalRunMetrics(t *testing.T) {
+func TestWithAddFinalRunMetrics(t *testing.T) {
 	t.Parallel()
 
 	given, when, then := NewRunWithAddTestStage(t)
@@ -655,7 +631,7 @@ func TestFinalRunMetrics(t *testing.T) {
 		all_other_percentiles_are_fast()
 }
 
-func TestSetupMetricsAreRecorded(t *testing.T) {
+func TestWithAddSetupMetricsAreRecorded(t *testing.T) {
 	t.Parallel()
 
 	given, when, then := NewRunWithAddTestStage(t)
@@ -671,7 +647,7 @@ func TestSetupMetricsAreRecorded(t *testing.T) {
 		there_is_a_metric_called("form3_loadtest_setup")
 }
 
-func TestGroupedLabels(t *testing.T) {
+func TestWithAddGroupedLabels(t *testing.T) {
 	t.Parallel()
 
 	given, when, then := NewRunWithAddTestStage(t)
@@ -688,7 +664,7 @@ func TestGroupedLabels(t *testing.T) {
 		all_exported_metrics_contain_label("id", fakePrometheusID)
 }
 
-func TestFailureCounts(t *testing.T) {
+func TestWithAddFailureCounts(t *testing.T) {
 	t.Parallel()
 
 	given, when, then := NewRunWithAddTestStage(t)
@@ -708,7 +684,7 @@ func TestFailureCounts(t *testing.T) {
 		the_iteration_metric_has_n_results(5, "fail")
 }
 
-func TestParameterisedMaxFailures(t *testing.T) {
+func TestWithAddParameterisedMaxFailures(t *testing.T) {
 	t.Parallel()
 
 	for _, test := range []testParam{
@@ -784,7 +760,7 @@ func TestParameterisedMaxFailures(t *testing.T) {
 	}
 }
 
-func TestOutput_JSONLogging(t *testing.T) {
+func TestWithAddOutput_JSONLogging(t *testing.T) {
 	t.Parallel()
 
 	uiOnlyLogs := []logFieldMatchers{

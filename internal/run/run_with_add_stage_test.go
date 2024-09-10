@@ -3,7 +3,6 @@ package run_test
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"math"
 	"net/http/httptest"
@@ -16,7 +15,6 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
-	io_prometheus_client "github.com/prometheus/client_model/go"
 	"github.com/prometheus/common/expfmt"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -38,36 +36,7 @@ import (
 	f1_testing "github.com/form3tech-oss/f1/v2/pkg/f1/testing"
 )
 
-const (
-	fakePrometheusNamespace = "test-namespace"
-	fakePrometheusID        = "test-run-name"
-	iterationMetricFamily   = "form3_loadtest_iteration"
-)
-
-type TriggerType int
-
-const (
-	Constant TriggerType = iota
-	Staged
-	Users
-	Ramp
-	File
-)
-
-const anyValue = "{__any__}"
-
-type parsedLogLines []parsedLogLine
-
-type parsedLogLine struct {
-	parsed map[string]any
-	raw    string
-}
-
-type (
-	logFieldMatchers map[string]string
-)
-
-type RunTestStage struct {
+type RunWithAddTestStage struct {
 	startTime                time.Time
 	metrics                  *metrics.Metrics
 	output                   *ui.Output
@@ -107,9 +76,9 @@ type RunTestStage struct {
 	verbose                  bool
 }
 
-func NewRunTestStage(t *testing.T) (*RunTestStage, *RunTestStage, *RunTestStage) {
+func NewRunWithAddTestStage(t *testing.T) (*RunWithAddTestStage, *RunWithAddTestStage, *RunWithAddTestStage) {
 	t.Helper()
-	stage := &RunTestStage{
+	stage := &RunWithAddTestStage{
 		t:                        t,
 		concurrency:              100,
 		assert:                   assert.New(t),
@@ -138,61 +107,61 @@ func NewRunTestStage(t *testing.T) (*RunTestStage, *RunTestStage, *RunTestStage)
 	return stage, stage, stage
 }
 
-func (s *RunTestStage) a_rate_of(rate string) *RunTestStage {
+func (s *RunWithAddTestStage) a_rate_of(rate string) *RunWithAddTestStage {
 	s.rate = rate
 	return s
 }
 
-func (s *RunTestStage) wait_for_completion_timeout_of(timeout time.Duration) *RunTestStage {
+func (s *RunWithAddTestStage) wait_for_completion_timeout_of(timeout time.Duration) *RunWithAddTestStage {
 	s.waitForCompletionTimeout = timeout
 	return s
 }
 
-func (s *RunTestStage) and() *RunTestStage {
+func (s *RunWithAddTestStage) and() *RunWithAddTestStage {
 	return s
 }
 
-func (s *RunTestStage) a_duration_of(i time.Duration) *RunTestStage {
+func (s *RunWithAddTestStage) a_duration_of(i time.Duration) *RunWithAddTestStage {
 	s.duration = i
 	return s
 }
 
-func (s *RunTestStage) a_concurrency_of(concurrency int) *RunTestStage {
+func (s *RunWithAddTestStage) a_concurrency_of(concurrency int) *RunWithAddTestStage {
 	s.concurrency = concurrency
 	return s
 }
 
-func (s *RunTestStage) a_max_failures_of(maxFailures uint64) *RunTestStage {
+func (s *RunWithAddTestStage) a_max_failures_of(maxFailures uint64) *RunWithAddTestStage {
 	s.maxFailures = maxFailures
 	return s
 }
 
-func (s *RunTestStage) a_max_failures_rate_of(maxFailuresRate int) *RunTestStage {
+func (s *RunWithAddTestStage) a_max_failures_rate_of(maxFailuresRate int) *RunWithAddTestStage {
 	s.maxFailuresRate = maxFailuresRate
 	return s
 }
 
-func (s *RunTestStage) a_config_file_location_of(commandsFile string) *RunTestStage {
+func (s *RunWithAddTestStage) a_config_file_location_of(commandsFile string) *RunWithAddTestStage {
 	s.configFile = commandsFile
 	return s
 }
 
-func (s *RunTestStage) a_start_rate_of(startRate string) *RunTestStage {
+func (s *RunWithAddTestStage) a_start_rate_of(startRate string) *RunWithAddTestStage {
 	s.startRate = startRate
 	return s
 }
 
-func (s *RunTestStage) a_end_rate_of(endRate string) *RunTestStage {
+func (s *RunWithAddTestStage) a_end_rate_of(endRate string) *RunWithAddTestStage {
 	s.endRate = endRate
 	return s
 }
 
-func (s *RunTestStage) a_ramp_duration_of(rampDuration string) *RunTestStage {
+func (s *RunWithAddTestStage) a_ramp_duration_of(rampDuration string) *RunWithAddTestStage {
 	s.rampDuration = rampDuration
 	return s
 }
 
-func (s *RunTestStage) setupRun() {
+func (s *RunWithAddTestStage) setupRun() {
 	printer := ui.NewPrinter(&s.stdout, &s.stderr)
 	logger := log.NewLogger(&s.stdout, logutils.NewLogConfigFromSettings(s.settings))
 	outputer := ui.NewOutput(logger, printer, s.interactive, false)
@@ -211,7 +180,7 @@ func (s *RunTestStage) setupRun() {
 	s.runInstance = r
 }
 
-func (s *RunTestStage) the_run_command_is_executed() *RunTestStage {
+func (s *RunWithAddTestStage) the_run_command_is_executed() *RunWithAddTestStage {
 	s.setupRun()
 
 	var err error
@@ -221,7 +190,7 @@ func (s *RunTestStage) the_run_command_is_executed() *RunTestStage {
 	return s
 }
 
-func (s *RunTestStage) the_run_command_is_executed_and_cancelled_after(duration time.Duration) *RunTestStage {
+func (s *RunWithAddTestStage) the_run_command_is_executed_and_cancelled_after(duration time.Duration) *RunWithAddTestStage {
 	s.setupRun()
 
 	var err error
@@ -237,12 +206,12 @@ func (s *RunTestStage) the_run_command_is_executed_and_cancelled_after(duration 
 	return s
 }
 
-func (s *RunTestStage) a_timer_is_started() *RunTestStage {
+func (s *RunWithAddTestStage) a_timer_is_started() *RunWithAddTestStage {
 	s.startTime = time.Now()
 	return s
 }
 
-func (s *RunTestStage) the_command_should_have_run_for_approx(expectedDuration time.Duration) *RunTestStage {
+func (s *RunWithAddTestStage) the_command_should_have_run_for_approx(expectedDuration time.Duration) *RunWithAddTestStage {
 	if expectedDuration > 0 {
 		diff := s.runResult.TestDuration - expectedDuration
 		// Generally, we want timings to be within 100ms of our expected values, but where the expectation
@@ -261,7 +230,7 @@ func (s *RunTestStage) the_command_should_have_run_for_approx(expectedDuration t
 	return s
 }
 
-func (s *RunTestStage) the_number_of_started_iterations_should_be(expected int64) *RunTestStage {
+func (s *RunWithAddTestStage) the_number_of_started_iterations_should_be(expected int64) *RunWithAddTestStage {
 	if expected == Any {
 		s.assert.Positive(s.runCount.Load())
 	} else {
@@ -270,18 +239,19 @@ func (s *RunTestStage) the_number_of_started_iterations_should_be(expected int64
 	return s
 }
 
-func (s *RunTestStage) the_command_should_fail() *RunTestStage {
+func (s *RunWithAddTestStage) the_command_should_fail() *RunWithAddTestStage {
 	s.assert.NotNil(s.runResult, "run result is nil")
 	s.assert.True(s.runResult.Failed(), "command did not fail")
 	return s
 }
 
-func (s *RunTestStage) a_test_scenario_that_always_fails() *RunTestStage {
+func (s *RunWithAddTestStage) a_test_scenario_that_always_fails() *RunWithAddTestStage {
 	s.scenario = "scenario_that_always_fails"
-	s.f1.Register(s.scenario, func(scenarioT f1_testing.TF) f1_testing.RunFunc {
+	//nolint: staticcheck // we are testing the deprecated API
+	s.f1.Add(s.scenario, func(scenarioT *f1_testing.T) f1_testing.RunFn {
 		scenarioT.Cleanup(s.scenarioCleanup)
 
-		return func(iterationT f1_testing.TF) {
+		return func(iterationT *f1_testing.T) {
 			iterationT.Cleanup(s.iterationCleanup)
 
 			iterationT.FailNow()
@@ -290,12 +260,13 @@ func (s *RunTestStage) a_test_scenario_that_always_fails() *RunTestStage {
 	return s
 }
 
-func (s *RunTestStage) a_test_scenario_that_always_panics() *RunTestStage {
+func (s *RunWithAddTestStage) a_test_scenario_that_always_panics() *RunWithAddTestStage {
 	s.scenario = "scenario_that_always_panics"
-	s.f1.Register(s.scenario, func(scenarioT f1_testing.TF) f1_testing.RunFunc {
+	//nolint: staticcheck // we are testing the deprecated API
+	s.f1.Add(s.scenario, func(scenarioT *f1_testing.T) f1_testing.RunFn {
 		scenarioT.Cleanup(s.scenarioCleanup)
 
-		return func(iterationT f1_testing.TF) {
+		return func(iterationT *f1_testing.T) {
 			iterationT.Cleanup(s.iterationCleanup)
 
 			panic("test panic in scenario iteration")
@@ -304,12 +275,13 @@ func (s *RunTestStage) a_test_scenario_that_always_panics() *RunTestStage {
 	return s
 }
 
-func (s *RunTestStage) a_test_scenario_that_always_fails_an_assertion() *RunTestStage {
+func (s *RunWithAddTestStage) a_test_scenario_that_always_fails_an_assertion() *RunWithAddTestStage {
 	s.scenario = "scenario_that_always_fails_an_assertion"
-	s.f1.Register(s.scenario, func(scenarioT f1_testing.TF) f1_testing.RunFunc {
+	//nolint: staticcheck // we are testing the deprecated API
+	s.f1.Add(s.scenario, func(scenarioT *f1_testing.T) f1_testing.RunFn {
 		scenarioT.Cleanup(s.scenarioCleanup)
 
-		return func(iterationT f1_testing.TF) {
+		return func(iterationT *f1_testing.T) {
 			iterationT.Cleanup(s.iterationCleanup)
 
 			assert.True(iterationT, false)
@@ -318,9 +290,10 @@ func (s *RunTestStage) a_test_scenario_that_always_fails_an_assertion() *RunTest
 	return s
 }
 
-func (s *RunTestStage) a_test_scenario_that_always_fails_setup() *RunTestStage {
+func (s *RunWithAddTestStage) a_test_scenario_that_always_fails_setup() *RunWithAddTestStage {
 	s.scenario = "scenario_that_always_fails_setup"
-	s.f1.Register(s.scenario, func(scenarioT f1_testing.TF) f1_testing.RunFunc {
+	//nolint: staticcheck // we are testing the deprecated API
+	s.f1.Add(s.scenario, func(scenarioT *f1_testing.T) f1_testing.RunFn {
 		scenarioT.Cleanup(s.scenarioCleanup)
 
 		scenarioT.FailNow()
@@ -329,18 +302,21 @@ func (s *RunTestStage) a_test_scenario_that_always_fails_setup() *RunTestStage {
 	return s
 }
 
-func (s *RunTestStage) a_scenario_where_each_iteration_takes(duration time.Duration) *RunTestStage {
+func (s *RunWithAddTestStage) a_scenario_where_each_iteration_takes(duration time.Duration) *RunWithAddTestStage {
 	s.scenario = "scenario_where_each_iteration_takes_" + duration.String()
-	s.f1.Register(s.scenario, func(scenarioT f1_testing.TF) f1_testing.RunFunc {
+	//nolint: staticcheck // we are testing the deprecated API
+	s.f1.Add(s.scenario, func(scenarioT *f1_testing.T) f1_testing.RunFn {
 		scenarioT.Cleanup(s.scenarioCleanup)
 
 		scenarioT.Log("setup")
+		scenarioT.Logger().WithField("logger", "logrus").Info("logrus - setup")
 
 		s.runCount.Store(0)
 
-		return func(iterationT f1_testing.TF) {
+		return func(iterationT *f1_testing.T) {
 			if s.runCount.Load() == 0 {
 				scenarioT.Log("first iteration")
+				scenarioT.Logger().WithField("logger", "logrus").Info("logrus - first iteration")
 			}
 			iterationT.Cleanup(s.iterationCleanup)
 
@@ -352,12 +328,12 @@ func (s *RunTestStage) a_scenario_where_each_iteration_takes(duration time.Durat
 	return s
 }
 
-func (s *RunTestStage) setup_teardown_is_called() *RunTestStage {
+func (s *RunWithAddTestStage) setup_teardown_is_called() *RunWithAddTestStage {
 	s.assert.Equal(1, int(s.setupTeardownCount.Load()), "setup teardown was not called")
 	return s
 }
 
-func (s *RunTestStage) iteration_teardown_is_called_n_times(n int64) *RunTestStage {
+func (s *RunWithAddTestStage) iteration_teardown_is_called_n_times(n int64) *RunWithAddTestStage {
 	if n == Any {
 		s.assert.Positive(s.iterationTeardownCount.Load())
 	} else {
@@ -366,39 +342,39 @@ func (s *RunTestStage) iteration_teardown_is_called_n_times(n int64) *RunTestSta
 	return s
 }
 
-func (s *RunTestStage) a_test_scenario_that_fails_intermittently() *RunTestStage {
+func (s *RunWithAddTestStage) a_test_scenario_that_fails_intermittently() *RunWithAddTestStage {
 	s.scenario = "scenario_that_fails_intermittently"
 	//nolint: staticcheck // we are testing the deprecated API
-	s.f1.Register(s.scenario, func(scenarioT f1_testing.TF) f1_testing.RunFunc {
+	s.f1.Add(s.scenario, func(scenarioT *f1_testing.T) f1_testing.RunFn {
 		scenarioT.Cleanup(s.scenarioCleanup)
 
 		s.runCount.Store(0)
-		return func(t f1_testing.TF) {
+		return func(t *f1_testing.T) {
 			t.Cleanup(s.iterationCleanup)
 
 			count := s.runCount.Add(1)
-			require.Equal(t, uint32(0), count%2)
+			t.Require().Equal(uint32(0), count%2)
 		}
 	})
 	return s
 }
 
-func (s *RunTestStage) the_results_should_show_n_failures(expectedFailures uint64) *RunTestStage {
+func (s *RunWithAddTestStage) the_results_should_show_n_failures(expectedFailures uint64) *RunWithAddTestStage {
 	s.assert.Equal(expectedFailures, s.runResult.Snapshot().FailedIterationDurations.Count, "failure count does not match expected")
 	return s
 }
 
-func (s *RunTestStage) the_results_should_show_n_successful_iterations(expected uint64) *RunTestStage {
+func (s *RunWithAddTestStage) the_results_should_show_n_successful_iterations(expected uint64) *RunWithAddTestStage {
 	s.assert.Equal(expected, s.runResult.Snapshot().SuccessfulIterationDurations.Count, "success count does not match expected")
 	return s
 }
 
-func (s *RunTestStage) the_number_of_dropped_iterations_should_be(expected uint64) *RunTestStage {
+func (s *RunWithAddTestStage) the_number_of_dropped_iterations_should_be(expected uint64) *RunWithAddTestStage {
 	s.assert.Equal(expected, s.runResult.Snapshot().DroppedIterationCount, "dropped count does not match expected")
 	return s
 }
 
-func (s *RunTestStage) distribution_duration_map_of_requests() map[time.Duration]int {
+func (s *RunWithAddTestStage) distribution_duration_map_of_requests() map[time.Duration]int {
 	distributionMap := make(map[time.Duration]int)
 	s.durations.Range(func(_, value interface{}) bool {
 		requestDuration, ok := value.(time.Duration)
@@ -412,7 +388,7 @@ func (s *RunTestStage) distribution_duration_map_of_requests() map[time.Duration
 	return distributionMap
 }
 
-func (s *RunTestStage) there_should_be_x_requests_sent_over_y_intervals_of_z_ms(requests, intervals, ms int) *RunTestStage {
+func (s *RunWithAddTestStage) there_should_be_x_requests_sent_over_y_intervals_of_z_ms(requests, intervals, ms int) *RunWithAddTestStage {
 	expectedDistribution := map[time.Duration]int{}
 	for i := range intervals {
 		key := time.Duration(i) * time.Duration(ms) * time.Millisecond
@@ -426,7 +402,7 @@ func (s *RunTestStage) there_should_be_x_requests_sent_over_y_intervals_of_z_ms(
 	return s
 }
 
-func (s *RunTestStage) the_requests_are_not_sent_all_at_once() *RunTestStage {
+func (s *RunWithAddTestStage) the_requests_are_not_sent_all_at_once() *RunWithAddTestStage {
 	distributionMap := s.distribution_duration_map_of_requests()
 
 	s.assert.Greater(len(distributionMap), 1, "unexpected distribution: %v", distributionMap)
@@ -434,24 +410,24 @@ func (s *RunTestStage) the_requests_are_not_sent_all_at_once() *RunTestStage {
 	return s
 }
 
-func (s *RunTestStage) the_command_finished_with_failure_of(expected bool) *RunTestStage {
+func (s *RunWithAddTestStage) the_command_finished_with_failure_of(expected bool) *RunWithAddTestStage {
 	s.assert.Equal(expected, s.runResult.Failed(), "command failed")
 	return s
 }
 
-func (s *RunTestStage) the_command_finished_successfully() *RunTestStage {
+func (s *RunWithAddTestStage) the_command_finished_successfully() *RunWithAddTestStage {
 	s.require.NoError(s.runResult.Error())
 	s.assert.False(s.runResult.Failed(), "command failed")
 
 	return s
 }
 
-func (s *RunTestStage) an_iteration_limit_of(iterations uint64) *RunTestStage {
+func (s *RunWithAddTestStage) an_iteration_limit_of(iterations uint64) *RunWithAddTestStage {
 	s.maxIterations = iterations
 	return s
 }
 
-func (s *RunTestStage) build_trigger() *api.Trigger {
+func (s *RunWithAddTestStage) build_trigger() *api.Trigger {
 	var t *api.Trigger
 	var err error
 	switch s.triggerType {
@@ -525,7 +501,7 @@ func (s *RunTestStage) build_trigger() *api.Trigger {
 	return t
 }
 
-func (s *RunTestStage) setup_teardown_is_called_within(duration time.Duration) *RunTestStage {
+func (s *RunWithAddTestStage) setup_teardown_is_called_within(duration time.Duration) *RunWithAddTestStage {
 	s.setup_teardown_is_called()
 
 	s.assert.WithinDuration(s.startTime, time.Now(), duration)
@@ -533,32 +509,32 @@ func (s *RunTestStage) setup_teardown_is_called_within(duration time.Duration) *
 	return s
 }
 
-func (s *RunTestStage) a_trigger_type_of(triggerType TriggerType) *RunTestStage {
+func (s *RunWithAddTestStage) a_trigger_type_of(triggerType TriggerType) *RunWithAddTestStage {
 	s.triggerType = triggerType
 	return s
 }
 
-func (s *RunTestStage) a_stage_of(stages string) *RunTestStage {
+func (s *RunWithAddTestStage) a_stage_of(stages string) *RunWithAddTestStage {
 	s.stages = stages
 	return s
 }
 
-func (s *RunTestStage) an_iteration_frequency_of(frequency string) *RunTestStage {
+func (s *RunWithAddTestStage) an_iteration_frequency_of(frequency string) *RunWithAddTestStage {
 	s.frequency = frequency
 	return s
 }
 
-func (s *RunTestStage) a_distribution_type(distributionType string) *RunTestStage {
+func (s *RunWithAddTestStage) a_distribution_type(distributionType string) *RunWithAddTestStage {
 	s.distributionType = distributionType
 	return s
 }
 
-func (s *RunTestStage) metrics_are_pushed_to_prometheus() *RunTestStage {
+func (s *RunWithAddTestStage) metrics_are_pushed_to_prometheus() *RunWithAddTestStage {
 	s.assert.False(s.metricData.Empty(), "metric data is empty")
 	return s
 }
 
-func (s *RunTestStage) a_scenario_where_iteration_n_takes_100ms(n uint32) *RunTestStage {
+func (s *RunWithAddTestStage) a_scenario_where_iteration_n_takes_100ms(n uint32) *RunWithAddTestStage {
 	s.scenario = fmt.Sprintf("scenario_where_iteration_%d_takes_100ms", n)
 	//nolint: staticcheck // we are testing the deprecated API
 	s.f1.Add(s.scenario, func(scenarioT *f1_testing.T) f1_testing.RunFn {
@@ -578,12 +554,12 @@ func (s *RunTestStage) a_scenario_where_iteration_n_takes_100ms(n uint32) *RunTe
 	return s
 }
 
-func (s *RunTestStage) the_100th_percentile_is_slow() *RunTestStage {
+func (s *RunWithAddTestStage) the_100th_percentile_is_slow() *RunWithAddTestStage {
 	s.assert.GreaterOrEqual(s.metricData.GetIterationDuration(s.scenario, 1.0), float64(100*time.Millisecond))
 	return s
 }
 
-func (s *RunTestStage) all_other_percentiles_are_fast() *RunTestStage {
+func (s *RunWithAddTestStage) all_other_percentiles_are_fast() *RunWithAddTestStage {
 	s.assert.Greater(s.metricData.GetIterationDuration(s.scenario, 0.9), 0.0)
 	s.assert.LessOrEqual(s.metricData.GetIterationDuration(s.scenario, 0.9), float64(25*time.Millisecond))
 	s.assert.Greater(s.metricData.GetIterationDuration(s.scenario, 0.95), 0.0)
@@ -591,7 +567,7 @@ func (s *RunTestStage) all_other_percentiles_are_fast() *RunTestStage {
 	return s
 }
 
-func (s *RunTestStage) there_is_a_metric_called(metricName string) *RunTestStage {
+func (s *RunWithAddTestStage) there_is_a_metric_called(metricName string) *RunWithAddTestStage {
 	err := retry(func() error {
 		metricNames := s.metricData.GetMetricNames()
 		for _, mn := range metricNames {
@@ -605,7 +581,7 @@ func (s *RunTestStage) there_is_a_metric_called(metricName string) *RunTestStage
 	return s
 }
 
-func (s *RunTestStage) the_iteration_metric_has_n_results(n int, result string) *RunTestStage {
+func (s *RunWithAddTestStage) the_iteration_metric_has_n_results(n int, result string) *RunWithAddTestStage {
 	err := retry(func() error {
 		metricFamily := s.metricData.GetMetricFamily(iterationMetricFamily)
 		s.require.NotNil(metricFamily, "metric family %s not found", iterationMetricFamily)
@@ -620,7 +596,7 @@ func (s *RunTestStage) the_iteration_metric_has_n_results(n int, result string) 
 	return s
 }
 
-func (s *RunTestStage) all_exported_metrics_contain_label(labelName string, labelValue string) *RunTestStage {
+func (s *RunWithAddTestStage) all_exported_metrics_contain_label(labelName string, labelValue string) *RunWithAddTestStage {
 	metricNames := s.metricData.GetMetricNames()
 
 	for _, name := range metricNames {
@@ -646,37 +622,37 @@ func (s *RunTestStage) all_exported_metrics_contain_label(labelName string, labe
 	return s
 }
 
-func (s *RunTestStage) terminal_is_interactive(interactive bool) *RunTestStage {
+func (s *RunWithAddTestStage) terminal_is_interactive(interactive bool) *RunWithAddTestStage {
 	s.interactive = interactive
 	return s
 }
 
-func (s *RunTestStage) verbose_flag_is(verbose bool) *RunTestStage {
+func (s *RunWithAddTestStage) verbose_flag_is(verbose bool) *RunWithAddTestStage {
 	s.verbose = verbose
 	return s
 }
 
-func (s *RunTestStage) json_logging_is_enabled() *RunTestStage {
+func (s *RunWithAddTestStage) json_logging_is_enabled() *RunWithAddTestStage {
 	s.settings.Log.Format = "json"
 	return s
 }
 
-func (s *RunTestStage) expect_the_stdout_output_to_include(expectedList []string) *RunTestStage {
+func (s *RunWithAddTestStage) expect_the_stdout_output_to_include(expectedList []string) *RunWithAddTestStage {
 	assertOutputIs(s.t, s.stdout.String(), expectedList, "error matching stdout")
 	return s
 }
 
-func (s *RunTestStage) expect_stderr_to_match_json_log(expectedLogLines []logFieldMatchers) *RunTestStage {
+func (s *RunWithAddTestStage) expect_stderr_to_match_json_log(expectedLogLines []logFieldMatchers) *RunWithAddTestStage {
 	s.assertJSONLogMatches(s.t, s.stderr.String(), expectedLogLines, "error matching stderr")
 	return s
 }
 
-func (s *RunTestStage) expect_stdout_to_match_json_log(expectedLogLines []logFieldMatchers) *RunTestStage {
+func (s *RunWithAddTestStage) expect_stdout_to_match_json_log(expectedLogLines []logFieldMatchers) *RunWithAddTestStage {
 	s.assertJSONLogMatches(s.t, s.stdout.String(), expectedLogLines, "error matching stdout")
 	return s
 }
 
-func (s *RunTestStage) expect_the_logfile_to_match_json_log(expectedLogLines []logFieldMatchers) *RunTestStage {
+func (s *RunWithAddTestStage) expect_the_logfile_to_match_json_log(expectedLogLines []logFieldMatchers) *RunWithAddTestStage {
 	if s.runResult.LogFilePath == "" {
 		return s
 	}
@@ -689,27 +665,7 @@ func (s *RunTestStage) expect_the_logfile_to_match_json_log(expectedLogLines []l
 	return s
 }
 
-func parseJSONLogs(rawLogs string) (parsedLogLines, error) {
-	lines := strings.Split(rawLogs, "\n")
-
-	res := make(parsedLogLines, 0, len(lines))
-
-	for _, line := range lines {
-		if line != "" {
-			parsedLine := make(map[string]any)
-			err := json.Unmarshal([]byte(line), &parsedLine)
-			if err != nil {
-				return nil, fmt.Errorf("unmarshaling '%s': %w", line, err)
-			}
-
-			res = append(res, parsedLogLine{raw: line, parsed: parsedLine})
-		}
-	}
-
-	return res, nil
-}
-
-func (s *RunTestStage) assertJSONLogMatches(t *testing.T, output string, expectedLogLines []logFieldMatchers, errMsg string) {
+func (s *RunWithAddTestStage) assertJSONLogMatches(t *testing.T, output string, expectedLogLines []logFieldMatchers, errMsg string) {
 	t.Helper()
 
 	parsedLines, err := parseJSONLogs(output)
@@ -748,61 +704,4 @@ func (s *RunTestStage) assertJSONLogMatches(t *testing.T, output string, expecte
 			s.assert.Containsf(matchers, key, "log field '%s' not asserted in matcher %#v for line '%s'", key, matchers, parsedLine.raw)
 		}
 	}
-}
-
-func assertOutputIs(t *testing.T, output string, expectedList []string, errMsg string) {
-	t.Helper()
-
-	if len(expectedList) == 0 {
-		assert.Emptyf(t, output, errMsg)
-	}
-
-	for _, expected := range expectedList {
-		assert.Containsf(t, output, expected, "%s: '%s' is not in '%s'", errMsg, expected, output)
-		matchCount := strings.Count(output, expected)
-		assert.Equalf(t, 1, matchCount, "%s: '%s' should be exactly once in '%s' but was found %d times", errMsg, expected, output, matchCount)
-	}
-}
-
-func getMetricByResult(metricFamily *io_prometheus_client.MetricFamily, result string) *io_prometheus_client.Metric {
-	for _, metric := range metricFamily.GetMetric() {
-		for _, label := range metric.GetLabel() {
-			if label.GetName() == "result" && label.GetValue() == result {
-				return metric
-			}
-		}
-	}
-	return nil
-}
-
-func retry(retryable func() error, retries int, delay time.Duration) error {
-	var err error
-	for range retries {
-		err = retryable()
-		if err == nil {
-			return nil
-		}
-
-		time.Sleep(delay)
-	}
-	return err
-}
-
-type syncWriter struct {
-	writer *bytes.Buffer
-	mu     sync.Mutex
-}
-
-func (s *syncWriter) Write(p []byte) (int, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	return s.writer.Write(p)
-}
-
-func (s *syncWriter) String() string {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	return s.writer.String()
 }
