@@ -37,7 +37,7 @@ type T struct {
 type TOption func(*T)
 
 // TF is the interface common to T and testing.TB
-// nolint: interfacebloat
+//nolint: interfacebloat // we are deliberately implementing a subset of the testing.TB interface
 type TF interface {
 	Cleanup(fn func())
 	Error(args ...any)

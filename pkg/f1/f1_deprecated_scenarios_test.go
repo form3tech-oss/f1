@@ -2,6 +2,7 @@ package f1_test
 
 import "testing"
 
+//nolint: paralleltest // running tests in parallel reveals a pre-existing a race condition
 func TestCombineDeprecatedScenarios(t *testing.T) {
 	given, when, then := newDeprecatedF1ScenarioStage(t)
 

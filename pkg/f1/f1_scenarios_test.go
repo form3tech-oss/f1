@@ -2,6 +2,7 @@ package f1_test
 
 import "testing"
 
+//nolint: paralleltest // running tests in parallel reveals a pre-existing a race condition
 func TestCombineScenarios(t *testing.T) {
 	given, when, then := newF1ScenarioStage(t)
 
