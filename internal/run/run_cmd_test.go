@@ -836,21 +836,8 @@ func TestOutput_JSONLogging(t *testing.T) {
 			"scenario": "scenario_where_each_iteration_takes_200ms",
 		},
 		{
-			"message":  "logrus - setup",
-			"level":    "info",
-			"logger":   "logrus",
-			"scenario": "scenario_where_each_iteration_takes_200ms",
-		},
-
-		{
 			"message":  "first iteration",
 			"level":    "info",
-			"scenario": "scenario_where_each_iteration_takes_200ms",
-		},
-		{
-			"message":  "logrus - first iteration",
-			"level":    "info",
-			"logger":   "logrus",
 			"scenario": "scenario_where_each_iteration_takes_200ms",
 		},
 	}
@@ -867,24 +854,10 @@ func TestOutput_JSONLogging(t *testing.T) {
 			"scenario": "scenario_where_each_iteration_takes_200ms",
 		},
 		{
-			"message":  "logrus - setup",
-			"level":    "info",
-			"logger":   "logrus",
-			"scenario": "scenario_where_each_iteration_takes_200ms",
-		},
-
-		{
 			"message":  "first iteration",
 			"level":    "info",
 			"scenario": "scenario_where_each_iteration_takes_200ms",
 		},
-		{
-			"message":  "logrus - first iteration",
-			"level":    "info",
-			"logger":   "logrus",
-			"scenario": "scenario_where_each_iteration_takes_200ms",
-		},
-
 		{
 			"message":         "progress",
 			"level":           "info",
@@ -968,7 +941,7 @@ func TestOutput_JSONLogging(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
-			given, when, then := NewRunWithAddTestStage(t)
+			given, when, then := NewRunTestStage(t)
 
 			given.
 				verbose_flag_is(testCase.verbose).and().
