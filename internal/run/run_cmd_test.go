@@ -10,7 +10,7 @@ const Any = int64(-1)
 func TestSimpleFlow(t *testing.T) {
 	t.Parallel()
 
-	given, when, then := NewRunWithAddTestStage(t)
+	given, when, then := NewRunTestStage(t)
 
 	test := testParam{
 		constantRate:           "10/100ms",
@@ -375,7 +375,7 @@ func TestParameterised(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 
-			given, when, then := NewRunWithAddTestStage(t)
+			given, when, then := NewRunTestStage(t)
 
 			given.
 				a_trigger_type_of(test.triggerType).and().
@@ -409,7 +409,7 @@ func TestParameterised(t *testing.T) {
 func TestNoneDistribution(t *testing.T) {
 	t.Parallel()
 
-	given, when, then := NewRunWithAddTestStage(t)
+	given, when, then := NewRunTestStage(t)
 
 	given.
 		a_trigger_type_of(Constant).and().
@@ -429,7 +429,7 @@ func TestNoneDistribution(t *testing.T) {
 func TestRegularDistribution(t *testing.T) {
 	t.Parallel()
 
-	given, when, then := NewRunWithAddTestStage(t)
+	given, when, then := NewRunTestStage(t)
 
 	given.
 		a_trigger_type_of(Constant).and().
@@ -449,7 +449,7 @@ func TestRegularDistribution(t *testing.T) {
 func TestRandomDistribution(t *testing.T) {
 	t.Parallel()
 
-	given, when, then := NewRunWithAddTestStage(t)
+	given, when, then := NewRunTestStage(t)
 
 	given.
 		a_trigger_type_of(Constant).and().
@@ -469,7 +469,7 @@ func TestRandomDistribution(t *testing.T) {
 func TestRunScenarioThatFailsSetup(t *testing.T) {
 	t.Parallel()
 
-	given, when, then := NewRunWithAddTestStage(t)
+	given, when, then := NewRunTestStage(t)
 
 	given.
 		a_test_scenario_that_always_fails_setup().and().
@@ -485,7 +485,7 @@ func TestRunScenarioThatFailsSetup(t *testing.T) {
 func TestRunScenarioThatFails(t *testing.T) {
 	t.Parallel()
 
-	given, when, then := NewRunWithAddTestStage(t)
+	given, when, then := NewRunTestStage(t)
 
 	given.
 		a_test_scenario_that_always_fails().and().
@@ -503,7 +503,7 @@ func TestRunScenarioThatFails(t *testing.T) {
 func TestRunScenarioThatPanics(t *testing.T) {
 	t.Parallel()
 
-	given, when, then := NewRunWithAddTestStage(t)
+	given, when, then := NewRunTestStage(t)
 
 	given.
 		a_test_scenario_that_always_panics().and().
@@ -521,7 +521,7 @@ func TestRunScenarioThatPanics(t *testing.T) {
 func TestRunScenarioThatFailsAnAssertion(t *testing.T) {
 	t.Parallel()
 
-	given, when, then := NewRunWithAddTestStage(t)
+	given, when, then := NewRunTestStage(t)
 
 	given.
 		a_test_scenario_that_always_fails_an_assertion().and().
@@ -539,7 +539,7 @@ func TestRunScenarioThatFailsAnAssertion(t *testing.T) {
 func TestRunScenarioThatFailsOccasionally(t *testing.T) {
 	t.Parallel()
 
-	given, when, then := NewRunWithAddTestStage(t)
+	given, when, then := NewRunTestStage(t)
 	given.
 		a_test_scenario_that_fails_intermittently().and().
 		a_rate_of("100/1s").and().
@@ -559,7 +559,7 @@ func TestRunScenarioThatFailsOccasionally(t *testing.T) {
 func TestInterruptedRun(t *testing.T) {
 	t.Parallel()
 
-	given, when, then := NewRunWithAddTestStage(t)
+	given, when, then := NewRunTestStage(t)
 
 	given.
 		a_timer_is_started().
@@ -583,7 +583,7 @@ func TestInterruptedRun(t *testing.T) {
 func TestInterruptedRun_TimesOut(t *testing.T) {
 	t.Parallel()
 
-	given, when, then := NewRunWithAddTestStage(t)
+	given, when, then := NewRunTestStage(t)
 
 	given.
 		a_timer_is_started().
@@ -612,7 +612,7 @@ func TestInterruptedRun_TimesOut(t *testing.T) {
 func TestMaxDurationReached_TimesOut(t *testing.T) {
 	t.Parallel()
 
-	given, when, then := NewRunWithAddTestStage(t)
+	given, when, then := NewRunTestStage(t)
 
 	given.
 		a_timer_is_started().
@@ -641,7 +641,7 @@ func TestMaxDurationReached_TimesOut(t *testing.T) {
 func TestFinalRunMetrics(t *testing.T) {
 	t.Parallel()
 
-	given, when, then := NewRunWithAddTestStage(t)
+	given, when, then := NewRunTestStage(t)
 	given.
 		a_rate_of("100/100ms").and().
 		a_duration_of(450 * time.Millisecond).and().
@@ -658,7 +658,7 @@ func TestFinalRunMetrics(t *testing.T) {
 func TestSetupMetricsAreRecorded(t *testing.T) {
 	t.Parallel()
 
-	given, when, then := NewRunWithAddTestStage(t)
+	given, when, then := NewRunTestStage(t)
 
 	given.
 		a_rate_of("1/s").and().
@@ -674,7 +674,7 @@ func TestSetupMetricsAreRecorded(t *testing.T) {
 func TestGroupedLabels(t *testing.T) {
 	t.Parallel()
 
-	given, when, then := NewRunWithAddTestStage(t)
+	given, when, then := NewRunTestStage(t)
 
 	given.
 		a_rate_of("10/s").and().
@@ -691,7 +691,7 @@ func TestGroupedLabels(t *testing.T) {
 func TestFailureCounts(t *testing.T) {
 	t.Parallel()
 
-	given, when, then := NewRunWithAddTestStage(t)
+	given, when, then := NewRunTestStage(t)
 
 	given.
 		a_rate_of("10/s").and().
@@ -764,7 +764,7 @@ func TestParameterisedMaxFailures(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 
-			given, when, then := NewRunWithAddTestStage(t)
+			given, when, then := NewRunTestStage(t)
 
 			given.
 				a_rate_of("10/100ms").and().
