@@ -66,7 +66,7 @@ func (f *F1) WithLogger(logger *slog.Logger) *F1 {
 //	f1 run constant -r 1/s -d 10s myTest
 func (f *F1) Register(name string, scenarioFunc testing.ScenarioFunc, options ...scenarios.ScenarioOption) *F1 {
 	info := &scenarios.Scenario{
-		Name:       name,
+		Name:         name,
 		ScenarioFunc: scenarioFunc,
 	}
 

@@ -37,8 +37,9 @@ type T struct {
 type TOption func(*T)
 
 // TF is the interface common to T and testing.TB
+// nolint: interfacebloat
 type TF interface {
-	Cleanup(func())
+	Cleanup(fn func())
 	Error(args ...any)
 	Errorf(format string, args ...any)
 	Fail()
@@ -198,7 +199,6 @@ func (t *T) Fatal(args ...interface{}) {
 	}
 	t.Log(args...)
 	t.FailNow()
-
 }
 
 // Log formats its arguments using default formatting, analogous to Println, and records the text in the error log.

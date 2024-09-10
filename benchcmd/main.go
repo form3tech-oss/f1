@@ -11,10 +11,10 @@ import (
 
 func main() {
 	f1.New().
-		Add("emptyScenario", emptyScenario).
-		Add("failingScenario", failingScenario).
-		Add("sleepScenario", sleepScenario).
-		Add("logScenario", logScenario).
+		Add("emptyScenario", emptyScenario).     // nolint: staticcheck
+		Add("failingScenario", failingScenario). // nolint: staticcheck
+		Add("sleepScenario", sleepScenario).     // nolint: staticcheck
+		Add("logScenario", logScenario).         // nolint: staticcheck
 		Execute()
 }
 
