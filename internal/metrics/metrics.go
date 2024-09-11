@@ -79,7 +79,6 @@ func Init(iterationMetricsEnabled bool) {
 		}
 		m = NewInstance(defaultRegistry, iterationMetricsEnabled)
 	})
-	m.IterationMetricsEnabled = iterationMetricsEnabled
 }
 
 func Instance() *Metrics {
