@@ -12,8 +12,8 @@ const (
 	EnvPrometheusPushGateway = "PROMETHEUS_PUSH_GATEWAY"
 
 	EnvLogFilePath = "LOG_FILE_PATH"
-	EnvLogFormat   = "LOG_FORMAT"
-	EnvLogLevel    = "LOG_LEVEL"
+	EnvLogFormat   = "F1_LOG_FORMAT"
+	EnvLogLevel    = "F1_LOG_LEVEL"
 
 	EnvFluentdHost = "FLUENTD_HOST"
 	EnvFluentdPort = "FLUENTD_PORT"
