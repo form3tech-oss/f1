@@ -128,6 +128,7 @@ func TestErrorSetsTheFailedState(t *testing.T) {
 
 	for testName, test := range tests {
 		t.Run(testName, func(t *testing.T) {
+			t.Parallel()
 			newT, teardown := newT()
 			defer teardown()
 
@@ -166,6 +167,7 @@ func TestFatalSetsTheFailedState(t *testing.T) {
 
 	for testName, test := range tests {
 		t.Run(testName, func(t *testing.T) {
+			t.Parallel()
 			newT, teardown := newT()
 			defer teardown()
 
