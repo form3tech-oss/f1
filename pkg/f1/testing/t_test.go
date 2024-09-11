@@ -112,11 +112,29 @@ func TestFailSetsTheFailedState(t *testing.T) {
 func TestErrorSetsTheFailedState(t *testing.T) {
 	t.Parallel()
 
-	newT, teardown := newT()
-	defer teardown()
+	tests := map[string]struct {
+		args []any
+	}{
+		"error argument": {
+			args: []any{errors.New("boom")},
+		},
+		"no arguments": {
+			args: []any{},
+		},
+		"random arguments": {
+			args: []any{"boom", 1, 2.0},
+		},
+	}
 
-	newT.Error(errors.New("boom"))
-	require.True(t, newT.Failed())
+	for testName, test := range tests {
+		t.Run(testName, func(t *testing.T) {
+			newT, teardown := newT()
+			defer teardown()
+
+			newT.Error(test.args...)
+			require.True(t, newT.Failed())
+		})
+	}
 }
 
 func TestErrorfSetsTheFailedState(t *testing.T) {
@@ -132,17 +150,35 @@ func TestErrorfSetsTheFailedState(t *testing.T) {
 func TestFatalSetsTheFailedState(t *testing.T) {
 	t.Parallel()
 
-	newT, teardown := newT()
-	defer teardown()
+	tests := map[string]struct {
+		args []any
+	}{
+		"error argument": {
+			args: []any{errors.New("boom")},
+		},
+		"no arguments": {
+			args: []any{},
+		},
+		"random arguments": {
+			args: []any{"boom", 1, 2.0},
+		},
+	}
 
-	done := make(chan struct{})
-	go func() {
-		defer catchPanics(done)
-		newT.Fatal(errors.New("boom"))
-	}()
-	<-done
+	for testName, test := range tests {
+		t.Run(testName, func(t *testing.T) {
+			newT, teardown := newT()
+			defer teardown()
 
-	require.True(t, newT.Failed())
+			done := make(chan struct{})
+			go func() {
+				defer catchPanics(done)
+				newT.Fatal(test.args...)
+			}()
+			<-done
+
+			require.True(t, newT.Failed())
+		})
+	}
 }
 
 func TestFatalfSetsTheFailedState(t *testing.T) {
