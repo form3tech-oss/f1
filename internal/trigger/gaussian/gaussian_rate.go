@@ -137,8 +137,8 @@ func Rate(output *ui.Output) api.Builder {
 			)
 
 			return &api.Trigger{
-					Trigger:     api.NewIterationWorker(rates.IterationDuration, rates.Rate),
-					DryRun:      rates.Rate,
+					Trigger:     api.NewIterationWorker(rates.IterationDuration, rates.IterationRate),
+					Rate:        rates.Rate,
 					Description: description,
 					Duration:    rates.Duration,
 				},
@@ -191,8 +191,9 @@ func CalculateGaussianRate(
 
 	return &api.Rates{
 		IterationDuration: distributedIterationDuration,
-		Rate:              distributedRateFn,
+		IterationRate:     distributedRateFn,
 		Duration:          time.Hour * 24 * 356,
+		Rate:              rateFn,
 	}, nil
 }
 
