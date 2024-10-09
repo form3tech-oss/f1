@@ -118,7 +118,7 @@ func NewRunTestStage(t *testing.T) (*RunTestStage, *RunTestStage, *RunTestStage)
 		settings:                 envsettings.Get(),
 		metricData:               NewMetricData(),
 		output:                   ui.NewDiscardOutput(),
-		metrics:                  metrics.NewInstance(prometheus.NewRegistry(), true),
+		metrics:                  metrics.NewInstance(prometheus.NewRegistry(), true, nil),
 		stdout:                   syncWriter{writer: &bytes.Buffer{}},
 		stderr:                   syncWriter{writer: &bytes.Buffer{}},
 		waitForCompletionTimeout: 5 * time.Second,
