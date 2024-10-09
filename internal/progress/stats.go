@@ -16,7 +16,7 @@ type Stats struct {
 
 func (s *Stats) Record(result metrics.ResultType, nanoseconds int64) {
 	switch result {
-	case metrics.SucessResult:
+	case metrics.SuccessResult:
 		s.successfulIterationDurations.Record(nanoseconds)
 	case metrics.FailedResult:
 		s.failedIterationDurations.Record(nanoseconds)
