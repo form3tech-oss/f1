@@ -26,6 +26,7 @@ func buildRootCmd(
 	settings envsettings.Settings,
 	p *profiling,
 	output *ui.Output,
+	staticMetrics map[string]string,
 ) (*cobra.Command, error) {
 	rootCmd := &cobra.Command{
 		Use:               getCmdName(),
@@ -43,7 +44,7 @@ func buildRootCmd(
 		return nil, fmt.Errorf("marking flag as filename: %w", err)
 	}
 
-	metrics.Init(settings.PrometheusEnabled())
+	metrics.InitWithStaticMetrics(settings.PrometheusEnabled(), staticMetrics)
 	metricsInstance := metrics.Instance()
 
 	builders := trigger.GetBuilders(output)

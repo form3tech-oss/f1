@@ -3,7 +3,7 @@ package metrics
 type ResultType string
 
 const (
-	SucessResult  ResultType = "success"
+	SuccessResult ResultType = "success"
 	FailedResult  ResultType = "fail"
 	DroppedResult ResultType = "dropped"
 	UnknownResult ResultType = "unknown"
@@ -17,5 +17,5 @@ func Result(failed bool) ResultType {
 	if failed {
 		return FailedResult
 	}
-	return SucessResult
+	return SuccessResult
 }

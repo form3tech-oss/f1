@@ -27,10 +27,15 @@ const (
 // Represents an F1 CLI instance. Instantiate this struct to create an instance
 // of the F1 CLI and to register new test scenarios.
 type F1 struct {
-	output    *ui.Output
 	scenarios *scenarios.Scenarios
 	profiling *profiling
 	settings  envsettings.Settings
+	options   *f1Options
+}
+
+type f1Options struct {
+	output        *ui.Output
+	staticMetrics map[string]string
 }
 
 // New instantiates a new instance of an F1 CLI.
@@ -41,7 +46,9 @@ func New() *F1 {
 		scenarios: scenarios.New(),
 		profiling: &profiling{},
 		settings:  settings,
-		output:    ui.NewDefaultOutput(settings.Log.SlogLevel(), settings.Log.IsFormatJSON()),
+		options: &f1Options{
+			output: ui.NewDefaultOutput(settings.Log.SlogLevel(), settings.Log.IsFormatJSON()),
+		},
 	}
 }
 
@@ -52,7 +59,13 @@ func New() *F1 {
 //
 // The logger will be used for non-interactive output, file logs or when `--verbose` is specified.
 func (f *F1) WithLogger(logger *slog.Logger) *F1 {
-	f.output = ui.NewDefaultOutputWithLogger(logger)
+	f.options.output = ui.NewDefaultOutputWithLogger(logger)
+	return f
+}
+
+// WithStaticMetrics registers additional labels with fixed values to the f1 metrics
+func (f *F1) WithStaticMetrics(labels map[string]string) *F1 {
+	f.options.staticMetrics = labels
 	return f
 }
 
@@ -107,7 +120,7 @@ func newSignalContext(stopCh <-chan struct{}) context.Context {
 }
 
 func (f *F1) execute(args []string) error {
-	rootCmd, err := buildRootCmd(f.scenarios, f.settings, f.profiling, f.output)
+	rootCmd, err := buildRootCmd(f.scenarios, f.settings, f.profiling, f.options.output, f.options.staticMetrics)
 	if err != nil {
 		return fmt.Errorf("building root command: %w", err)
 	}
@@ -138,7 +151,7 @@ func (f *F1) execute(args []string) error {
 // function.
 func (f *F1) Execute() {
 	if err := f.execute(nil); err != nil {
-		f.output.Display(ui.ErrorMessage{Message: "f1 failed", Error: err})
+		f.options.output.Display(ui.ErrorMessage{Message: "f1 failed", Error: err})
 		os.Exit(1)
 	}
 }
