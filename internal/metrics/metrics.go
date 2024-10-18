@@ -2,6 +2,7 @@ package metrics
 
 import (
 	"errors"
+	"sort"
 	"sync"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -38,7 +39,7 @@ func buildMetrics(staticMetrics map[string]string) *Metrics {
 	percentileObjectives := map[float64]float64{
 		0.5: 0.05, 0.75: 0.05, 0.9: 0.01, 0.95: 0.001, 0.99: 0.001, 0.9999: 0.00001, 1.0: 0.00001,
 	}
-
+	labelKeys := getStaticMetricLabelKeys(staticMetrics)
 	return &Metrics{
 		Setup: prometheus.NewSummaryVec(prometheus.SummaryOpts{
 			Namespace:  metricNamespace,
@@ -46,14 +47,14 @@ func buildMetrics(staticMetrics map[string]string) *Metrics {
 			Name:       "setup",
 			Help:       "Duration of setup functions.",
 			Objectives: percentileObjectives,
-		}, append([]string{TestNameLabel, ResultLabel}, getStaticMetricLabelKeys(staticMetrics)...)),
+		}, append([]string{TestNameLabel, ResultLabel}, labelKeys...)),
 		Iteration: prometheus.NewSummaryVec(prometheus.SummaryOpts{
 			Namespace:  metricNamespace,
 			Subsystem:  metricSubsystem,
 			Name:       "iteration",
 			Help:       "Duration of iteration functions.",
 			Objectives: percentileObjectives,
-		}, append([]string{TestNameLabel, StageLabel, ResultLabel}, getStaticMetricLabelKeys(staticMetrics)...)),
+		}, append([]string{TestNameLabel, StageLabel, ResultLabel}, labelKeys...)),
 	}
 }
 
@@ -118,17 +119,22 @@ func (metrics *Metrics) RecordIterationStage(name string, stage string, result R
 }
 
 func getStaticMetricLabelKeys(staticMetrics map[string]string) []string {
-	data := make([]string, 0, len(staticMetrics))
-	for k := range staticMetrics {
-		data = append(data, k)
-	}
-	return data
+	return sortedKeys(staticMetrics)
 }
 
 func getStaticMetricLabelValues(staticMetrics map[string]string) []string {
 	data := make([]string, 0, len(staticMetrics))
-	for _, v := range staticMetrics {
-		data = append(data, v)
+	for _, v := range sortedKeys(staticMetrics) {
+		data = append(data, staticMetrics[v])
 	}
 	return data
+}
+
+func sortedKeys(staticMetrics map[string]string) []string {
+	keys := make([]string, 0, len(staticMetrics))
+	for k := range staticMetrics {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	return keys
 }
