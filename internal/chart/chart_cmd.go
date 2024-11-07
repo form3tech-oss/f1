@@ -70,7 +70,7 @@ func chartCmdExecute(
 			return fmt.Errorf("creating builder: %w", err)
 		}
 
-		if trig.DryRun == nil {
+		if trig.Rate == nil {
 			return fmt.Errorf("%s does not support charting predicted load", cmd.Name())
 		}
 
@@ -82,7 +82,7 @@ func chartCmdExecute(
 		rates := []float64{0.0}
 		times := []time.Time{current}
 		for ; current.Add(sampleInterval).Before(end); current = current.Add(sampleInterval) {
-			rate := trig.DryRun(current)
+			rate := trig.Rate(current)
 			rates = append(rates, float64(rate))
 			times = append(times, current)
 		}
@@ -95,26 +95,31 @@ func chartCmdExecute(
 			return nil
 		}
 		graph := chart.Chart{
-			Title:      trig.Description,
-			TitleStyle: chart.StyleTextDefaults(),
-			Width:      1920,
-			Height:     1024,
+			Title: trig.Description,
+			TitleStyle: chart.Style{
+				TextWrap: chart.TextWrapWord,
+			},
+			Width:  1920,
+			Height: 1024,
+			Background: chart.Style{
+				Padding: chart.Box{
+					Top: 50,
+				},
+			},
 			YAxis: chart.YAxis{
-				Name:      "Triggered Test Iterations",
-				NameStyle: chart.StyleTextDefaults(),
-				Style:     chart.StyleTextDefaults(),
-				AxisType:  chart.YAxisSecondary,
+				Name:           "Triggered Test Iterations",
+				AxisType:       chart.YAxisSecondary,
+				ValueFormatter: chart.IntValueFormatter,
 			},
 			XAxis: chart.XAxis{
 				Name:           "Time",
-				NameStyle:      chart.StyleTextDefaults(),
 				ValueFormatter: chart.TimeMinuteValueFormatter,
-				Style:          chart.StyleTextDefaults(),
 			},
 			Series: []chart.Series{
 				chart.TimeSeries{
 					Style: chart.Style{
-						StrokeColor: chart.GetDefaultColor(0).WithAlpha(64),
+						StrokeColor: chart.GetDefaultColor(0),
+						StrokeWidth: 2.0,
 					},
 					Name:    "testing",
 					XValues: times,
