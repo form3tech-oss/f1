@@ -3,7 +3,7 @@ module github.com/form3tech-oss/f1/v2
 go 1.22.0
 
 require (
-	github.com/guptarohit/asciigraph v0.7.2
+	github.com/guptarohit/asciigraph v0.7.3
 	github.com/mattn/go-isatty v0.0.20
 	github.com/prometheus/client_golang v1.20.4
 	github.com/prometheus/client_model v0.6.1
