@@ -60,7 +60,7 @@ func (i *IterationDurations) Snapshot() IterationDurationsSnapshot {
 
 func (i *IterationDurations) average() (int64, uint64) {
 	count := i.count.Load()
-	if count == 0 {
+	if count <= 0 {
 		return 0, 0
 	}
 	sum := i.sum.Load()

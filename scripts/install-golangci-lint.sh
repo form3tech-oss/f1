@@ -33,7 +33,7 @@ readonly signatures
 expected_signature=$(grep "$asset" "$signatures" | cut -d ' ' -f 1)
 readonly expected_signature
 
-echo "$expected_signature $tarball" | sha256sum --check || { echo "Checksum verification failed for $asset"; exit 1; }
+echo "$expected_signature  $tarball" | shasum -a 256 --check || { echo "Checksum verification failed for $asset"; exit 1; }
 
 tar xf "$tarball" -C tools --strip-components 1 "$asset/golangci-lint"
 rm -rf "$tarball"
