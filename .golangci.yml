@@ -9,9 +9,7 @@ linters:
   fast: false
   disable:
   # Deprecated (see https://golangci-lint.run/usage/linters/)
-  - execinquery
-  - gomnd
-  - exportloopref
+  - tenv
 
   # Annoying style guides that are very subjective
   - funlen

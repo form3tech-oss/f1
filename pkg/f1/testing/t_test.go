@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"errors"
 	"log/slog"
-	"regexp"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -54,7 +53,7 @@ func TestReportsErrorMessageWhenCleanupFails(t *testing.T) {
 	teardown()
 	logs := buf.String()
 	require.Contains(t, logs, "recovered panic in scenario")
-	require.Regexp(t, regexp.MustCompile("stack_trace=\"goroutine"), logs)
+	require.Regexp(t, "stack_trace=\"goroutine", logs)
 }
 
 func TestCleanupCalledInReverseOrder(t *testing.T) {

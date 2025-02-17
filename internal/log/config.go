@@ -29,7 +29,7 @@ func (c *Config) WithJSONFormat(enabled bool) *Config {
 	return c
 }
 
-func (c Config) IsFormatJSON() bool {
+func (c *Config) IsFormatJSON() bool {
 	return c.json
 }
 

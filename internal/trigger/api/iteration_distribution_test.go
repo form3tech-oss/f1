@@ -205,7 +205,7 @@ func TestRegularRateDistributionWithVariableRate(t *testing.T) {
 	require.NoError(t, err)
 
 	result := make([]int, len(expectedDistributedRates))
-	for i := range len(expectedDistributedRates) {
+	for i := range expectedDistributedRates {
 		result[i] = distributedRate(time.Now())
 	}
 
@@ -312,7 +312,7 @@ func TestRandomRateDistributionWithVariableRate(t *testing.T) {
 	require.NoError(t, err)
 
 	result := make([]int, len(expectedDistributedRates))
-	for i := range len(expectedDistributedRates) {
+	for i := range expectedDistributedRates {
 		result[i] = distributedRate(time.Now())
 	}
 

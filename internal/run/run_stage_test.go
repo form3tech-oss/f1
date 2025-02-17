@@ -611,6 +611,9 @@ func (s *RunTestStage) the_iteration_metric_has_n_results(n int, result string) 
 		s.require.NotNil(metricFamily, "metric family %s not found", iterationMetricFamily)
 		resultMetric := getMetricByResult(metricFamily, result)
 		s.require.NotNil(resultMetric, "result metric %s is empty", result)
+		if n < 0 {
+			return fmt.Errorf("negative results: %d", n)
+		}
 		if uint64(n) == resultMetric.GetSummary().GetSampleCount() {
 			return nil
 		}
