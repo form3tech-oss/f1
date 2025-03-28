@@ -213,7 +213,7 @@ func TestWeightedVolumes(t *testing.T) {
 			require.NoError(t, err)
 
 			total := 0.0
-			require.Equal(t, len(test.weights), len(test.expectedTotals))
+			require.Len(t, test.weights, len(test.expectedTotals))
 
 			expectedTotal := 0
 			for _, t := range test.expectedTotals {
