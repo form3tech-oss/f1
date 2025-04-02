@@ -1,92 +1,94 @@
-# Using golangci-lint@v1.60.2
+version: "2"
 run:
-  timeout: 5m
   tests: true
-output:
-  print-linter-name: true
 linters:
-  enable-all: true
-  fast: false
+  default: all
   disable:
-  # Deprecated (see https://golangci-lint.run/usage/linters/)
-  - tenv
-
-  # Annoying style guides that are very subjective
-  - funlen
-  - nlreturn
-  - wsl
-  - cyclop
-  - varnamelen
-  - maintidx
-  - gocognit
-  - godot
-  - gocyclo
-  - nestif
-  - nilnil
-
-  # Project is not large enough to need duplicate code detection
-  - dupl
-
-  # TODO
-  - mnd
-  - err113
-
-linters-settings:
-  tagliatelle:
-    case:
+    - cyclop
+    - dupl
+    - err113
+    - funlen
+    - gocognit
+    - gocyclo
+    - godot
+    - maintidx
+    - mnd
+    - nestif
+    - nilnil
+    - nlreturn
+    - varnamelen
+    - wsl
+  settings:
+    depguard:
       rules:
-        json: snake
-        yaml: kebab
-  depguard:
+        main:
+          deny:
+            - pkg: github.com/pkg/errors
+              desc: Please use go built-in error wrapping and handling via `fmt` and `errors` packages
+            - pkg: github.com/giantswarm/retry-go
+              desc: Please use https://github.com/avast/retry-go/v4
+    exhaustruct:
+      include:
+        - github.com/form3tech-oss/f1/v2/internal/run/views.*
+    nolintlint:
+      require-explanation: true
+      require-specific: true
+      allow-unused: false
+    tagliatelle:
+      case:
+        rules:
+          json: snake
+          yaml: kebab
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
     rules:
-      main:
-        deny:
-          - pkg: "github.com/pkg/errors"
-            desc: "Please use go built-in error wrapping and handling via `fmt` and `errors` packages"
-          - pkg: "github.com/giantswarm/retry-go"
-            desc: "Please use https://github.com/avast/retry-go/v4"
-  gci:
-    sections:
-      - standard
-      - default
-      - prefix(github.com/form3tech-oss/f1)
-  exhaustruct:
-    include:
-      - github.com/form3tech-oss/f1/v2/internal/run/views.*
-  nolintlint:
-    allow-unused: false
-    require-explanation: true
-    require-specific: true
+      - linters:
+          - staticcheck
+        path: \.go
+        text: 'SA1019: (.*.Logger|testing.WithLogrusLogger)'
+      - linters:
+          - dupword
+          - lll
+          - unparam
+          - wrapcheck
+        path: _test\.go
+      - linters:
+          - staticcheck
+        path: _test\.go
+        text: ST1003
+      - linters:
+          - revive
+        path: _test\.go
+        text: 'var-naming: don''t use underscores in Go names;'
+    paths:
+      - vendor$
+      - third_party$
+      - builtin$
+      - examples$
 issues:
-  exclude-dirs:
-    - vendor$
   max-issues-per-linter: 0
   max-same-issues: 0
-  exclude-rules:
-    # Allow use of deprecated API
-    - path: \.go
-      linters:
-        - staticcheck
-      text: "SA1019: (.*.Logger|testing.WithLogrusLogger)"
-    - path: _test\.go
-      linters:
-        # unwrapped errors are ok in tests
-        - wrapcheck
-        # this is ok for BDD style tests
-        - unparam
-        # long lines are OK in tests
-        - lll
-        # prefer duplicated literal asserts
-        - dupword
-    - path: _test\.go
-      # ST1003: Poorly chosen identifiers (https://staticcheck.io/docs/checks/#ST1003)
-      # This is to allow identifiers to be snake_cased in favor of BDD integration tests
-      text: "ST1003"
-      linters:
-        - stylecheck
-    - path: _test\.go
-      # This is to allow identifiers to be snake_cased in favor of BDD integration tests
-      text: "var-naming: don't use underscores in Go names;"
-      linters:
-        - revive
-
+formatters:
+  enable:
+    - gci
+    - gofmt
+    - gofumpt
+    - goimports
+  settings:
+    gci:
+      sections:
+        - standard
+        - default
+        - prefix(github.com/form3tech-oss/f1)
+  exclusions:
+    generated: lax
+    paths:
+      - vendor$
+      - third_party$
+      - builtin$
+      - examples$
