@@ -28,6 +28,7 @@ type T struct {
 	require        *require.Assertions
 	Iteration      string // iteration number or "setup"
 	Scenario       string
+	VUID           int
 	teardownStack  []func()
 	failed         atomic.Bool
 	teardownFailed atomic.Bool
@@ -54,6 +55,12 @@ func WithLogger(logger *slog.Logger) TOption {
 func WithIteration(iteration string) TOption {
 	return func(t *T) {
 		t.Iteration = iteration
+	}
+}
+
+func WithVUID(id int) TOption {
+	return func(t *T) {
+		t.VUID = id
 	}
 }
 
