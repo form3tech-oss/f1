@@ -146,9 +146,18 @@ func (t *T) Errorf(format string, args ...interface{}) {
 	t.Fail()
 }
 
-// Error is equivalent to Log followed by Fail.
-func (t *T) Error(err error) {
-	t.logger.Error("iteration failed", log.IterationAttr(t.Iteration), log.ErrorAttr(err))
+// Error logs an error then calls Fail()
+func (t *T) Error(args ...interface{}) {
+	// Special case, single error argument
+	if len(args) == 1 {
+		err, ok := args[0].(error)
+		if ok {
+			t.logger.Error("iteration failed", log.IterationAttr(t.Iteration), log.ErrorAttr(err))
+			t.Fail()
+			return
+		}
+	}
+	t.Log(args...)
 	t.Fail()
 }
 
@@ -158,9 +167,18 @@ func (t *T) Fatalf(format string, args ...interface{}) {
 	t.FailNow()
 }
 
-// Fatal is equivalent to Log followed by FailNow.
-func (t *T) Fatal(err error) {
-	t.logger.Error("iteration failed", log.IterationAttr(t.Iteration), log.ErrorAttr(err))
+// Fatal logs an error then calls FailNow.
+func (t *T) Fatal(args ...interface{}) {
+	// Special case, single error argument
+	if len(args) == 1 {
+		err, ok := args[0].(error)
+		if ok {
+			t.logger.Error("iteration failed", log.IterationAttr(t.Iteration), log.ErrorAttr(err))
+			t.FailNow()
+			return
+		}
+	}
+	t.Log(args...)
 	t.FailNow()
 }
 
