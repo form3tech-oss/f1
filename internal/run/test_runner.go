@@ -30,24 +30,22 @@ const (
 )
 
 type Run struct {
-	pusher                   *push.Pusher
-	progressRunner           *raterun.Runner
-	metrics                  *metrics.Metrics
-	views                    *views.Views
-	activeScenario           *workers.ActiveScenario
-	trigger                  *api.Trigger
-	output                   *ui.Output
-	scenarioLogger           *ScenarioLogger
-	result                   *Result
-	options                  options.RunOptions
-	waitForCompletionTimeout time.Duration
+	pusher         *push.Pusher
+	progressRunner *raterun.Runner
+	metrics        *metrics.Metrics
+	views          *views.Views
+	activeScenario *workers.ActiveScenario
+	trigger        *api.Trigger
+	output         *ui.Output
+	scenarioLogger *ScenarioLogger
+	result         *Result
+	options        options.RunOptions
 }
 
 func NewRun(
 	options options.RunOptions,
 	scenarios *scenarios.Scenarios,
 	trigger *api.Trigger,
-	waitForCompletionTimeout time.Duration,
 	settings envsettings.Settings,
 	metricsInstance *metrics.Metrics,
 	parentOutput *ui.Output,
@@ -93,17 +91,16 @@ func NewRun(
 	pusher := newMetricsPusher(settings, scenario.Name, metricsInstance)
 
 	return &Run{
-		options:                  options,
-		trigger:                  trigger,
-		metrics:                  metricsInstance,
-		views:                    viewsInstance,
-		result:                   result,
-		pusher:                   pusher,
-		output:                   outputer,
-		progressRunner:           progressRunner,
-		activeScenario:           activeScenario,
-		scenarioLogger:           scenarioLogger,
-		waitForCompletionTimeout: waitForCompletionTimeout,
+		options:        options,
+		trigger:        trigger,
+		metrics:        metricsInstance,
+		views:          viewsInstance,
+		result:         result,
+		pusher:         pusher,
+		output:         outputer,
+		progressRunner: progressRunner,
+		activeScenario: activeScenario,
+		scenarioLogger: scenarioLogger,
 	}, nil
 }
 
@@ -259,9 +256,10 @@ func (r *Run) run(ctx context.Context) {
 		r.progressRunner.Restart()
 		select {
 		case <-poolManager.WaitForCompletion():
-		case <-time.After(r.waitForCompletionTimeout):
+		case <-time.After(r.options.WaitForCompletionTimeout):
 			r.output.Display(ui.WarningMessage{
-				Message: fmt.Sprintf("Active tests not completed after %s. Stopping...", r.waitForCompletionTimeout.String()),
+				Message: fmt.Sprintf("Active tests not completed after %s. Stopping...",
+					r.options.WaitForCompletionTimeout.String()),
 			})
 		}
 
@@ -273,9 +271,10 @@ func (r *Run) run(ctx context.Context) {
 		}
 		select {
 		case <-poolManager.WaitForCompletion():
-		case <-time.After(r.waitForCompletionTimeout):
+		case <-time.After(r.options.WaitForCompletionTimeout):
 			r.output.Display(ui.WarningMessage{
-				Message: fmt.Sprintf("Active tests not completed after %s. Stopping...", r.waitForCompletionTimeout.String()),
+				Message: fmt.Sprintf("Active tests not completed after %s. Stopping...",
+					r.options.WaitForCompletionTimeout.String()),
 			})
 		}
 	case <-poolManager.WaitForCompletion():

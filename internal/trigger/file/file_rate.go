@@ -14,15 +14,16 @@ import (
 )
 
 type RunnableStages struct {
-	Scenario            string
-	Stages              []runnableStage
-	stagesTotalDuration time.Duration
-	MaxDuration         time.Duration
-	Concurrency         int
-	MaxIterations       uint64
-	maxFailures         uint64
-	maxFailuresRate     int
-	IgnoreDropped       bool
+	Scenario                 string
+	Stages                   []runnableStage
+	stagesTotalDuration      time.Duration
+	MaxDuration              time.Duration
+	Concurrency              int
+	MaxIterations            uint64
+	maxFailures              uint64
+	maxFailuresRate          int
+	IgnoreDropped            bool
+	WaitForCompletionTimeout time.Duration
 }
 
 type runnableStage struct {
@@ -57,13 +58,14 @@ func Rate(output *ui.Output) api.Builder {
 				Description: fmt.Sprintf("%d different stages", len(runnableStages.Stages)),
 				Duration:    runnableStages.stagesTotalDuration,
 				Options: api.Options{
-					Scenario:        runnableStages.Scenario,
-					MaxDuration:     runnableStages.MaxDuration,
-					Concurrency:     runnableStages.Concurrency,
-					MaxIterations:   runnableStages.MaxIterations,
-					MaxFailures:     runnableStages.maxFailures,
-					MaxFailuresRate: runnableStages.maxFailuresRate,
-					IgnoreDropped:   runnableStages.IgnoreDropped,
+					Scenario:                 runnableStages.Scenario,
+					MaxDuration:              runnableStages.MaxDuration,
+					Concurrency:              runnableStages.Concurrency,
+					MaxIterations:            runnableStages.MaxIterations,
+					MaxFailures:              runnableStages.maxFailures,
+					MaxFailuresRate:          runnableStages.maxFailuresRate,
+					IgnoreDropped:            runnableStages.IgnoreDropped,
+					WaitForCompletionTimeout: runnableStages.WaitForCompletionTimeout,
 				},
 			}, nil
 		},

@@ -382,6 +382,35 @@ stages:
 			expectedRates:             []int{6, 6, 6, 6, 6, 6},
 			expectedParameters:        map[string]string{"FOO": "bar"},
 		},
+		{
+			testName: "Include wait for completion timeout",
+			fileContent: `scenario: template
+limits:
+  max-duration: 1m
+  concurrency: 50
+  max-iterations: 100
+  ignore-dropped: true
+  wait-for-completion-timeout: 5s
+stages:
+- duration: 5s
+  mode: constant
+  rate: 6/s
+  jitter: 0
+  distribution: none
+  parameters:
+    FOO: bar
+`,
+			expectedScenario:                 "template",
+			expectedMaxDuration:              1 * time.Minute,
+			expectedConcurrency:              50,
+			expectedMaxIterations:            100,
+			expectedIgnoreDropped:            true,
+			expectedWaitForCompletionTimeout: 5 * time.Second,
+			expectedTotalDuration:            5 * time.Second,
+			expectedIterationDuration:        1 * time.Second,
+			expectedRates:                    []int{6, 6, 6, 6, 6, 6},
+			expectedParameters:               map[string]string{"FOO": "bar"},
+		},
 	} {
 		t.Run(test.testName, func(t *testing.T) {
 			t.Parallel()
@@ -664,18 +693,19 @@ invalid file content
 }
 
 type testData struct {
-	testName                  string
-	fileContent               string
-	expectedScenario          string
-	expectedTotalDuration     time.Duration
-	expectedIterationDuration time.Duration
-	expectedMaxDuration       time.Duration
-	expectedIgnoreDropped     bool
-	expectedMaxIterations     uint64
-	expectedMaxFailures       int
-	expectedMaxFailuresRate   int
-	expectedConcurrency       int
-	expectedUsersConcurrency  int
-	expectedRates             []int
-	expectedParameters        map[string]string
+	testName                         string
+	fileContent                      string
+	expectedScenario                 string
+	expectedTotalDuration            time.Duration
+	expectedIterationDuration        time.Duration
+	expectedMaxDuration              time.Duration
+	expectedIgnoreDropped            bool
+	expectedWaitForCompletionTimeout time.Duration
+	expectedMaxIterations            uint64
+	expectedMaxFailures              int
+	expectedMaxFailuresRate          int
+	expectedConcurrency              int
+	expectedUsersConcurrency         int
+	expectedRates                    []int
+	expectedParameters               map[string]string
 }
