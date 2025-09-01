@@ -9,14 +9,15 @@ import (
 )
 
 const (
-	FlagVerbose         = "verbose"
-	FlagVerboseFail     = "verbose-fail"
-	FlagIgnoreDropped   = "ignore-dropped"
-	FlagMaxDuration     = "max-duration"
-	FlagMaxIterations   = "max-iterations"
-	FlagConcurrency     = "concurrency"
-	FlagMaxFailures     = "max-failures"
-	FlagMaxFailuresRate = "max-failures-rate"
+	FlagVerbose                  = "verbose"
+	FlagVerboseFail              = "verbose-fail"
+	FlagIgnoreDropped            = "ignore-dropped"
+	FlagMaxDuration              = "max-duration"
+	FlagMaxIterations            = "max-iterations"
+	FlagConcurrency              = "concurrency"
+	FlagMaxFailures              = "max-failures"
+	FlagMaxFailuresRate          = "max-failures-rate"
+	FlagWaitForCompletionTimeout = "wait-for-completion-timeout"
 )
 
 const FlagDistribution = "distribution"

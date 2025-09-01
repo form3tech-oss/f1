@@ -26,12 +26,13 @@ type Schedule struct {
 }
 
 type Limits struct {
-	MaxDuration     *time.Duration `yaml:"max-duration"`
-	Concurrency     *int           `yaml:"concurrency"`
-	MaxIterations   *uint64        `yaml:"max-iterations"`
-	MaxFailures     *uint64        `yaml:"max-failures"`
-	MaxFailuresRate *int           `yaml:"max-failures-rate"`
-	IgnoreDropped   *bool          `yaml:"ignore-dropped"`
+	MaxDuration              *time.Duration `yaml:"max-duration"`
+	Concurrency              *int           `yaml:"concurrency"`
+	MaxIterations            *uint64        `yaml:"max-iterations"`
+	MaxFailures              *uint64        `yaml:"max-failures"`
+	MaxFailuresRate          *int           `yaml:"max-failures-rate"`
+	IgnoreDropped            *bool          `yaml:"ignore-dropped"`
+	WaitForCompletionTimeout *time.Duration `yaml:"wait-for-completion-timeout"`
 }
 
 type Stage struct {
@@ -84,15 +85,16 @@ func ParseConfigFile(fileContent []byte, now time.Time) (*RunnableStages, error)
 	}
 
 	return &RunnableStages{
-		Scenario:            *validatedConfigFile.Scenario,
-		Stages:              stages,
-		stagesTotalDuration: stagesTotalDuration,
-		MaxDuration:         *validatedConfigFile.Limits.MaxDuration,
-		Concurrency:         *validatedConfigFile.Limits.Concurrency,
-		MaxIterations:       *validatedConfigFile.Limits.MaxIterations,
-		maxFailures:         *validatedConfigFile.Limits.MaxFailures,
-		maxFailuresRate:     *validatedConfigFile.Limits.MaxFailuresRate,
-		IgnoreDropped:       *validatedConfigFile.Limits.IgnoreDropped,
+		Scenario:                 *validatedConfigFile.Scenario,
+		Stages:                   stages,
+		stagesTotalDuration:      stagesTotalDuration,
+		MaxDuration:              *validatedConfigFile.Limits.MaxDuration,
+		Concurrency:              *validatedConfigFile.Limits.Concurrency,
+		MaxIterations:            *validatedConfigFile.Limits.MaxIterations,
+		maxFailures:              *validatedConfigFile.Limits.MaxFailures,
+		maxFailuresRate:          *validatedConfigFile.Limits.MaxFailuresRate,
+		IgnoreDropped:            *validatedConfigFile.Limits.IgnoreDropped,
+		WaitForCompletionTimeout: *validatedConfigFile.Limits.WaitForCompletionTimeout,
 	}, nil
 }
 
@@ -224,6 +226,10 @@ func (c *ConfigFile) validateCommonFields() (*ConfigFile, error) {
 	if c.Limits.MaxFailuresRate == nil {
 		maxFailuresRate := 0
 		c.Limits.MaxFailuresRate = &maxFailuresRate
+	}
+	if c.Limits.WaitForCompletionTimeout == nil {
+		waitForCompletionTimeout := 10 * time.Second
+		c.Limits.WaitForCompletionTimeout = &waitForCompletionTimeout
 	}
 	if c.Default.Concurrency == nil {
 		c.Default.Concurrency = c.Limits.Concurrency

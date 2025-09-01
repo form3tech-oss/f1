@@ -16,8 +16,6 @@ import (
 	"github.com/form3tech-oss/f1/v2/pkg/f1/scenarios"
 )
 
-const waitForCompletionTimeout = 10 * time.Second
-
 func Cmd(
 	s *scenarios.Scenarios,
 	builders []api.Builder,
@@ -55,6 +53,8 @@ func Cmd(
 				"--max-failures 10 (load test will fail if more than 10 errors occurred, default is 0)")
 			triggerCmd.Flags().Int(triggerflags.FlagMaxFailuresRate, 0,
 				"--max-failures-rate 5 (load test will fail if more than 5\\% requests failed, default is 0)")
+			triggerCmd.Flags().Duration(triggerflags.FlagWaitForCompletionTimeout, 10*time.Second,
+				"--wait-for-completion-timeout 10s (wait for completion for 10 seconds)")
 		}
 
 		triggerCmd.Flags().AddFlagSet(t.Flags)
@@ -87,6 +87,7 @@ func runCmdExecute(
 		var maxFailures uint64
 		var maxFailuresRate int
 		var ignoreDropped bool
+		var waitForCompletionTimeout time.Duration
 		if t.IgnoreCommonFlags {
 			scenarioName = trig.Options.Scenario
 			duration = trig.Options.MaxDuration
@@ -95,6 +96,7 @@ func runCmdExecute(
 			maxFailures = trig.Options.MaxFailures
 			maxFailuresRate = trig.Options.MaxFailuresRate
 			ignoreDropped = trig.Options.IgnoreDropped
+			waitForCompletionTimeout = trig.Options.WaitForCompletionTimeout
 		} else {
 			scenarioName = args[0]
 			duration, err = cmd.Flags().GetDuration(triggerflags.FlagMaxDuration)
@@ -125,6 +127,10 @@ func runCmdExecute(
 			if err != nil {
 				return fmt.Errorf("getting flag: %w", err)
 			}
+			waitForCompletionTimeout, err = cmd.Flags().GetDuration(triggerflags.FlagWaitForCompletionTimeout)
+			if err != nil {
+				return fmt.Errorf("getting flag: %w", err)
+			}
 		}
 
 		verbose, err := cmd.Flags().GetBool(triggerflags.FlagVerbose)
@@ -151,15 +157,16 @@ func runCmdExecute(
 		}
 
 		run, err := NewRun(options.RunOptions{
-			Scenario:        scenarioName,
-			MaxDuration:     duration,
-			Concurrency:     concurrency,
-			Verbose:         verbose,
-			MaxIterations:   maxIterations,
-			MaxFailures:     maxFailures,
-			MaxFailuresRate: maxFailuresRate,
-			IgnoreDropped:   ignoreDropped,
-		}, s, trig, waitForCompletionTimeout, settings, metricsInstance, output)
+			Scenario:                 scenarioName,
+			MaxDuration:              duration,
+			Concurrency:              concurrency,
+			Verbose:                  verbose,
+			MaxIterations:            maxIterations,
+			MaxFailures:              maxFailures,
+			MaxFailuresRate:          maxFailuresRate,
+			IgnoreDropped:            ignoreDropped,
+			WaitForCompletionTimeout: waitForCompletionTimeout,
+		}, s, trig, settings, metricsInstance, output)
 		if err != nil {
 			return fmt.Errorf("new run: %w", err)
 		}

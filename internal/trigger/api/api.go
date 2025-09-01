@@ -42,15 +42,16 @@ type Trigger struct {
 }
 
 type Options struct {
-	Scenario        string
-	MaxDuration     time.Duration
-	Concurrency     int
-	MaxIterations   uint64
-	MaxFailures     uint64
-	MaxFailuresRate int
-	Verbose         bool
-	VerboseFail     bool
-	IgnoreDropped   bool
+	Scenario                 string
+	MaxDuration              time.Duration
+	Concurrency              int
+	MaxIterations            uint64
+	MaxFailures              uint64
+	MaxFailuresRate          int
+	Verbose                  bool
+	VerboseFail              bool
+	IgnoreDropped            bool
+	WaitForCompletionTimeout time.Duration
 }
 
 type Rates struct {
