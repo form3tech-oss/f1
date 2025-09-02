@@ -63,8 +63,9 @@ func (s *ActiveScenario) Setup() {
 	s.m.RecordSetupResult(s.scenario.Name, metrics.Result(s.t.Failed()), duration)
 }
 
-func (s *ActiveScenario) newIterationState() *iterationState {
+func (s *ActiveScenario) newIterationState(id int) *iterationState {
 	t, teardown := testing.NewTWithOptions(s.scenario.Name,
+		testing.WithVUID(id),
 		testing.WithLogger(s.logger),
 		testing.WithLogrusLogger(s.logrusLogger),
 	)

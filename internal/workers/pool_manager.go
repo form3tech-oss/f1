@@ -32,7 +32,7 @@ func New(maxIterations uint64, activeScenario *ActiveScenario) *PoolManager {
 func (m *PoolManager) makeIterationStatePool(numWorkers int) []*iterationState {
 	statePool := make([]*iterationState, numWorkers)
 	for i := range numWorkers {
-		statePool[i] = m.activeScenario.newIterationState()
+		statePool[i] = m.activeScenario.newIterationState(i)
 	}
 
 	return statePool
