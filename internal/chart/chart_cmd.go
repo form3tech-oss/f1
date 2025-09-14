@@ -7,7 +7,7 @@ import (
 
 	"github.com/guptarohit/asciigraph"
 	"github.com/spf13/cobra"
-	"github.com/wcharczuk/go-chart/v2"
+	chart "github.com/go-analyze/charts/chartdraw"
 
 	"github.com/form3tech-oss/f1/v2/internal/trigger/api"
 	"github.com/form3tech-oss/f1/v2/internal/ui"
