@@ -87,6 +87,29 @@ It provides the following information:
 - `(20/s)` (attempted) rate,
 - `avg: 72ns, min: 125ns, max: 27.590042ms` average, min and max iteration times.
 
+### Chart Command
+
+The `chart` command allows you to plot a chart of the test scenarios that would be triggered over time with the provided run function. It supports various subcommands corresponding to different trigger modes.
+
+Usage:
+```
+f1 chart <subcommand>
+```
+
+Flags:
+- `--chart-start`: Optional start time for the chart (default: current time in RFC3339 format)
+- `--chart-duration`: Duration for the chart (default: 10 minutes)
+- `--filename`: Filename for optional detailed chart, e.g. `<trigger_mode>.png`
+
+The command generates an ASCII graph in the console and optionally creates a detailed PNG chart if a filename is provided.
+
+Example:
+```
+f1 chart constant --chart-duration=5m --filename=constant_chart.png
+```
+
+This will generate an ASCII graph in the console and save a detailed PNG chart to `constant_chart.png`.
+
 ### Environment variables
 
 | Name | Format | Default | Description |
