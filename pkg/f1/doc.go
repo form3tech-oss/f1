@@ -1,5 +1,5 @@
 /*
-F1 is a flexible load testing framework that provides a CLI which can be used to inject load,
+Package f1 is a flexible load testing framework that provides a CLI which can be used to inject load,
 as well as a set of Go packages that can be used to write load test scenarios.
 
 F1 can be used to write simple load test scenarios which, for example, make an HTTP request.

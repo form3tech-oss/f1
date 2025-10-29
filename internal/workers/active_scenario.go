@@ -63,18 +63,6 @@ func (s *ActiveScenario) Setup() {
 	s.m.RecordSetupResult(s.scenario.Name, metrics.Result(s.t.Failed()), duration)
 }
 
-func (s *ActiveScenario) newIterationState() *iterationState {
-	t, teardown := testing.NewTWithOptions(s.scenario.Name,
-		testing.WithLogger(s.logger),
-		testing.WithLogrusLogger(s.logrusLogger),
-	)
-
-	return &iterationState{
-		t:        t,
-		teardown: teardown,
-	}
-}
-
 func (s *ActiveScenario) TeardownFailed() bool {
 	return s.t.TeardownFailed()
 }
@@ -103,4 +91,16 @@ func (s *ActiveScenario) Run(state *iterationState) {
 func (s *ActiveScenario) RecordDroppedIteration() {
 	s.m.RecordIterationResult(s.scenario.Name, metrics.DroppedResult, instantDuration)
 	s.progress.Record(metrics.DroppedResult, instantDuration)
+}
+
+func (s *ActiveScenario) newIterationState() *iterationState {
+	t, teardown := testing.NewTWithOptions(s.scenario.Name,
+		testing.WithLogger(s.logger),
+		testing.WithLogrusLogger(s.logrusLogger),
+	)
+
+	return &iterationState{
+		t:        t,
+		teardown: teardown,
+	}
 }

@@ -101,11 +101,7 @@ func withRandomDistribution(
 		if remainingSteps == 1 || remainingRate == 0 {
 			currentRate = remainingRate
 		} else {
-			currentRate = randFn(remainingRate)
-
-			if currentRate > remainingRate {
-				currentRate = remainingRate
-			}
+			currentRate = min(randFn(remainingRate), remainingRate)
 		}
 		remainingRate -= currentRate
 		remainingSteps--

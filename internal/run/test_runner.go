@@ -264,7 +264,7 @@ func (r *Run) run(ctx context.Context) {
 		}
 
 	case <-triggerCtx.Done():
-		if triggerCtx.Err() == context.DeadlineExceeded {
+		if errors.Is(triggerCtx.Err(), context.DeadlineExceeded) {
 			r.output.Display(r.result.MaxDurationElapsed())
 		} else {
 			r.output.Display(r.result.Interrupted())

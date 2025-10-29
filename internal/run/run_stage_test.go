@@ -264,7 +264,6 @@ func (s *RunTestStage) the_command_should_have_run_for_approx(expectedDuration t
 
 func (s *RunTestStage) the_number_of_started_iterations_should_be(expected int64) *RunTestStage {
 	if expected == Any {
-		//nolint:testifylint // false positive
 		s.assert.Positive(s.runCount.Load())
 	} else {
 		s.assert.Equal(int(expected), int(s.runCount.Load()), "number of started iterations")
@@ -363,7 +362,6 @@ func (s *RunTestStage) setup_teardown_is_called() *RunTestStage {
 
 func (s *RunTestStage) iteration_teardown_is_called_n_times(n int64) *RunTestStage {
 	if n == Any {
-		//nolint:testifylint // false positive
 		s.assert.Positive(s.iterationTeardownCount.Load())
 	} else {
 		s.assert.Equal(int(n), int(s.iterationTeardownCount.Load()), "iteration teardown was not called expected times")
@@ -404,7 +402,7 @@ func (s *RunTestStage) the_number_of_dropped_iterations_should_be(expected uint6
 
 func (s *RunTestStage) distribution_duration_map_of_requests() map[time.Duration]int {
 	distributionMap := make(map[time.Duration]int)
-	s.durations.Range(func(_, value interface{}) bool {
+	s.durations.Range(func(_, value any) bool {
 		requestDuration, ok := value.(time.Duration)
 		s.require.True(ok)
 		truncatedDuration := requestDuration.Truncate(100 * time.Millisecond)
@@ -597,10 +595,8 @@ func (s *RunTestStage) all_other_percentiles_are_fast() *RunTestStage {
 func (s *RunTestStage) there_is_a_metric_called(metricName string) *RunTestStage {
 	err := retry(func() error {
 		metricNames := s.metricData.GetMetricNames()
-		for _, mn := range metricNames {
-			if mn == metricName {
-				return nil
-			}
+		if slices.Contains(metricNames, metricName) {
+			return nil
 		}
 		return fmt.Errorf("%v did not contain %s", metricNames, metricName)
 	}, 10, 50*time.Millisecond)

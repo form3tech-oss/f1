@@ -9,7 +9,7 @@ import (
 // every iteration.
 func CombineScenarios(scenarios ...testing.ScenarioFn) testing.ScenarioFn {
 	return func(t *testing.T) testing.RunFn {
-		var run []testing.RunFn
+		run := make([]testing.RunFn, 0, len(scenarios))
 		for _, s := range scenarios {
 			run = append(run, s(t))
 		}

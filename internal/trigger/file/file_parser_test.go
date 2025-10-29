@@ -432,7 +432,7 @@ stages:
 			require.Equal(t, test.expectedUsersConcurrency, stagesToRun.Stages[0].UsersConcurrency)
 
 			if len(test.expectedRates) > 0 {
-				var rates []int
+				rates := make([]int, 0, len(test.expectedRates))
 				for range test.expectedRates {
 					now = now.Add(test.expectedIterationDuration)
 					rates = append(rates, stagesToRun.Stages[0].Rate(now))

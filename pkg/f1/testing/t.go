@@ -141,7 +141,7 @@ func (t *T) Fail() {
 }
 
 // Errorf is equivalent to Logf followed by Fail.
-func (t *T) Errorf(format string, args ...interface{}) {
+func (t *T) Errorf(format string, args ...any) {
 	t.logger.Error(fmt.Sprintf(format, args...))
 	t.Fail()
 }
@@ -153,7 +153,7 @@ func (t *T) Error(err error) {
 }
 
 // Fatalf is equivalent to Logf followed by FailNow.
-func (t *T) Fatalf(format string, args ...interface{}) {
+func (t *T) Fatalf(format string, args ...any) {
 	t.logger.Error(fmt.Sprintf(format, args...))
 	t.FailNow()
 }
