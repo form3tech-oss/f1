@@ -32,15 +32,6 @@ func NewOutput(logger *slog.Logger, printer *Printer, interactive bool, allowPri
 	}
 }
 
-func (o *Output) Display(outputable Outputable) {
-	if o.AllowPrinting && o.Interactive {
-		outputable.Print(o.Printer)
-		return
-	}
-
-	outputable.Log(o.Logger)
-}
-
 func NewDiscardOutput() *Output {
 	printer := NewDiscardPrinter()
 	logger := log.NewDiscardLogger()
@@ -64,4 +55,13 @@ func NewDefaultOutputWithLogger(logger *slog.Logger) *Output {
 	interactive := isatty.IsTerminal(os.Stdin.Fd())
 
 	return NewOutput(logger, printer, interactive, true)
+}
+
+func (o *Output) Display(outputable Outputable) {
+	if o.AllowPrinting && o.Interactive {
+		outputable.Print(o.Printer)
+		return
+	}
+
+	outputable.Log(o.Logger)
 }

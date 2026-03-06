@@ -163,7 +163,7 @@ func TestRegularRateDistribution(t *testing.T) {
 			distributedIterationDuration, distributedRate, err := api.NewDistribution(api.RegularDistribution, test.iterationDuration, rateFn, nil)
 			require.NoError(t, err)
 
-			var result []int
+			result := make([]int, 0, len(test.expectedDistributedRates))
 			for range len(test.expectedDistributedRates) {
 				result = append(result, distributedRate(time.Now()))
 			}
@@ -275,7 +275,7 @@ func TestRandomRateDistribution(t *testing.T) {
 			distributedIterationDuration, distributedRate, err := api.NewDistribution(api.RandomDistribution, test.iterationDuration, rateFn, randFn)
 			require.NoError(t, err)
 
-			var result []int
+			result := make([]int, 0, len(test.expectedDistributedRates))
 			for range len(test.expectedDistributedRates) {
 				result = append(result, distributedRate(time.Now()))
 			}
@@ -321,7 +321,7 @@ func TestRandomRateDistributionWithVariableRate(t *testing.T) {
 }
 
 func repeatSlice(arr []int, times int) []int {
-	var newArr []int
+	newArr := make([]int, 0, len(arr)*times)
 
 	for range times {
 		newArr = append(newArr, arr...)

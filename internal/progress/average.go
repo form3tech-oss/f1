@@ -58,16 +58,6 @@ func (i *IterationDurations) Snapshot() IterationDurationsSnapshot {
 	}
 }
 
-func (i *IterationDurations) average() (int64, uint64) {
-	count := i.count.Load()
-	if count <= 0 {
-		return 0, 0
-	}
-	sum := i.sum.Load()
-
-	return sum / count, uint64(count)
-}
-
 func (i *IterationDurations) Update(other *IterationDurations) {
 	i.sum.Add(other.sum.Load())
 	i.count.Add(other.count.Load())
@@ -88,6 +78,16 @@ func (i *IterationDurations) Reset() {
 	i.count.Store(0)
 	i.max.Store(0)
 	i.min.Store(0)
+}
+
+func (i *IterationDurations) average() (int64, uint64) {
+	count := i.count.Load()
+	if count <= 0 {
+		return 0, 0
+	}
+	sum := i.sum.Load()
+
+	return sum / count, uint64(count)
 }
 
 type DurationStats struct {

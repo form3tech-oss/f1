@@ -24,7 +24,7 @@ const (
 	signalChanBufferSize = 2
 )
 
-// Represents an F1 CLI instance. Instantiate this struct to create an instance
+// F1 represents an F1 CLI instance. Instantiate this struct to create an instance
 // of the F1 CLI and to register new test scenarios.
 type F1 struct {
 	scenarios *scenarios.Scenarios
@@ -69,7 +69,7 @@ func (f *F1) WithStaticMetrics(labels map[string]string) *F1 {
 	return f
 }
 
-// Registers a new test scenario with the given name. This is the name used when running
+// Add registers a new test scenario with the given name. This is the name used when running
 // load test scenarios. For example, calling the function with the following arguments:
 //
 //	f.Add("myTest", myScenario)
@@ -119,6 +119,31 @@ func newSignalContext(stopCh <-chan struct{}) context.Context {
 	return ctx
 }
 
+// Execute synchronously runs the F1 CLI. This function is the blocking entrypoint to the CLI,
+// so you should register your test scenarios with the Add function prior to calling this
+// function.
+func (f *F1) Execute() {
+	if err := f.execute(nil); err != nil {
+		f.options.output.Display(ui.ErrorMessage{Message: "f1 failed", Error: err})
+		os.Exit(1)
+	}
+}
+
+// ExecuteWithArgs is similar to Execute, but takes command line arguments from the args array.
+// Useful for testing F1 test scenarios.
+func (f *F1) ExecuteWithArgs(args []string) error {
+	if err := f.execute(args); err != nil {
+		return fmt.Errorf("execute with args: %w", err)
+	}
+
+	return nil
+}
+
+// GetScenarios returns the list of registered scenarios.
+func (f *F1) GetScenarios() *scenarios.Scenarios {
+	return f.scenarios
+}
+
 func (f *F1) execute(args []string) error {
 	rootCmd, err := buildRootCmd(f.scenarios, f.settings, f.profiling, f.options.output, f.options.staticMetrics)
 	if err != nil {
@@ -144,29 +169,4 @@ func (f *F1) execute(args []string) error {
 	}
 
 	return nil
-}
-
-// Synchronously runs the F1 CLI. This function is the blocking entrypoint to the CLI,
-// so you should register your test scenarios with the Add function prior to calling this
-// function.
-func (f *F1) Execute() {
-	if err := f.execute(nil); err != nil {
-		f.options.output.Display(ui.ErrorMessage{Message: "f1 failed", Error: err})
-		os.Exit(1)
-	}
-}
-
-// Similar to Execute, but takes command line arguments from the args array. Useful
-// for testing F1 test scenarios.
-func (f *F1) ExecuteWithArgs(args []string) error {
-	if err := f.execute(args); err != nil {
-		return fmt.Errorf("execute with args: %w", err)
-	}
-
-	return nil
-}
-
-// Returns the list of registered scenarios.
-func (f *F1) GetScenarios() *scenarios.Scenarios {
-	return f.scenarios
 }

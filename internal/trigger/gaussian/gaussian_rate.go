@@ -157,6 +157,43 @@ type Calculator struct {
 	averageWeight float64
 }
 
+func NewCalculator(
+	peak time.Duration,
+	stddev time.Duration,
+	frequency time.Duration,
+	weights []float64,
+	volume float64,
+	repeatWindow time.Duration,
+) (*Calculator, error) {
+	multiplier := volume * float64(frequency)
+	gauss, err := gaussian.NewDistribution(float64(peak), float64(stddev))
+	if err != nil {
+		return nil, fmt.Errorf("gaussian: %w", err)
+	}
+
+	averageWeight := 1.0
+	if len(weights) > 0 {
+		totalWeight := 0.0
+		for _, weight := range weights {
+			totalWeight += weight
+		}
+		averageWeight = totalWeight / float64(len(weights))
+	}
+
+	// account for large standard deviations or peaks beyond the window
+	coveredRegion := gauss.CDF(float64(repeatWindow-frequency)) - gauss.CDF(0)
+	multiplier /= coveredRegion
+
+	return &Calculator{
+		frequency:     frequency,
+		dist:          gauss,
+		weights:       weights,
+		averageWeight: averageWeight,
+		multiplier:    multiplier,
+		repeatWindow:  repeatWindow,
+	}, nil
+}
+
 func CalculateGaussianRate(
 	volume, jitter float64,
 	repeat, frequency, peak, stddev time.Duration,
@@ -219,43 +256,6 @@ func (c *Calculator) For(now time.Time) int {
 	floorRate := math.Floor(rateWithRemainder)
 	c.remainder = rateWithRemainder - floorRate
 	return int(floorRate)
-}
-
-func NewCalculator(
-	peak time.Duration,
-	stddev time.Duration,
-	frequency time.Duration,
-	weights []float64,
-	volume float64,
-	repeatWindow time.Duration,
-) (*Calculator, error) {
-	multiplier := volume * float64(frequency)
-	gauss, err := gaussian.NewDistribution(float64(peak), float64(stddev))
-	if err != nil {
-		return nil, fmt.Errorf("gaussian: %w", err)
-	}
-
-	averageWeight := 1.0
-	if len(weights) > 0 {
-		totalWeight := 0.0
-		for _, weight := range weights {
-			totalWeight += weight
-		}
-		averageWeight = totalWeight / float64(len(weights))
-	}
-
-	// account for large standard deviations or peaks beyond the window
-	coveredRegion := gauss.CDF(float64(repeatWindow-frequency)) - gauss.CDF(0)
-	multiplier /= coveredRegion
-
-	return &Calculator{
-		frequency:     frequency,
-		dist:          gauss,
-		weights:       weights,
-		averageWeight: averageWeight,
-		multiplier:    multiplier,
-		repeatWindow:  repeatWindow,
-	}, nil
 }
 
 func CalculateVolume(peakTps string, peakTime, stddev time.Duration) (float64, error) {

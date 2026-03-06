@@ -1,44 +1,75 @@
+# golangci-lint configuration for F1
+#
+# Philosophy: Enable all linters by default, then selectively disable those that
+# add noise or conflict with project conventions. Exclusions are documented to
+# help contributors understand the rationale.
+#
+# Run: make lint (uses 600s timeout)
+# Fix: make lint-fix
+#
+# See: https://golangci-lint.run/docs/configuration/
+
 version: "2"
+
 run:
+  # Run tests for analyzers that require it (e.g. testifylint)
   tests: true
+  # Match Makefile timeout; prevents CI hangs
+  timeout: 600s
+  # Reproducible builds; matches go test -mod=readonly
+  modules-download-mode: readonly
+
 linters:
   default: all
   disable:
+    # Complexity metrics - often noisy; prefer smaller functions via code review
     - cyclop
-    - dupl
-    - err113
     - funlen
     - gocognit
     - gocyclo
-    - godot
     - maintidx
-    - mnd
     - nestif
-    - nilnil
-    - nlreturn
-    - varnamelen
-    - wsl
+    # Code duplication - can produce false positives; use sparingly
+    - dupl
+    # Style preferences - project chooses different conventions
+    - godot          # Sentence style in comments (we use varied styles)
+    - nlreturn       # Blank line before return (we prefer compact)
+    - varnamelen     # Variable name length (too strict for tests/loops)
+    - wsl            # Whitespace/line rules (conflicts with readability)
+    - wsl_v5         # WSL v5 variant
+    # Style - inline error handling preference
+    - noinlineerr    # Inline error returns
+    # Error handling - requires sentinel for every validation; too verbose for config/parsing errors
+    - err113
+    # Magic numbers - too strict for config values, test fixtures
+    - mnd
+
   settings:
     depguard:
       rules:
         main:
           deny:
             - pkg: github.com/pkg/errors
-              desc: Please use go built-in error wrapping and handling via `fmt` and `errors` packages
+              desc: Use stdlib error wrapping via fmt.Errorf and errors package
             - pkg: github.com/giantswarm/retry-go
-              desc: Please use https://github.com/avast/retry-go/v4
+              desc: Use https://github.com/avast/retry-go/v4
+
     exhaustruct:
+      # Structs that must have all fields explicitly set
       include:
         - github.com/form3tech-oss/f1/v2/internal/run/views.*
+
     nolintlint:
-      require-explanation: true
-      require-specific: true
-      allow-unused: false
+      require-explanation: true   # nolint directives must explain why
+      require-specific: true     # Prefer nolint:linter over nolint
+      allow-unused: false        # Flag unused nolint directives
+
     tagliatelle:
       case:
         rules:
           json: snake
           yaml: kebab
+
   exclusions:
     generated: lax
     presets:
@@ -46,33 +77,42 @@ linters:
       - common-false-positives
       - legacy
       - std-error-handling
+
     rules:
-      - linters:
-          - staticcheck
+      # Deprecated Logger/WithLogrusLogger - legacy API support
+      - linters: [staticcheck]
         path: \.go
-        text: 'SA1019: (.*.Logger|testing.WithLogrusLogger)'
-      - linters:
-          - dupword
-          - lll
-          - unparam
-          - wrapcheck
+        text: "SA1019: (.*.Logger|testing.WithLogrusLogger)"
+
+      # Test files - relaxed rules for readability
+      - linters: [dupword, lll, unparam, wrapcheck]
         path: _test\.go
-      - linters:
-          - staticcheck
+      - linters: [staticcheck]
         path: _test\.go
         text: ST1003
-      - linters:
-          - revive
+      - linters: [revive]
         path: _test\.go
-        text: 'var-naming: don''t use underscores in Go names;'
+        text: "var-naming: don't use underscores in Go names;"
+
+      # Package naming - log, metrics, testing, etc. are intentional
+      - linters: [revive]
+        path: \.go
+        text: "var-naming: avoid (package names that conflict with Go standard library package names|meaningless package names)"
+
+      # benchcmd - intentional placeholder assertions for benchmark scenarios
+      - linters: [testifylint]
+        path: benchcmd/
+
     paths:
       - vendor$
       - third_party$
       - builtin$
       - examples$
+
 issues:
   max-issues-per-linter: 0
   max-same-issues: 0
+
 formatters:
   enable:
     - gci

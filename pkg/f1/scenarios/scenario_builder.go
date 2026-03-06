@@ -6,12 +6,12 @@ import (
 	"github.com/form3tech-oss/f1/v2/pkg/f1/testing"
 )
 
-// Represents a list of test scenarios.
+// Scenarios represents a list of test scenarios.
 type Scenarios struct {
 	scenarios map[string]*Scenario
 }
 
-// Represents a test scenario.
+// Scenario represents a test scenario.
 type Scenario struct {
 	// The name of the test scenario, which can be used to invoke it via the CLI.
 	Name        string

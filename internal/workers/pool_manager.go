@@ -29,15 +29,6 @@ func New(maxIterations uint64, activeScenario *ActiveScenario) *PoolManager {
 	return w
 }
 
-func (m *PoolManager) makeIterationStatePool(numWorkers int) []*iterationState {
-	statePool := make([]*iterationState, numWorkers)
-	for i := range numWorkers {
-		statePool[i] = m.activeScenario.newIterationState()
-	}
-
-	return statePool
-}
-
 func (m *PoolManager) WaitForCompletion() <-chan struct{} {
 	done := make(chan struct{})
 	go func() {
@@ -72,4 +63,13 @@ func (m *PoolManager) NewTriggerPool(numWorkers int) *TriggerPool {
 
 func (m *PoolManager) NewContinuousPool(numWorkers int) *ContinuousPool {
 	return newContinuousPool(m, numWorkers)
+}
+
+func (m *PoolManager) makeIterationStatePool(numWorkers int) []*iterationState {
+	statePool := make([]*iterationState, numWorkers)
+	for i := range numWorkers {
+		statePool[i] = m.activeScenario.newIterationState()
+	}
+
+	return statePool
 }
