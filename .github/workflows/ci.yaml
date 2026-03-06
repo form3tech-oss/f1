@@ -9,19 +9,19 @@ jobs:
   version:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
       - name: version
         id: version
-        uses: codacy/git-version@80c816f11db8dea5e3a81025f598193015b51832 #v2.8.0
+        uses: codacy/git-version@877bb11b7a2ee44dcd7c0a03882c7037356e64e9 # v2.8.6
         with:
           prefix: "v"
           minor-identifier: /feat(\([\w\d]+\))?:/
           major-identifier: /^\s*BREAKING(\s+CHANGE)?:/
-      - uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
+      - uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417 # v6.3.0
         with:
-          go-version: '1.22'
+          go-version: '1.26'
       - name: Install gorelease
         run: go install golang.org/x/exp/cmd/gorelease@v0.0.0-20250210185358-939b2ce775ac
       - name: verify-version
@@ -29,12 +29,12 @@ jobs:
   Test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
-      - uses: actions/setup-go@f111f3307d8850f501ac008e886eec1fd1932a34 # v5.3.0
+      - uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417 # v6.3.0
         with:
-          go-version: '1.22'
+          go-version: '1.26'
       - name: test
         run: |
           make lint
