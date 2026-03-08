@@ -79,11 +79,6 @@ linters:
       - std-error-handling
 
     rules:
-      # Deprecated Logger/WithLogrusLogger - legacy API support
-      - linters: [staticcheck]
-        path: \.go
-        text: "SA1019: (.*.Logger|testing.WithLogrusLogger)"
-
       # Test files - relaxed rules for readability
       - linters: [dupword, lll, unparam, wrapcheck]
         path: _test\.go

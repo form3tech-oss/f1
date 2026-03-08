@@ -3,8 +3,6 @@ package workers
 import (
 	"log/slog"
 
-	"github.com/sirupsen/logrus"
-
 	"github.com/form3tech-oss/f1/v2/internal/metrics"
 	"github.com/form3tech-oss/f1/v2/internal/progress"
 	"github.com/form3tech-oss/f1/v2/internal/xtime"
@@ -13,13 +11,12 @@ import (
 )
 
 type ActiveScenario struct {
-	scenario     *scenarios.Scenario
-	m            *metrics.Metrics
-	progress     *progress.Stats
-	t            *testing.T
-	Teardown     func()
-	logger       *slog.Logger
-	logrusLogger *logrus.Logger
+	scenario *scenarios.Scenario
+	m        *metrics.Metrics
+	progress *progress.Stats
+	t        *testing.T
+	Teardown func()
+	logger   *slog.Logger
 }
 
 const instantDuration = 0
@@ -29,23 +26,20 @@ func NewActiveScenario(
 	metricsInstance *metrics.Metrics,
 	stats *progress.Stats,
 	logger *slog.Logger,
-	logrusLogger *logrus.Logger,
 ) *ActiveScenario {
 	t, teardown := testing.NewTWithOptions(scenario.Name,
 		testing.WithIteration("setup"),
 		testing.WithVUID(-1),
 		testing.WithLogger(logger),
-		testing.WithLogrusLogger(logrusLogger),
 	)
 
 	s := &ActiveScenario{
-		scenario:     scenario,
-		m:            metricsInstance,
-		t:            t,
-		Teardown:     teardown,
-		progress:     stats,
-		logger:       logger,
-		logrusLogger: logrusLogger,
+		scenario: scenario,
+		m:        metricsInstance,
+		t:        t,
+		Teardown: teardown,
+		progress: stats,
+		logger:   logger,
 	}
 
 	return s
@@ -98,7 +92,6 @@ func (s *ActiveScenario) newIterationState(id int) *iterationState {
 	t, teardown := testing.NewTWithOptions(s.scenario.Name,
 		testing.WithVUID(id),
 		testing.WithLogger(s.logger),
-		testing.WithLogrusLogger(s.logrusLogger),
 	)
 
 	return &iterationState{

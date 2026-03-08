@@ -8,7 +8,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/require"
 
 	"github.com/form3tech-oss/f1/v2/internal/log"
@@ -23,11 +22,10 @@ var errFailNow = errors.New("FailNow")
 // reporting methods, such as the variations of Log and Error, may be called simultaneously from
 // multiple goroutines.
 type T struct {
-	logrusLogger *logrus.Logger
-	logger       *slog.Logger
-	require      *require.Assertions
-	Iteration    string // iteration number or "setup"
-	Scenario     string
+	logger    *slog.Logger
+	require   *require.Assertions
+	Iteration string // iteration number or "setup"
+	Scenario  string
 	// VUID is the Virtual User ID - a stable identifier for the pool worker running this iteration.
 	// Useful for correlating iterations with user-specific test data (e.g. in the "users" trigger mode).
 	// VUID is -1 for setup; 0-based for pool workers.
@@ -39,15 +37,6 @@ type T struct {
 }
 
 type TOption func(*T)
-
-// WithLogrusLogger will be removed in future versions, needed for backwards compatibility
-//
-// Deprecated: Will be removed in future versions.
-func WithLogrusLogger(logrusLogger *logrus.Logger) TOption {
-	return func(t *T) {
-		t.logrusLogger = logrusLogger
-	}
-}
 
 func WithLogger(logger *slog.Logger) TOption {
 	return func(t *T) {
@@ -77,7 +66,6 @@ func NewT(iter, scenarioName string) (*T, func()) {
 
 	t, teardown := NewTWithOptions(scenarioName,
 		WithIteration(iter),
-		WithLogrusLogger(log.NewSlogLogrusLogger(logger)),
 		WithLogger(logger),
 	)
 
@@ -94,6 +82,9 @@ func NewTWithOptions(scenarioName string, options ...TOption) (*T, func()) {
 	for _, opt := range options {
 		opt(t)
 	}
+	if t.logger == nil {
+		t.logger = slog.Default()
+	}
 
 	return t, t.teardown
 }
@@ -106,17 +97,7 @@ func (t *T) Reset(iter string) {
 	t.teardownStack = []func(){}
 }
 
-// Logger returns a logrus logger, needed for backwards compatibility. Use StandardLogger
-// instead.
-//
-// Internally it uses slog as a logging backend.
-//
-// Deprecated: logrus will be removed in future versions.
-func (t *T) Logger() *logrus.Logger {
-	return t.logrusLogger
-}
-
-func (t *T) StandardLogger() *slog.Logger {
+func (t *T) Logger() *slog.Logger {
 	return t.logger
 }
 

@@ -50,11 +50,11 @@ func logScenario(t *testing.T) testing.RunFn {
 	t.Log("Setup")
 	runFn := func(t *testing.T) {
 		t.Logf("Iteration: %s", t.Iteration)
-		t.Logger().WithField("iteration", t.Iteration).Trace("Trace log")
-		t.Logger().WithField("iteration", t.Iteration).Debug("Debug log")
-		t.Logger().WithField("iteration", t.Iteration).Info("Info log")
-		t.Logger().WithField("iteration", t.Iteration).Warn("Warn log")
-		t.Logger().WithField("iteration", t.Iteration).Error("Error log")
+		t.Logger().With("iteration", t.Iteration).Debug("Trace log")
+		t.Logger().With("iteration", t.Iteration).Debug("Debug log")
+		t.Logger().With("iteration", t.Iteration).Info("Info log")
+		t.Logger().With("iteration", t.Iteration).Warn("Warn log")
+		t.Logger().With("iteration", t.Iteration).Error("Error log")
 
 		panic("panic message")
 	}

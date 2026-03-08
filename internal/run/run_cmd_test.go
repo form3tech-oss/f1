@@ -836,9 +836,9 @@ func TestOutput_JSONLogging(t *testing.T) {
 			"scenario": "scenario_where_each_iteration_takes_200ms",
 		},
 		{
-			"message":  "logrus - setup",
+			"message":  "slog - setup",
 			"level":    "info",
-			"logger":   "logrus",
+			"logger":   "slog",
 			"scenario": "scenario_where_each_iteration_takes_200ms",
 		},
 
@@ -848,9 +848,9 @@ func TestOutput_JSONLogging(t *testing.T) {
 			"scenario": "scenario_where_each_iteration_takes_200ms",
 		},
 		{
-			"message":  "logrus - first iteration",
+			"message":  "slog - first iteration",
 			"level":    "info",
-			"logger":   "logrus",
+			"logger":   "slog",
 			"scenario": "scenario_where_each_iteration_takes_200ms",
 		},
 	}
@@ -867,9 +867,9 @@ func TestOutput_JSONLogging(t *testing.T) {
 			"scenario": "scenario_where_each_iteration_takes_200ms",
 		},
 		{
-			"message":  "logrus - setup",
+			"message":  "slog - setup",
 			"level":    "info",
-			"logger":   "logrus",
+			"logger":   "slog",
 			"scenario": "scenario_where_each_iteration_takes_200ms",
 		},
 
@@ -879,9 +879,9 @@ func TestOutput_JSONLogging(t *testing.T) {
 			"scenario": "scenario_where_each_iteration_takes_200ms",
 		},
 		{
-			"message":  "logrus - first iteration",
+			"message":  "slog - first iteration",
 			"level":    "info",
-			"logger":   "logrus",
+			"logger":   "slog",
 			"scenario": "scenario_where_each_iteration_takes_200ms",
 		},
 

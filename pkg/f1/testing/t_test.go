@@ -203,12 +203,10 @@ func catchPanics(done chan<- struct{}) {
 
 func newT() (*f1testing.T, func()) {
 	logger := log.NewDiscardLogger()
-	logrus := log.NewSlogLogrusLogger(logger)
 
 	return f1testing.NewTWithOptions(
 		"test",
 		f1testing.WithIteration("iteration 0"),
 		f1testing.WithLogger(logger),
-		f1testing.WithLogrusLogger(logrus),
 	)
 }

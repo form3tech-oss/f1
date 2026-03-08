@@ -85,7 +85,6 @@ func NewRun(
 		metricsInstance,
 		progressStats,
 		scenarioLogger.Logger,
-		log.NewSlogLogrusLogger(scenarioLogger.Logger),
 	)
 
 	pusher := newMetricsPusher(settings, scenario.Name, metricsInstance)

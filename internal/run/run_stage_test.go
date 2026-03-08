@@ -336,14 +336,14 @@ func (s *RunTestStage) a_scenario_where_each_iteration_takes(duration time.Durat
 		scenarioT.Cleanup(s.scenarioCleanup)
 
 		scenarioT.Log("setup")
-		scenarioT.Logger().WithField("logger", "logrus").Info("logrus - setup")
+		scenarioT.Logger().With("logger", "slog").Info("slog - setup")
 
 		s.runCount.Store(0)
 
 		return func(iterationT *f1_testing.T) {
 			if s.runCount.Load() == 0 {
 				scenarioT.Log("first iteration")
-				scenarioT.Logger().WithField("logger", "logrus").Info("logrus - first iteration")
+				scenarioT.Logger().With("logger", "slog").Info("slog - first iteration")
 			}
 			iterationT.Cleanup(s.iterationCleanup)
 
