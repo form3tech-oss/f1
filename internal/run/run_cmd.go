@@ -146,16 +146,6 @@ func runCmdExecute(
 			output.Display(ui.WarningMessage{Message: "--verbose-fail option has been removed"})
 		}
 
-		if settings.Fluentd.Present() {
-			output.Display(ui.WarningMessage{
-				Message: fmt.Sprintf("WARNING: fluentd integration has been removed. %s and %s have no effect.",
-					envsettings.EnvFluentdHost,
-					envsettings.EnvFluentdPort,
-				),
-			},
-			)
-		}
-
 		run, err := NewRun(options.RunOptions{
 			Scenario:                 scenarioName,
 			MaxDuration:              duration,
