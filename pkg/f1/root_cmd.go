@@ -7,7 +7,6 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/form3tech-oss/f1/v2/internal/chart"
 	"github.com/form3tech-oss/f1/v2/internal/envsettings"
 	"github.com/form3tech-oss/f1/v2/internal/metrics"
 	"github.com/form3tech-oss/f1/v2/internal/run"
@@ -56,7 +55,6 @@ func buildRootCmd(
 		metricsInstance,
 		output,
 	))
-	rootCmd.AddCommand(chart.Cmd(builders, output))
 	rootCmd.AddCommand(scenarios.Cmd(scenarioList))
 	rootCmd.AddCommand(completionsCmd(rootCmd))
 	return rootCmd, nil
