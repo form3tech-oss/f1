@@ -23,11 +23,15 @@ var errFailNow = errors.New("FailNow")
 // reporting methods, such as the variations of Log and Error, may be called simultaneously from
 // multiple goroutines.
 type T struct {
-	logrusLogger   *logrus.Logger
-	logger         *slog.Logger
-	require        *require.Assertions
-	Iteration      string // iteration number or "setup"
-	Scenario       string
+	logrusLogger *logrus.Logger
+	logger       *slog.Logger
+	require      *require.Assertions
+	Iteration    string // iteration number or "setup"
+	Scenario     string
+	// VUID is the Virtual User ID - a stable identifier for the pool worker running this iteration.
+	// Useful for correlating iterations with user-specific test data (e.g. in the "users" trigger mode).
+	// VUID is -1 for setup; 0-based for pool workers.
+	VUID           int
 	teardownStack  []func()
 	failed         atomic.Bool
 	teardownFailed atomic.Bool
@@ -54,6 +58,14 @@ func WithLogger(logger *slog.Logger) TOption {
 func WithIteration(iteration string) TOption {
 	return func(t *T) {
 		t.Iteration = iteration
+	}
+}
+
+// WithVUID sets the Virtual User ID for the test context.
+// Use -1 for setup phase; 0-based integers for pool workers.
+func WithVUID(id int) TOption {
+	return func(t *T) {
+		t.VUID = id
 	}
 }
 
@@ -148,7 +160,7 @@ func (t *T) Errorf(format string, args ...any) {
 
 // Error is equivalent to Log followed by Fail.
 func (t *T) Error(err error) {
-	t.logger.Error("iteration failed", log.IterationAttr(t.Iteration), log.ErrorAttr(err))
+	t.logger.Error("iteration failed", log.IterationAttr(t.Iteration), log.VUIDAttr(t.VUID), log.ErrorAttr(err))
 	t.Fail()
 }
 
@@ -160,7 +172,7 @@ func (t *T) Fatalf(format string, args ...any) {
 
 // Fatal is equivalent to Log followed by FailNow.
 func (t *T) Fatal(err error) {
-	t.logger.Error("iteration failed", log.IterationAttr(t.Iteration), log.ErrorAttr(err))
+	t.logger.Error("iteration failed", log.IterationAttr(t.Iteration), log.VUIDAttr(t.VUID), log.ErrorAttr(err))
 	t.FailNow()
 }
 
@@ -220,6 +232,7 @@ func handlePanic(t *T, recovered any) {
 		t.logger.Error("recovered panic in scenario",
 			log.StackTraceAttr(stack),
 			log.IterationAttr(t.Iteration),
+			log.VUIDAttr(t.VUID),
 			log.ErrorAttr(err),
 		)
 		t.Fail()
@@ -228,6 +241,7 @@ func handlePanic(t *T, recovered any) {
 		t.logger.Error("recovered panic in scenario",
 			log.StackTraceAttr(stack),
 			log.IterationAttr(t.Iteration),
+			log.VUIDAttr(t.VUID),
 			log.ErrorAnyAttr(recovered),
 		)
 		t.Fail()
