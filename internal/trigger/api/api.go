@@ -28,6 +28,7 @@ type Builder struct {
 	Flags             *pflag.FlagSet
 	Name              string
 	Description       string
+	Long              string // optional long description (e.g. short-flag meanings)
 	IgnoreCommonFlags bool
 }
 

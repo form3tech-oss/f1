@@ -16,6 +16,37 @@ import (
 	"github.com/form3tech-oss/f1/v2/pkg/f1/scenarios"
 )
 
+// runTriggerUsageTemplate uses groupedFlagUsages for the Flags section.
+const runTriggerUsageTemplate = `Usage:{{if .Runnable}}
+  {{.UseLine}}{{end}}{{if .HasAvailableSubCommands}}
+  {{.CommandPath}} [command]{{end}}{{if gt (len .Aliases) 0}}
+
+Aliases:
+  {{.NameAndAliases}}{{end}}{{if .HasExample}}
+
+Examples:
+{{.Example}}{{end}}{{if .HasAvailableSubCommands}}{{$cmds := .Commands}}{{if eq (len .Groups) 0}}
+
+Available Commands:{{range $cmds}}{{if (or .IsAvailableCommand (eq .Name "help"))}}
+  {{rpad .Name .NamePadding }} {{.Short}}{{end}}{{end}}{{else}}{{range $group := .Groups}}
+
+{{.Title}}{{range $cmds}}{{if (and (eq .GroupID $group.ID) (or .IsAvailableCommand (eq .Name "help")))}}
+  {{rpad .Name .NamePadding }} {{.Short}}{{end}}{{end}}{{end}}{{if not .AllChildCommandsHaveGroup}}
+
+Additional Commands:{{range $cmds}}{{if (and (eq .GroupID "") (or .IsAvailableCommand (eq .Name "help")))}}
+  {{rpad .Name .NamePadding }} {{.Short}}{{end}}{{end}}{{end}}{{end}}{{end}}{{if .HasAvailableLocalFlags}}
+
+{{groupedFlagUsages . | trimTrailingWhitespaces}}{{end}}{{if .HasAvailableInheritedFlags}}
+
+Global Flags:
+{{.InheritedFlags.FlagUsages | trimTrailingWhitespaces}}{{end}}{{if .HasHelpSubCommands}}
+
+Additional help topics:{{range .Commands}}{{if .IsAdditionalHelpTopicCommand}}
+  {{rpad .CommandPath .CommandPathPadding}} {{.Short}}{{end}}{{end}}{{end}}{{if .HasAvailableSubCommands}}
+
+Use "{{.CommandPath}} [command] --help" for more information about a command.{{end}}
+`
+
 func Cmd(
 	s *scenarios.Scenarios,
 	builders []api.Builder,
@@ -23,6 +54,8 @@ func Cmd(
 	metricsInstance *metrics.Metrics,
 	output *ui.Output,
 ) *cobra.Command {
+	registerHelpTemplateFunc()
+
 	runCmd := &cobra.Command{
 		Use:   "run <subcommand>",
 		Short: "Runs a test scenario",
@@ -32,31 +65,44 @@ func Cmd(
 		triggerCmd := &cobra.Command{
 			Use:   t.Name,
 			Short: t.Description,
+			Long:  t.Long,
 			RunE:  runCmdExecute(s, t, settings, metricsInstance, output),
 			Args:  cobra.MatchAll(cobra.ExactArgs(1)),
 		}
 
-		triggerCmd.Flags().BoolP(triggerflags.FlagVerbose, "v", false, "enables log output to stdout")
+		triggerCmd.Flags().SortFlags = false
+
+		// Output
+		triggerCmd.Flags().BoolP(triggerflags.FlagVerbose, "v", false, "enable log output to stdout")
 
 		if !t.IgnoreCommonFlags {
 			triggerCmd.ValidArgs = s.GetScenarioNames()
 
-			triggerCmd.Flags().Bool(triggerflags.FlagIgnoreDropped, false, "dropped requests will not fail the run")
+			// Duration & limits
 			triggerCmd.Flags().DurationP(triggerflags.FlagMaxDuration, "d", time.Second,
-				"--max-duration 1s (stop after 1 second)")
-			triggerCmd.Flags().IntP(triggerflags.FlagConcurrency, "c", 100,
-				"--concurrency 2 (allow at most 2 groups of iterations to run concurrently)")
+				"stop after duration (e.g. 1s, 5m)")
 			triggerCmd.Flags().Uint64P(triggerflags.FlagMaxIterations, "i", 0,
-				"--max-iterations 100 (stop after 100 iterations, regardless of remaining duration)")
+				"stop after N iterations (0 = unlimited)")
+
+			// Concurrency
+			triggerCmd.Flags().IntP(triggerflags.FlagConcurrency, "c", 100,
+				"max concurrent iteration groups (e.g. 2, 100)")
+
+			// Failure handling
 			triggerCmd.Flags().Uint64(triggerflags.FlagMaxFailures, 0,
-				"--max-failures 10 (load test will fail if more than 10 errors occurred, default is 0)")
+				"fail run if error count exceeds N (0 = disabled)")
 			triggerCmd.Flags().Int(triggerflags.FlagMaxFailuresRate, 0,
-				"--max-failures-rate 5 (load test will fail if more than 5\\% requests failed, default is 0)")
+				"fail run if error rate exceeds N%% (0 = disabled)")
+			triggerCmd.Flags().Bool(triggerflags.FlagIgnoreDropped, false,
+				"do not fail run when requests are dropped")
+
+			// Shutdown
 			triggerCmd.Flags().Duration(triggerflags.FlagWaitForCompletionTimeout, 10*time.Second,
-				"--wait-for-completion-timeout 10s (wait for completion for 10 seconds)")
+				"wait for active iterations before exit (e.g. 10s)")
 		}
 
 		triggerCmd.Flags().AddFlagSet(t.Flags)
+		triggerCmd.SetUsageTemplate(runTriggerUsageTemplate)
 		runCmd.AddCommand(triggerCmd)
 	}
 

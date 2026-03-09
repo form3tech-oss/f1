@@ -31,24 +31,19 @@ const (
 func Rate(output *ui.Output) api.Builder {
 	flags := pflag.NewFlagSet("gaussian", pflag.ContinueOnError)
 	flags.Float64(flagVolume, defaultVolume,
-		"The desired volume to be achieved with the calculated load profile. "+
-			"Will be ignored if --peak-rate is also provided.")
+		"desired volume for load profile (ignored if --peak-rate is set)")
 	flags.Duration(flagRepeat, 24*time.Hour,
-		"How often the cycle should repeat")
+		"cycle repeat interval (default 24h)")
 	flags.Duration(flagIterationFrequency, 1*time.Second,
-		"How frequently iterations should be started")
+		"how often to start iterations (default 1s)")
 	flags.String(flagWeights, "",
-		"Optional scaling factor to apply per repetition. "+
-			"This can be used for example with daily repetitions to set different weights per day of the week")
+		"comma-separated scaling factors per repetition (e.g. per day of week)")
 	flags.Duration(flagPeak, 14*time.Hour,
-		"The offset within the repetition window when the load should reach its maximum. "+
-			"Default 14 hours (with 24 hour default repeat)")
+		"offset within repeat window when load peaks (default 14h)")
 	flags.StringP(flagPeakRate, "r", "",
-		"number of iterations per interval in peak time, "+
-			"in the form <request>/<duration> (e.g. 1/s). If --peak-rate is provided, "+
-			"the value given for --volume will be ignored.")
+		"peak rate, e.g. 100/s (overrides --volume)")
 	flags.Duration(flagStandardDeviation, 150*time.Minute,
-		"The standard deviation to use for the distribution of load")
+		"standard deviation for load distribution (default 150m)")
 
 	triggerflags.JitterFlag(flags)
 	triggerflags.DistributionFlag(flags)
@@ -56,6 +51,7 @@ func Rate(output *ui.Output) api.Builder {
 	return api.Builder{
 		Name:        "gaussian <scenario>",
 		Description: "distributes load to match a desired monthly volume",
+		Long:        "Short flags: -r peak-rate",
 		Flags:       flags,
 		New: func(flags *pflag.FlagSet) (*api.Trigger, error) {
 			volume, err := flags.GetFloat64(flagVolume)

@@ -476,7 +476,7 @@ func (s *RunTestStage) build_trigger() *api.Trigger {
 		err = flags.Set("stages", s.stages)
 		require.NoError(s.t, err)
 
-		err = flags.Set("iterationFrequency", s.frequency)
+		err = flags.Set("iteration-frequency", s.frequency)
 		require.NoError(s.t, err)
 
 		if s.distributionType != "" {

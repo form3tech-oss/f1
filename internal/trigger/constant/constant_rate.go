@@ -18,7 +18,7 @@ const (
 func Rate() api.Builder {
 	flags := pflag.NewFlagSet("constant", pflag.ContinueOnError)
 	flags.StringP(flagRate, "r", "1/s",
-		"number of iterations to start per interval, in the form <request>/<duration>")
+		"iterations per interval, e.g. 10/s, 100/m")
 
 	triggerflags.JitterFlag(flags)
 	triggerflags.DistributionFlag(flags)
@@ -26,6 +26,7 @@ func Rate() api.Builder {
 	return api.Builder{
 		Name:        "constant <scenario>",
 		Description: "triggers test iterations at a constant rate",
+		Long:        "Short flags: -r rate, -j jitter",
 		Flags:       flags,
 		New: func(params *pflag.FlagSet) (*api.Trigger, error) {
 			rateArg, err := params.GetString(flagRate)

@@ -21,11 +21,11 @@ const (
 func Rate() api.Builder {
 	flags := pflag.NewFlagSet("ramp", pflag.ContinueOnError)
 	flags.StringP(flagStartRate, "s", "1/s",
-		"number of iterations to start per interval, in the form <request>/<duration>")
+		"initial rate, e.g. 1/s, 10/m")
 	flags.StringP(flagEndRate, "e", "1/s",
-		"number of iterations to end per interval, in the form <request>/<duration>")
+		"target rate at end of ramp, e.g. 100/s")
 	flags.DurationP(flagRampDuration, "r", 1*time.Second,
-		"ramp duration, if not provided then --max-duration will be used")
+		"ramp duration (default: --max-duration)")
 
 	triggerflags.JitterFlag(flags)
 	triggerflags.DistributionFlag(flags)
@@ -33,6 +33,7 @@ func Rate() api.Builder {
 	return api.Builder{
 		Name:        "ramp <scenario>",
 		Description: "ramp up or down requests for a certain duration",
+		Long:        "Short flags: -s start-rate, -e end-rate, -r ramp-duration",
 		Flags:       flags,
 		New: func(flags *pflag.FlagSet) (*api.Trigger, error) {
 			startRateArg, err := flags.GetString(flagStartRate)

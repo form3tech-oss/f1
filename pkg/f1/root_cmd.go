@@ -17,8 +17,8 @@ import (
 )
 
 const (
-	flagCPUProfile = "cpuprofile"
-	flagMemProfile = "memprofile"
+	flagCPUProfile = "cpu-profile"
+	flagMemProfile = "mem-profile"
 )
 
 func buildRootCmd(
