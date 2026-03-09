@@ -1,6 +1,7 @@
 package run
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"time"
@@ -48,6 +49,7 @@ Use "{{.CommandPath}} [command] --help" for more information about a command.{{e
 `
 
 func Cmd(
+	ctx context.Context,
 	s *scenarios.Scenarios,
 	builders []api.Builder,
 	settings envsettings.Settings,
@@ -66,7 +68,7 @@ func Cmd(
 			Use:   t.Name,
 			Short: t.Description,
 			Long:  t.Long,
-			RunE:  runCmdExecute(s, t, settings, metricsInstance, output),
+			RunE:  runCmdExecute(ctx, s, t, settings, metricsInstance, output),
 			Args:  cobra.MatchAll(cobra.ExactArgs(1)),
 		}
 
@@ -110,6 +112,7 @@ func Cmd(
 }
 
 func runCmdExecute(
+	ctx context.Context,
 	s *scenarios.Scenarios,
 	t api.Builder,
 	settings envsettings.Settings,
@@ -197,7 +200,7 @@ func runCmdExecute(
 		if err != nil {
 			return fmt.Errorf("new run: %w", err)
 		}
-		result, err := run.Do(cmd.Context())
+		result, err := run.Do(ctx)
 		if err != nil {
 			return fmt.Errorf("internal error on run: %w", err)
 		}

@@ -100,7 +100,7 @@ func (s *f1Stage) a_scenario_that_logs() *f1Stage {
 }
 
 func (s *f1Stage) the_f1_scenario_is_executed_with_constant_rate_and_args(args ...string) *f1Stage {
-	err := s.f1.ExecuteWithArgs(append([]string{
+	err := s.f1.Run(context.TODO(), append([]string{
 		"run", "constant", s.scenario,
 	}, args...))
 	s.require.NoError(err, "error executing scenarios")
@@ -109,7 +109,7 @@ func (s *f1Stage) the_f1_scenario_is_executed_with_constant_rate_and_args(args .
 }
 
 func (s *f1Stage) an_unknown_f1_scenario_is_executed() *f1Stage {
-	s.executeErr = s.f1.ExecuteWithArgs([]string{
+	s.executeErr = s.f1.Run(context.TODO(), []string{
 		"run", "constant", "unknownScenario",
 	})
 

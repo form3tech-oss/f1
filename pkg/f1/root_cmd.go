@@ -1,6 +1,7 @@
 package f1
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path"
@@ -22,6 +23,7 @@ const (
 )
 
 func buildRootCmd(
+	ctx context.Context,
 	scenarioList *scenarios.Scenarios,
 	settings envsettings.Settings,
 	p *profiling,
@@ -50,6 +52,7 @@ func buildRootCmd(
 	builders := trigger.GetBuilders(output)
 
 	rootCmd.AddCommand(run.Cmd(
+		ctx,
 		scenarioList,
 		builders,
 		settings,

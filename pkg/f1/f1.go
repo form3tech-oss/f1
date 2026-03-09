@@ -91,11 +91,10 @@ func (f *F1) Add(name string, scenarioFn f1testing.ScenarioFn, options ...scenar
 	return f
 }
 
-// NewSignalContext returns a context.Context that is cancelled whenever
-// 'SIGINT' or 'SIGTERM' are received.
-// If one of these two signals is received a second time, the application exits.
-func newSignalContext(stopCh <-chan struct{}) context.Context {
-	ctx, cancel := context.WithCancel(context.Background())
+// newSignalContext returns a context that is cancelled when parent is cancelled or
+// when SIGINT/SIGTERM is received. If a signal is received a second time, the app exits.
+func newSignalContext(parent context.Context, stopCh <-chan struct{}) context.Context {
+	ctx, cancel := context.WithCancel(parent)
 
 	c := make(chan os.Signal, signalChanBufferSize)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
@@ -104,6 +103,8 @@ func newSignalContext(stopCh <-chan struct{}) context.Context {
 		select {
 		case <-c:
 			cancel()
+		case <-parent.Done():
+			return
 		case <-stopCh:
 			return
 		}
@@ -119,24 +120,22 @@ func newSignalContext(stopCh <-chan struct{}) context.Context {
 	return ctx
 }
 
-// Execute synchronously runs the F1 CLI. This function is the blocking entrypoint to the CLI,
-// so you should register your test scenarios with the Add function prior to calling this
-// function.
+// Run runs the CLI with the given args. Returns error on failure; never exits.
+// ctx controls cancellation; SIGINT/SIGTERM also cancel via internal signal handling.
+// Pass nil for args to use os.Args (e.g. when called from main).
+func (f *F1) Run(ctx context.Context, args []string) error {
+	if err := f.execute(ctx, args); err != nil {
+		return fmt.Errorf("run: %w", err)
+	}
+	return nil
+}
+
+// Execute runs the CLI and exits with code 1 on error. Convenience for main().
 func (f *F1) Execute() {
-	if err := f.execute(nil); err != nil {
+	if err := f.Run(context.Background(), nil); err != nil {
 		f.options.output.Display(ui.ErrorMessage{Message: "f1 failed", Error: err})
 		os.Exit(1)
 	}
-}
-
-// ExecuteWithArgs is similar to Execute, but takes command line arguments from the args array.
-// Useful for testing F1 test scenarios.
-func (f *F1) ExecuteWithArgs(args []string) error {
-	if err := f.execute(args); err != nil {
-		return fmt.Errorf("execute with args: %w", err)
-	}
-
-	return nil
 }
 
 // GetScenarios returns the list of registered scenarios.
@@ -144,8 +143,12 @@ func (f *F1) GetScenarios() *scenarios.Scenarios {
 	return f.scenarios
 }
 
-func (f *F1) execute(args []string) error {
-	rootCmd, err := buildRootCmd(f.scenarios, f.settings, f.profiling, f.options.output, f.options.staticMetrics)
+func (f *F1) execute(ctx context.Context, args []string) error {
+	stopCh := make(chan struct{})
+	defer close(stopCh)
+	execCtx := newSignalContext(ctx, stopCh)
+
+	rootCmd, err := buildRootCmd(execCtx, f.scenarios, f.settings, f.profiling, f.options.output, f.options.staticMetrics)
 	if err != nil {
 		return fmt.Errorf("building root command: %w", err)
 	}
@@ -154,11 +157,7 @@ func (f *F1) execute(args []string) error {
 		rootCmd.SetArgs(args)
 	}
 
-	stopCh := make(chan struct{})
-	defer close(stopCh)
-	ctx := newSignalContext(stopCh)
-
-	err = rootCmd.ExecuteContext(ctx)
+	err = rootCmd.ExecuteContext(execCtx)
 	// stop profiling regardless of err
 	profilingErr := f.profiling.stop()
 

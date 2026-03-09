@@ -65,7 +65,7 @@ func (s *f1ScenariosStage) f1_is_configured_to_run_a_combined_scenario() {
 }
 
 func (s *f1ScenariosStage) the_f1_scenario_is_executed() {
-	err := s.runner.ExecuteWithArgs([]string{
+	err := s.runner.Run(context.TODO(), []string{
 		"run", "constant", "combined",
 		"--rate", "5/1s",
 		"--max-duration", "1s",
