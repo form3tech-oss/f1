@@ -29,6 +29,10 @@ func IterationAttr(iteration string) slog.Attr {
 	return slog.String("iteration", iteration)
 }
 
+func VUIDAttr(vuid int) slog.Attr {
+	return slog.Int("vuid", vuid)
+}
+
 func DurationAttr(duration time.Duration) slog.Attr {
 	return slog.Duration("duration", duration)
 }

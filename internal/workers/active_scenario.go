@@ -33,6 +33,7 @@ func NewActiveScenario(
 ) *ActiveScenario {
 	t, teardown := testing.NewTWithOptions(scenario.Name,
 		testing.WithIteration("setup"),
+		testing.WithVUID(-1),
 		testing.WithLogger(logger),
 		testing.WithLogrusLogger(logrusLogger),
 	)
@@ -93,8 +94,9 @@ func (s *ActiveScenario) RecordDroppedIteration() {
 	s.progress.Record(metrics.DroppedResult, instantDuration)
 }
 
-func (s *ActiveScenario) newIterationState() *iterationState {
+func (s *ActiveScenario) newIterationState(id int) *iterationState {
 	t, teardown := testing.NewTWithOptions(s.scenario.Name,
+		testing.WithVUID(id),
 		testing.WithLogger(s.logger),
 		testing.WithLogrusLogger(s.logrusLogger),
 	)

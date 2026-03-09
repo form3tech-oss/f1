@@ -169,6 +169,33 @@ func TestNameReturnsScenarioName(t *testing.T) {
 	require.Equal(t, "test", newT.Name())
 }
 
+func TestWithVUIDSetsVirtualUserID(t *testing.T) {
+	t.Parallel()
+
+	newT, teardown := f1testing.NewTWithOptions("test", f1testing.WithVUID(42))
+	defer teardown()
+
+	require.Equal(t, 42, newT.VUID)
+}
+
+func TestWithVUIDIncludedInErrorLogs(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	logger := slog.New(slog.NewTextHandler(&buf, nil))
+
+	newT, teardown := f1testing.NewTWithOptions("test",
+		f1testing.WithVUID(7),
+		f1testing.WithLogger(logger),
+	)
+	defer teardown()
+
+	newT.Error(errors.New("test error"))
+	logs := buf.String()
+	require.Contains(t, logs, "vuid=7")
+	require.Contains(t, logs, "test error")
+}
+
 func catchPanics(done chan<- struct{}) {
 	_ = recover()
 	close(done)

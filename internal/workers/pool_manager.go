@@ -68,7 +68,7 @@ func (m *PoolManager) NewContinuousPool(numWorkers int) *ContinuousPool {
 func (m *PoolManager) makeIterationStatePool(numWorkers int) []*iterationState {
 	statePool := make([]*iterationState, numWorkers)
 	for i := range numWorkers {
-		statePool[i] = m.activeScenario.newIterationState()
+		statePool[i] = m.activeScenario.newIterationState(i)
 	}
 
 	return statePool
