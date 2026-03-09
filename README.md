@@ -15,12 +15,12 @@ These `ScenarioFn` and `RunFn` functions are defined as types in `f1`:
 
 ```golang
 // ScenarioFn initialises a scenario and returns the iteration function (RunFn) to be invoked for every iteration
-// of the tests.
-type ScenarioFn func(t *T) RunFn
+// of the tests. ctx is cancelled when the run is interrupted or times out.
+type ScenarioFn func(ctx context.Context, t *T) RunFn
 
 // RunFn performs a single iteration of the scenario. 't' may be used for asserting
-// results or failing the scenario.
-type RunFn func(t *T)
+// results or failing the scenario. ctx is cancelled when the run is stopped; check ctx.Done() for cancellation.
+type RunFn func(ctx context.Context, t *T)
 ```
 
 Writing tests is simply a case of implementing the types and registering them with `f1`:
@@ -29,6 +29,7 @@ Writing tests is simply a case of implementing the types and registering them wi
 package main
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/form3tech-oss/f1/v3/pkg/f1"
@@ -42,15 +43,15 @@ func main() {
 }
 
 // Performs any setup steps and returns a function to run on every iteration of the scenario
-func setupMySuperFastLoadTest(t *f1testing.T) f1testing.RunFn {
+func setupMySuperFastLoadTest(ctx context.Context, t *f1testing.T) f1testing.RunFn {
 	fmt.Println("Setup the scenario")
-	
+
 	// Register clean up function which will be invoked at the end of the scenario execution to clean up the setup
 	t.Cleanup(func() {
 		fmt.Println("Clean up the setup of the scenario")
 	})
-	
-	runFn := func(t *f1testing.T) {
+
+	runFn := func(ctx context.Context, t *f1testing.T) {
 		fmt.Println("Run the test")
 
 		// Register clean up function for each test which will be invoked in LIFO order after each iteration

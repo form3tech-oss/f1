@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"os"
 	"strconv"
 	"time"
@@ -18,37 +19,33 @@ func main() {
 		Execute()
 }
 
-func emptyScenario(*f1testing.T) f1testing.RunFn {
-	runFn := func(t *f1testing.T) {
+func emptyScenario(context.Context, *f1testing.T) f1testing.RunFn {
+	return func(_ context.Context, t *f1testing.T) {
 		t.Require().True(true)
 	}
-
-	return runFn
 }
 
-func sleepScenario(t *f1testing.T) f1testing.RunFn {
+func sleepScenario(_ context.Context, t *f1testing.T) f1testing.RunFn {
 	msString := os.Getenv("MS_SLEEP")
 	ms, err := strconv.ParseInt(msString, 10, 64)
 	t.Require().NoError(err)
 
-	runFn := func(*f1testing.T) {
+	runFn := func(_ context.Context, _ *f1testing.T) {
 		time.Sleep(time.Duration(ms) * time.Millisecond)
 	}
 
 	return runFn
 }
 
-func failingScenario(*f1testing.T) f1testing.RunFn {
-	runFn := func(t *f1testing.T) {
+func failingScenario(context.Context, *f1testing.T) f1testing.RunFn {
+	return func(_ context.Context, t *f1testing.T) {
 		t.Require().True(false)
 	}
-
-	return runFn
 }
 
-func logScenario(t *f1testing.T) f1testing.RunFn {
+func logScenario(_ context.Context, t *f1testing.T) f1testing.RunFn {
 	t.Log("Setup")
-	runFn := func(t *f1testing.T) {
+	runFn := func(_ context.Context, t *f1testing.T) {
 		t.Logf("Iteration: %s", t.Iteration)
 		t.Logger().With("iteration", t.Iteration).Debug("Trace log")
 		t.Logger().With("iteration", t.Iteration).Debug("Debug log")

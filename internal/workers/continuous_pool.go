@@ -32,7 +32,7 @@ func (p *ContinuousPool) Start(ctx context.Context) {
 	workersStarted.Add(p.numWorkers)
 	p.manager.runningWorkers.Add(p.numWorkers)
 	for _, iterationState := range p.iterationStatePool {
-		go p.startWorker(iterationState, &workersStarted)
+		go p.startWorker(workerCtx, iterationState, &workersStarted)
 	}
 
 	// context.Done() and context.Err() for context that can be cancelled use a Lock.
@@ -49,6 +49,7 @@ func (p *ContinuousPool) maxIterationsReached() {
 }
 
 func (p *ContinuousPool) startWorker(
+	ctx context.Context,
 	iterationState *iterationState,
 	workersStarted *sync.WaitGroup,
 ) {
@@ -68,6 +69,6 @@ func (p *ContinuousPool) startWorker(
 		}
 
 		iterationState.t.Reset(strconv.FormatUint(iteration, 10))
-		p.manager.activeScenario.Run(iterationState)
+		p.manager.activeScenario.Run(ctx, iterationState)
 	}
 }

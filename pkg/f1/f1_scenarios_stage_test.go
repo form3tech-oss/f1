@@ -1,6 +1,7 @@
 package f1_test
 
 import (
+	"context"
 	"sync/atomic"
 	"testing"
 
@@ -22,10 +23,10 @@ type scenario struct {
 	iterations atomic.Uint32
 }
 
-func (s *scenario) scenariofn(*f1testing.T) f1testing.RunFn {
+func (s *scenario) scenariofn(context.Context, *f1testing.T) f1testing.RunFn {
 	s.setups.Add(1)
 
-	return func(*f1testing.T) {
+	return func(context.Context, *f1testing.T) {
 		s.iterations.Add(1)
 	}
 }

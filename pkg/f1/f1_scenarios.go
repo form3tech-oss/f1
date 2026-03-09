@@ -1,6 +1,8 @@
 package f1
 
 import (
+	"context"
+
 	"github.com/form3tech-oss/f1/v3/pkg/f1/f1testing"
 )
 
@@ -8,15 +10,15 @@ import (
 // sequentially and return a f1testing.RunFn that will call each scenario's RunFn
 // every iteration.
 func CombineScenarios(scenarios ...f1testing.ScenarioFn) f1testing.ScenarioFn {
-	return func(t *f1testing.T) f1testing.RunFn {
+	return func(ctx context.Context, t *f1testing.T) f1testing.RunFn {
 		run := make([]f1testing.RunFn, 0, len(scenarios))
 		for _, s := range scenarios {
-			run = append(run, s(t))
+			run = append(run, s(ctx, t))
 		}
 
-		return func(t *f1testing.T) {
+		return func(ctx context.Context, t *f1testing.T) {
 			for _, r := range run {
-				r(t)
+				r(ctx, t)
 			}
 		}
 	}

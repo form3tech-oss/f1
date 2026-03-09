@@ -169,7 +169,7 @@ func (r *Run) Do(ctx context.Context) (*Result, error) {
 
 	r.metrics.Reset()
 
-	r.activeScenario.Setup()
+	r.activeScenario.Setup(ctx)
 
 	r.pushMetrics(ctx)
 

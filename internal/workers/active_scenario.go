@@ -1,6 +1,7 @@
 package workers
 
 import (
+	"context"
 	"log/slog"
 
 	"github.com/form3tech-oss/f1/v3/internal/metrics"
@@ -45,12 +46,12 @@ func NewActiveScenario(
 	return s
 }
 
-func (s *ActiveScenario) Setup() {
+func (s *ActiveScenario) Setup(ctx context.Context) {
 	start := xtime.NanoTime()
 	func() {
 		defer f1testing.CheckResults(s.t, nil)
 
-		s.scenario.RunFn = s.scenario.ScenarioFn(s.t)
+		s.scenario.RunFn = s.scenario.ScenarioFn(ctx, s.t)
 	}()
 	duration := xtime.NanoTime() - start
 
@@ -67,13 +68,13 @@ func (s *ActiveScenario) Failed() bool {
 }
 
 // Run performs a single iteration of the test.
-func (s *ActiveScenario) Run(state *iterationState) {
+func (s *ActiveScenario) Run(ctx context.Context, state *iterationState) {
 	defer state.teardown()
 
 	start := xtime.NanoTime()
 	func() {
 		defer f1testing.CheckResults(state.t, nil)
-		s.scenario.RunFn(state.t)
+		s.scenario.RunFn(ctx, state.t)
 	}()
 
 	failed := state.t.Failed()

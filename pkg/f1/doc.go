@@ -22,18 +22,20 @@ Cleanup functions can also be provided for both stages, and are executed in LIFO
 Types are provided for setup and iteration/run functions as below:
 
 	// ScenarioFn initialises a scenario and returns the iteration function (RunFn) to be
-	// invoked for every iteration of the tests.
-	type ScenarioFn func(t *T) RunFn
+	// invoked for every iteration of the tests. ctx is cancelled when the run is interrupted or times out.
+	type ScenarioFn func(ctx context.Context, t *T) RunFn
 
 	// RunFn performs a single iteration of the scenario. 't' may be used for asserting
-	// results or failing the scenario.
-	type RunFn func(t *T)
+	// results or failing the scenario. ctx is cancelled when the run is stopped; pass it to
+	// context-aware operations or check ctx.Done() to abort early.
+	type RunFn func(ctx context.Context, t *T)
 
 Writing tests is simply a case of implementing the types and registering them with F1:
 
 	package main
 
 	import (
+		"context"
 		"fmt"
 
 		"github.com/form3tech-oss/f1/v3/pkg/f1"
@@ -48,7 +50,7 @@ Writing tests is simply a case of implementing the types and registering them wi
 	}
 
 	// Performs any setup steps and returns a function to run on every iteration of the scenario
-	func setupMySuperFastLoadTest(t *f1testing.T) f1testing.RunFn {
+	func setupMySuperFastLoadTest(ctx context.Context, t *f1testing.T) f1testing.RunFn {
 		fmt.Println("Setup the scenario")
 
 		// Register clean up function which will be invoked at the end of the scenario
@@ -57,7 +59,7 @@ Writing tests is simply a case of implementing the types and registering them wi
 			fmt.Println("Clean up the setup of the scenario")
 		})
 
-		runFn := func(t *f1testing.T) {
+		runFn := func(ctx context.Context, t *f1testing.T) {
 			fmt.Println("Run the test")
 
 			// Register clean up function for each test which will be invoked in LIFO
