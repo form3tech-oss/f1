@@ -6,15 +6,15 @@ import (
 	"github.com/form3tech-oss/f1/v2/internal/metrics"
 	"github.com/form3tech-oss/f1/v2/internal/progress"
 	"github.com/form3tech-oss/f1/v2/internal/xtime"
+	"github.com/form3tech-oss/f1/v2/pkg/f1/f1testing"
 	"github.com/form3tech-oss/f1/v2/pkg/f1/scenarios"
-	"github.com/form3tech-oss/f1/v2/pkg/f1/testing"
 )
 
 type ActiveScenario struct {
 	scenario *scenarios.Scenario
 	m        *metrics.Metrics
 	progress *progress.Stats
-	t        *testing.T
+	t        *f1testing.T
 	Teardown func()
 	logger   *slog.Logger
 }
@@ -27,10 +27,10 @@ func NewActiveScenario(
 	stats *progress.Stats,
 	logger *slog.Logger,
 ) *ActiveScenario {
-	t, teardown := testing.NewTWithOptions(scenario.Name,
-		testing.WithIteration("setup"),
-		testing.WithVUID(-1),
-		testing.WithLogger(logger),
+	t, teardown := f1testing.NewTWithOptions(scenario.Name,
+		f1testing.WithIteration("setup"),
+		f1testing.WithVUID(-1),
+		f1testing.WithLogger(logger),
 	)
 
 	s := &ActiveScenario{
@@ -48,7 +48,7 @@ func NewActiveScenario(
 func (s *ActiveScenario) Setup() {
 	start := xtime.NanoTime()
 	func() {
-		defer testing.CheckResults(s.t, nil)
+		defer f1testing.CheckResults(s.t, nil)
 
 		s.scenario.RunFn = s.scenario.ScenarioFn(s.t)
 	}()
@@ -72,7 +72,7 @@ func (s *ActiveScenario) Run(state *iterationState) {
 
 	start := xtime.NanoTime()
 	func() {
-		defer testing.CheckResults(state.t, nil)
+		defer f1testing.CheckResults(state.t, nil)
 		s.scenario.RunFn(state.t)
 	}()
 
@@ -89,9 +89,9 @@ func (s *ActiveScenario) RecordDroppedIteration() {
 }
 
 func (s *ActiveScenario) newIterationState(id int) *iterationState {
-	t, teardown := testing.NewTWithOptions(s.scenario.Name,
-		testing.WithVUID(id),
-		testing.WithLogger(s.logger),
+	t, teardown := f1testing.NewTWithOptions(s.scenario.Name,
+		f1testing.WithVUID(id),
+		f1testing.WithLogger(s.logger),
 	)
 
 	return &iterationState{

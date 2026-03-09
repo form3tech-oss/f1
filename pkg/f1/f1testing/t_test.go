@@ -1,4 +1,4 @@
-package testing_test
+package f1testing_test
 
 import (
 	"bytes"
@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/form3tech-oss/f1/v2/internal/log"
-	f1testing "github.com/form3tech-oss/f1/v2/pkg/f1/testing"
+	"github.com/form3tech-oss/f1/v2/pkg/f1/f1testing"
 )
 
 func TestNewTIsNotFailed(t *testing.T) {

@@ -1,4 +1,4 @@
-package testing
+package f1testing
 
 import (
 	"errors"

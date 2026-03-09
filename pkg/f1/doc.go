@@ -37,7 +37,7 @@ Writing tests is simply a case of implementing the types and registering them wi
 		"fmt"
 
 		"github.com/form3tech-oss/f1/v2/pkg/f1"
-		"github.com/form3tech-oss/f1/v2/pkg/f1/testing"
+		"github.com/form3tech-oss/f1/v2/pkg/f1/f1testing"
 	)
 
 	func main() {
@@ -48,7 +48,7 @@ Writing tests is simply a case of implementing the types and registering them wi
 	}
 
 	// Performs any setup steps and returns a function to run on every iteration of the scenario
-	func setupMySuperFastLoadTest(t *testing.T) testing.RunFn {
+	func setupMySuperFastLoadTest(t *f1testing.T) f1testing.RunFn {
 		fmt.Println("Setup the scenario")
 
 		// Register clean up function which will be invoked at the end of the scenario
@@ -57,7 +57,7 @@ Writing tests is simply a case of implementing the types and registering them wi
 			fmt.Println("Clean up the setup of the scenario")
 		})
 
-		runFn := func(t *testing.T) {
+		runFn := func(t *f1testing.T) {
 			fmt.Println("Run the test")
 
 			// Register clean up function for each test which will be invoked in LIFO

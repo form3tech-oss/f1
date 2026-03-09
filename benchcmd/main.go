@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/form3tech-oss/f1/v2/pkg/f1"
-	"github.com/form3tech-oss/f1/v2/pkg/f1/testing"
+	"github.com/form3tech-oss/f1/v2/pkg/f1/f1testing"
 )
 
 func main() {
@@ -18,37 +18,37 @@ func main() {
 		Execute()
 }
 
-func emptyScenario(*testing.T) testing.RunFn {
-	runFn := func(t *testing.T) {
+func emptyScenario(*f1testing.T) f1testing.RunFn {
+	runFn := func(t *f1testing.T) {
 		t.Require().True(true)
 	}
 
 	return runFn
 }
 
-func sleepScenario(t *testing.T) testing.RunFn {
+func sleepScenario(t *f1testing.T) f1testing.RunFn {
 	msString := os.Getenv("MS_SLEEP")
 	ms, err := strconv.ParseInt(msString, 10, 64)
 	t.Require().NoError(err)
 
-	runFn := func(*testing.T) {
+	runFn := func(*f1testing.T) {
 		time.Sleep(time.Duration(ms) * time.Millisecond)
 	}
 
 	return runFn
 }
 
-func failingScenario(*testing.T) testing.RunFn {
-	runFn := func(t *testing.T) {
+func failingScenario(*f1testing.T) f1testing.RunFn {
+	runFn := func(t *f1testing.T) {
 		t.Require().True(false)
 	}
 
 	return runFn
 }
 
-func logScenario(t *testing.T) testing.RunFn {
+func logScenario(t *f1testing.T) f1testing.RunFn {
 	t.Log("Setup")
-	runFn := func(t *testing.T) {
+	runFn := func(t *f1testing.T) {
 		t.Logf("Iteration: %s", t.Iteration)
 		t.Logger().With("iteration", t.Iteration).Debug("Trace log")
 		t.Logger().With("iteration", t.Iteration).Debug("Debug log")

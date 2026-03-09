@@ -16,7 +16,7 @@ import (
 
 	"github.com/form3tech-oss/f1/v2/internal/log"
 	"github.com/form3tech-oss/f1/v2/pkg/f1"
-	f1_testing "github.com/form3tech-oss/f1/v2/pkg/f1/testing"
+	"github.com/form3tech-oss/f1/v2/pkg/f1/f1testing"
 )
 
 type f1Stage struct {
@@ -74,8 +74,8 @@ func (s *f1Stage) after_duration_signal_will_be_sent(duration time.Duration, sig
 
 func (s *f1Stage) a_scenario_where_each_iteration_takes(duration time.Duration) *f1Stage {
 	s.scenario = "scenario_where_each_iteration_takes_" + duration.String()
-	s.f1.Add(s.scenario, func(*f1_testing.T) f1_testing.RunFn {
-		return func(*f1_testing.T) {
+	s.f1.Add(s.scenario, func(*f1testing.T) f1testing.RunFn {
+		return func(*f1testing.T) {
 			s.runCount.Add(1)
 			time.Sleep(duration)
 		}
@@ -86,10 +86,10 @@ func (s *f1Stage) a_scenario_where_each_iteration_takes(duration time.Duration) 
 
 func (s *f1Stage) a_scenario_that_logs() *f1Stage {
 	s.scenario = "logging_scenario"
-	s.f1.Add(s.scenario, func(sceanrioT *f1_testing.T) f1_testing.RunFn {
+	s.f1.Add(s.scenario, func(sceanrioT *f1testing.T) f1testing.RunFn {
 		sceanrioT.Log("scenario")
 
-		return func(*f1_testing.T) {
+		return func(*f1testing.T) {
 			sceanrioT.Log("iteration")
 			sceanrioT.Logger().Info("iteration")
 		}

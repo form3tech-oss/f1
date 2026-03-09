@@ -1,4 +1,4 @@
-package testing
+package f1testing
 
 // ScenarioFn initialises a scenario and returns the iteration function (RunFn) to be invoked for every iteration
 // of the tests.

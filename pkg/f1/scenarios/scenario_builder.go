@@ -3,7 +3,7 @@ package scenarios
 import (
 	"sort"
 
-	"github.com/form3tech-oss/f1/v2/pkg/f1/testing"
+	"github.com/form3tech-oss/f1/v2/pkg/f1/f1testing"
 )
 
 // Scenarios represents a list of test scenarios.
@@ -17,9 +17,9 @@ type Scenario struct {
 	Name        string
 	Description string
 	Parameters  []ScenarioParameter
-	ScenarioFn  testing.ScenarioFn
+	ScenarioFn  f1testing.ScenarioFn
 	// The function that is invoked on each iteration of the test scenario.
-	RunFn testing.RunFn
+	RunFn f1testing.RunFn
 }
 
 type ScenarioParameter struct {
