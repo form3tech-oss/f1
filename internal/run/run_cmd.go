@@ -37,7 +37,6 @@ func Cmd(
 		}
 
 		triggerCmd.Flags().BoolP(triggerflags.FlagVerbose, "v", false, "enables log output to stdout")
-		triggerCmd.Flags().Bool(triggerflags.FlagVerboseFail, false, "DEPRECATED: log output to stdout on failure")
 
 		if !t.IgnoreCommonFlags {
 			triggerCmd.ValidArgs = s.GetScenarioNames()
@@ -136,14 +135,6 @@ func runCmdExecute(
 		verbose, err := cmd.Flags().GetBool(triggerflags.FlagVerbose)
 		if err != nil {
 			return fmt.Errorf("getting flag: %w", err)
-		}
-
-		verboseFail, err := cmd.Flags().GetBool(triggerflags.FlagVerboseFail)
-		if err != nil {
-			return fmt.Errorf("getting flag: %w", err)
-		}
-		if verboseFail {
-			output.Display(ui.WarningMessage{Message: "--verbose-fail option has been removed"})
 		}
 
 		run, err := NewRun(options.RunOptions{

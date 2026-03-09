@@ -49,7 +49,6 @@ type Options struct {
 	MaxFailures              uint64
 	MaxFailuresRate          int
 	Verbose                  bool
-	VerboseFail              bool
 	IgnoreDropped            bool
 	WaitForCompletionTimeout time.Duration
 }

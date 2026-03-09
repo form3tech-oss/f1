@@ -10,7 +10,6 @@ import (
 
 const (
 	FlagVerbose                  = "verbose"
-	FlagVerboseFail              = "verbose-fail"
 	FlagIgnoreDropped            = "ignore-dropped"
 	FlagMaxDuration              = "max-duration"
 	FlagMaxIterations            = "max-iterations"
