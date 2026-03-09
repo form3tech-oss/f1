@@ -6,12 +6,10 @@ import (
 	"log/slog"
 	"runtime/debug"
 	"sync/atomic"
-	"time"
 
 	"github.com/stretchr/testify/require"
 
 	"github.com/form3tech-oss/f1/v2/internal/log"
-	"github.com/form3tech-oss/f1/v2/internal/metrics"
 )
 
 var errFailNow = errors.New("FailNow")
@@ -178,13 +176,6 @@ func (t *T) TeardownFailed() bool {
 	return t.teardownFailed.Load()
 }
 
-// Time records a metric for the duration of the given function
-func (t *T) Time(stageName string, f func()) {
-	start := time.Now()
-	defer recordTime(t, stageName, start)
-	f()
-}
-
 // Cleanup registers a function to be called when the scenario or the iteration completes.
 // Cleanup functions will be called in last added, first called order.
 func (t *T) Cleanup(f func()) {
@@ -238,13 +229,4 @@ func (t *T) teardown() {
 			t.teardownStack[i]()
 		}()
 	}
-}
-
-func recordTime(t *T, stageName string, start time.Time) {
-	metrics.Instance().RecordIterationStage(
-		t.Scenario,
-		stageName,
-		metrics.Result(t.Failed()),
-		time.Since(start).Nanoseconds(),
-	)
 }

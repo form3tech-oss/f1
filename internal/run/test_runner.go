@@ -113,7 +113,7 @@ func newMetricsPusher(
 	}
 
 	pusher := push.New(settings.Prometheus.PushGateway, "f1-"+scenarioName).
-		Gatherer(metricsInstance.Registry)
+		Gatherer(metricsInstance.Gatherer())
 
 	if settings.Prometheus.Namespace != "" {
 		pusher = pusher.Grouping("namespace", settings.Prometheus.Namespace)

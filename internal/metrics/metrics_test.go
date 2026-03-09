@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -13,7 +14,7 @@ import (
 	"github.com/form3tech-oss/f1/v2/internal/metrics"
 )
 
-func TestMetrics_Init_IsSafe(t *testing.T) {
+func TestMetrics_RecordIterationResult(t *testing.T) {
 	t.Parallel()
 	labels := map[string]string{
 		"product":  "fps",
@@ -21,15 +22,9 @@ func TestMetrics_Init_IsSafe(t *testing.T) {
 		"f1_id":    "myid",
 		"labelx":   "vx",
 	}
-	metrics.InitWithStaticMetrics(true, labels) // race detector assertion
-	for range 10 {
-		go func() {
-			metrics.InitWithStaticMetrics(true, labels)
-		}()
-	}
-	assert.True(t, metrics.Instance().IterationMetricsEnabled)
-	metrics.Instance().RecordIterationResult("test1", metrics.SuccessResult, 1)
-	assert.Equal(t, 1, testutil.CollectAndCount(metrics.Instance().Iteration, "form3_loadtest_iteration"))
+	m := metrics.NewInstance(prometheus.NewRegistry(), true, labels)
+	m.RecordIterationResult("test1", metrics.SuccessResult, 1)
+	assert.Equal(t, 1, testutil.CollectAndCount(m.IterationCollector(), "form3_loadtest_iteration"))
 
 	var expected strings.Builder
 	expected.WriteString(`
@@ -48,5 +43,5 @@ func TestMetrics_Init_IsSafe(t *testing.T) {
         	      form3_loadtest_iteration_count{customer="fake-customer",f1_id="myid",labelx="vx",product="fps",result="success",stage="iteration",test="test1"} 1
 				`)
 	r := bytes.NewReader([]byte(expected.String()))
-	require.NoError(t, testutil.CollectAndCompare(metrics.Instance().Iteration, r))
+	require.NoError(t, testutil.CollectAndCompare(m.IterationCollector(), r))
 }

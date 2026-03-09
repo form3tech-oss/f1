@@ -5,6 +5,7 @@ import (
 	"os"
 	"path"
 
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/spf13/cobra"
 
 	"github.com/form3tech-oss/f1/v2/internal/envsettings"
@@ -43,8 +44,8 @@ func buildRootCmd(
 		return nil, fmt.Errorf("marking flag as filename: %w", err)
 	}
 
-	metrics.InitWithStaticMetrics(settings.PrometheusEnabled(), staticMetrics)
-	metricsInstance := metrics.Instance()
+	registry := prometheus.NewRegistry()
+	metricsInstance := metrics.NewInstance(registry, settings.PrometheusEnabled(), staticMetrics)
 
 	builders := trigger.GetBuilders(output)
 
