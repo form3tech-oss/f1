@@ -3,7 +3,7 @@ package scenarios
 import (
 	"sort"
 
-	"github.com/form3tech-oss/f1/v2/pkg/f1/f1testing"
+	"github.com/form3tech-oss/f1/v3/pkg/f1/f1testing"
 )
 
 // Scenarios represents a list of test scenarios.

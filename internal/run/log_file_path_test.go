@@ -7,7 +7,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/form3tech-oss/f1/v2/internal/run"
+	"github.com/form3tech-oss/f1/v3/internal/run"
 )
 
 func TestLogFilePathOrDefault(t *testing.T) {

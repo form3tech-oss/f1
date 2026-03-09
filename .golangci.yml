@@ -57,7 +57,7 @@ linters:
     exhaustruct:
       # Structs that must have all fields explicitly set
       include:
-        - github.com/form3tech-oss/f1/v2/internal/run/views.*
+        - github.com/form3tech-oss/f1/v3/internal/run/views.*
 
     nolintlint:
       require-explanation: true   # nolint directives must explain why

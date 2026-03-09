@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/form3tech-oss/f1/v2/internal/metrics"
+	"github.com/form3tech-oss/f1/v3/internal/metrics"
 )
 
 func TestMetrics_RecordIterationResult(t *testing.T) {

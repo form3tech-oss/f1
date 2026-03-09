@@ -7,10 +7,10 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/form3tech-oss/f1/v2/internal/trigger/constant"
-	"github.com/form3tech-oss/f1/v2/internal/trigger/gaussian"
-	"github.com/form3tech-oss/f1/v2/internal/trigger/ramp"
-	"github.com/form3tech-oss/f1/v2/internal/trigger/staged"
+	"github.com/form3tech-oss/f1/v3/internal/trigger/constant"
+	"github.com/form3tech-oss/f1/v3/internal/trigger/gaussian"
+	"github.com/form3tech-oss/f1/v3/internal/trigger/ramp"
+	"github.com/form3tech-oss/f1/v3/internal/trigger/staged"
 )
 
 type ConfigFile struct {

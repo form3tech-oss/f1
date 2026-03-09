@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/form3tech-oss/f1/v2/internal/ui"
+	"github.com/form3tech-oss/f1/v3/internal/ui"
 )
 
 //nolint:lll // templates read better with long lines

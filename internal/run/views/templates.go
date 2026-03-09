@@ -6,7 +6,7 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/form3tech-oss/f1/v2/internal/termcolor"
+	"github.com/form3tech-oss/f1/v3/internal/termcolor"
 )
 
 type renderTermColorsType bool

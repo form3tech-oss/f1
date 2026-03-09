@@ -1,4 +1,4 @@
-<a href="https://pkg.go.dev/github.com/form3tech-oss/f1/v2/pkg/f1"><img align="right" src="https://pkg.go.dev/badge/github.com/form3tech-oss/f1/v2/pkg/f1.svg" alt="Go Reference"></a>
+<a href="https://pkg.go.dev/github.com/form3tech-oss/f1/v3/pkg/f1"><img align="right" src="https://pkg.go.dev/badge/github.com/form3tech-oss/f1/v3/pkg/f1.svg" alt="Go Reference"></a>
 # f1
 `f1` is a flexible load testing framework using the `go` language for test scenarios. This allows test scenarios to be developed as code, utilising full development principles such as test driven development. Test scenarios with multiple stages and multiple modes are ideally suited to this environment.
 
@@ -31,8 +31,8 @@ package main
 import (
 	"fmt"
 
-	"github.com/form3tech-oss/f1/v2/pkg/f1"
-	"github.com/form3tech-oss/f1/v2/pkg/f1/testing"
+	"github.com/form3tech-oss/f1/v3/pkg/f1"
+	"github.com/form3tech-oss/f1/v3/pkg/f1/f1testing"
 )
 
 func main() {
@@ -42,7 +42,7 @@ func main() {
 }
 
 // Performs any setup steps and returns a function to run on every iteration of the scenario
-func setupMySuperFastLoadTest(t *testing.T) testing.RunFn {
+func setupMySuperFastLoadTest(t *f1testing.T) f1testing.RunFn {
 	fmt.Println("Setup the scenario")
 	
 	// Register clean up function which will be invoked at the end of the scenario execution to clean up the setup
@@ -50,10 +50,10 @@ func setupMySuperFastLoadTest(t *testing.T) testing.RunFn {
 		fmt.Println("Clean up the setup of the scenario")
 	})
 	
-	runFn := func(t *testing.T) {
-	    fmt.Println("Run the test")
+	runFn := func(t *f1testing.T) {
+		fmt.Println("Run the test")
 
-		// Register clean up function for each test which will be invoked in LIFO order after each iteration 
+		// Register clean up function for each test which will be invoked in LIFO order after each iteration
 		t.Cleanup(func() {
 			fmt.Println("Clean up the test execution")
 		})

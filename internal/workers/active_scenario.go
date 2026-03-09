@@ -3,11 +3,11 @@ package workers
 import (
 	"log/slog"
 
-	"github.com/form3tech-oss/f1/v2/internal/metrics"
-	"github.com/form3tech-oss/f1/v2/internal/progress"
-	"github.com/form3tech-oss/f1/v2/internal/xtime"
-	"github.com/form3tech-oss/f1/v2/pkg/f1/f1testing"
-	"github.com/form3tech-oss/f1/v2/pkg/f1/scenarios"
+	"github.com/form3tech-oss/f1/v3/internal/metrics"
+	"github.com/form3tech-oss/f1/v3/internal/progress"
+	"github.com/form3tech-oss/f1/v3/internal/xtime"
+	"github.com/form3tech-oss/f1/v3/pkg/f1/f1testing"
+	"github.com/form3tech-oss/f1/v3/pkg/f1/scenarios"
 )
 
 type ActiveScenario struct {

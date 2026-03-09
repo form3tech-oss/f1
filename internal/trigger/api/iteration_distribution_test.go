@@ -7,7 +7,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/form3tech-oss/f1/v2/internal/trigger/api"
+	"github.com/form3tech-oss/f1/v3/internal/trigger/api"
 )
 
 func TestRegularRateDistribution(t *testing.T) {

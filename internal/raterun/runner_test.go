@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/form3tech-oss/f1/v2/internal/raterun"
+	"github.com/form3tech-oss/f1/v3/internal/raterun"
 )
 
 func Test_FunctionIsExecutedAtSpecifiedRates(t *testing.T) {

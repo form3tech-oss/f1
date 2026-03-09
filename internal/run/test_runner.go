@@ -9,19 +9,19 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus/push"
 
-	"github.com/form3tech-oss/f1/v2/internal/envsettings"
-	"github.com/form3tech-oss/f1/v2/internal/log"
-	"github.com/form3tech-oss/f1/v2/internal/logutils"
-	"github.com/form3tech-oss/f1/v2/internal/metrics"
-	"github.com/form3tech-oss/f1/v2/internal/options"
-	"github.com/form3tech-oss/f1/v2/internal/progress"
-	"github.com/form3tech-oss/f1/v2/internal/raterun"
-	"github.com/form3tech-oss/f1/v2/internal/run/views"
-	"github.com/form3tech-oss/f1/v2/internal/trigger/api"
-	"github.com/form3tech-oss/f1/v2/internal/ui"
-	"github.com/form3tech-oss/f1/v2/internal/workers"
-	"github.com/form3tech-oss/f1/v2/internal/xcontext"
-	"github.com/form3tech-oss/f1/v2/pkg/f1/scenarios"
+	"github.com/form3tech-oss/f1/v3/internal/envsettings"
+	"github.com/form3tech-oss/f1/v3/internal/log"
+	"github.com/form3tech-oss/f1/v3/internal/logutils"
+	"github.com/form3tech-oss/f1/v3/internal/metrics"
+	"github.com/form3tech-oss/f1/v3/internal/options"
+	"github.com/form3tech-oss/f1/v3/internal/progress"
+	"github.com/form3tech-oss/f1/v3/internal/raterun"
+	"github.com/form3tech-oss/f1/v3/internal/run/views"
+	"github.com/form3tech-oss/f1/v3/internal/trigger/api"
+	"github.com/form3tech-oss/f1/v3/internal/ui"
+	"github.com/form3tech-oss/f1/v3/internal/workers"
+	"github.com/form3tech-oss/f1/v3/internal/xcontext"
+	"github.com/form3tech-oss/f1/v3/pkg/f1/scenarios"
 )
 
 const (

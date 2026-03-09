@@ -6,10 +6,10 @@ import (
 
 	"github.com/spf13/pflag"
 
-	"github.com/form3tech-oss/f1/v2/internal/options"
-	"github.com/form3tech-oss/f1/v2/internal/trigger/api"
-	"github.com/form3tech-oss/f1/v2/internal/ui"
-	"github.com/form3tech-oss/f1/v2/internal/workers"
+	"github.com/form3tech-oss/f1/v3/internal/options"
+	"github.com/form3tech-oss/f1/v3/internal/trigger/api"
+	"github.com/form3tech-oss/f1/v3/internal/ui"
+	"github.com/form3tech-oss/f1/v3/internal/workers"
 )
 
 func Rate() api.Builder {

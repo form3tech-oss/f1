@@ -7,9 +7,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/form3tech-oss/f1/v2/internal/options"
-	"github.com/form3tech-oss/f1/v2/internal/progress"
-	"github.com/form3tech-oss/f1/v2/internal/run/views"
+	"github.com/form3tech-oss/f1/v3/internal/options"
+	"github.com/form3tech-oss/f1/v3/internal/progress"
+	"github.com/form3tech-oss/f1/v3/internal/run/views"
 )
 
 type Result struct {

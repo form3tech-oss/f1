@@ -7,7 +7,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
-	"github.com/form3tech-oss/f1/v2/internal/triggerflags"
+	"github.com/form3tech-oss/f1/v3/internal/triggerflags"
 )
 
 func flagGroupOrder() []string {

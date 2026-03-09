@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/goleak"
 
-	"github.com/form3tech-oss/f1/v2/internal/raterun"
+	"github.com/form3tech-oss/f1/v3/internal/raterun"
 )
 
 type RatedRunnerStage struct {

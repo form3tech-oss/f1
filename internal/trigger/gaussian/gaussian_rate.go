@@ -9,11 +9,11 @@ import (
 
 	"github.com/spf13/pflag"
 
-	"github.com/form3tech-oss/f1/v2/internal/gaussian"
-	"github.com/form3tech-oss/f1/v2/internal/trigger/api"
-	"github.com/form3tech-oss/f1/v2/internal/trigger/rate"
-	"github.com/form3tech-oss/f1/v2/internal/triggerflags"
-	"github.com/form3tech-oss/f1/v2/internal/ui"
+	"github.com/form3tech-oss/f1/v3/internal/gaussian"
+	"github.com/form3tech-oss/f1/v3/internal/trigger/api"
+	"github.com/form3tech-oss/f1/v3/internal/trigger/rate"
+	"github.com/form3tech-oss/f1/v3/internal/triggerflags"
+	"github.com/form3tech-oss/f1/v3/internal/ui"
 )
 
 const defaultVolume = 24 * 60 * 60

@@ -7,8 +7,8 @@ import (
 
 	"github.com/mattn/go-isatty"
 
-	"github.com/form3tech-oss/f1/v2/internal/log"
-	"github.com/form3tech-oss/f1/v2/internal/ui"
+	"github.com/form3tech-oss/f1/v3/internal/log"
+	"github.com/form3tech-oss/f1/v3/internal/ui"
 )
 
 type ViewContext[T log.Loggable] struct {

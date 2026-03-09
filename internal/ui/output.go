@@ -6,11 +6,11 @@ import (
 
 	"github.com/mattn/go-isatty"
 
-	"github.com/form3tech-oss/f1/v2/internal/log"
+	"github.com/form3tech-oss/f1/v3/internal/log"
 )
 
 // Outputable may be a type of message (like [ErrorMessage], [InfoMessage], etc) or
-// [github.com/form3tech-oss/f1/v2/internal/run/views.ViewContext]
+// [github.com/form3tech-oss/f1/v3/internal/run/views.ViewContext]
 type Outputable interface {
 	Print(printer *Printer)
 	Log(logger *slog.Logger)
