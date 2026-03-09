@@ -48,7 +48,8 @@ func New() *Scenarios {
 	}
 }
 
-func (s *Scenarios) Add(scenario *Scenario) *Scenarios {
+// AddScenario adds a scenario to the collection.
+func (s *Scenarios) AddScenario(scenario *Scenario) *Scenarios {
 	s.scenarios[scenario.Name] = scenario
 	return s
 }

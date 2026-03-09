@@ -69,15 +69,15 @@ func (f *F1) WithStaticMetrics(labels map[string]string) *F1 {
 	return f
 }
 
-// Add registers a new test scenario with the given name. This is the name used when running
+// AddScenario registers a new test scenario with the given name. This is the name used when running
 // load test scenarios. For example, calling the function with the following arguments:
 //
-//	f.Add("myTest", myScenario)
+//	f.AddScenario("myTest", myScenario)
 //
 // will result in the test "myTest" being runnable from the command line:
 //
 //	f1 run constant -r 1/s -d 10s myTest
-func (f *F1) Add(name string, scenarioFn f1testing.ScenarioFn, options ...scenarios.ScenarioOption) *F1 {
+func (f *F1) AddScenario(name string, scenarioFn f1testing.ScenarioFn, options ...scenarios.ScenarioOption) *F1 {
 	info := &scenarios.Scenario{
 		Name:       name,
 		ScenarioFn: scenarioFn,
@@ -87,7 +87,7 @@ func (f *F1) Add(name string, scenarioFn f1testing.ScenarioFn, options ...scenar
 		opt(info)
 	}
 
-	f.scenarios.Add(info)
+	f.scenarios.AddScenario(info)
 	return f
 }
 

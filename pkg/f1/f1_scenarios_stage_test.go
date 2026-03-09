@@ -61,7 +61,7 @@ func (s *f1ScenariosStage) f1_is_configured_to_run_a_combined_scenario() {
 		scenarios[i] = fn
 	}
 
-	s.runner = f1.New().Add("combined", f1.CombineScenarios(scenarios...))
+	s.runner = f1.New().AddScenario("combined", f1.CombineScenarios(scenarios...))
 }
 
 func (s *f1ScenariosStage) the_f1_scenario_is_executed() {

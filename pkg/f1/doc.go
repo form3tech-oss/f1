@@ -46,7 +46,7 @@ Writing tests is simply a case of implementing the types and registering them wi
 		// Create a new f1 instance, add all the scenarios and execute the f1 tool.
 		// Any scenario that is added here can be executed like:
 		// `go run main.go run constant mySuperFastLoadTest`
-		f1.New().Add("mySuperFastLoadTest", setupMySuperFastLoadTest).Execute()
+		f1.New().AddScenario("mySuperFastLoadTest", setupMySuperFastLoadTest).Execute()
 	}
 
 	// Performs any setup steps and returns a function to run on every iteration of the scenario

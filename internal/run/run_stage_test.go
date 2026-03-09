@@ -279,7 +279,7 @@ func (s *RunTestStage) the_command_should_fail() *RunTestStage {
 
 func (s *RunTestStage) a_test_scenario_that_always_fails() *RunTestStage {
 	s.scenario = "scenario_that_always_fails"
-	s.f1.Add(s.scenario, func(_ context.Context, scenarioT *f1testing.T) f1testing.RunFn {
+	s.f1.AddScenario(s.scenario, func(_ context.Context, scenarioT *f1testing.T) f1testing.RunFn {
 		scenarioT.Cleanup(s.scenarioCleanup)
 
 		return func(_ context.Context, iterationT *f1testing.T) {
@@ -293,7 +293,7 @@ func (s *RunTestStage) a_test_scenario_that_always_fails() *RunTestStage {
 
 func (s *RunTestStage) a_test_scenario_that_always_panics() *RunTestStage {
 	s.scenario = "scenario_that_always_panics"
-	s.f1.Add(s.scenario, func(_ context.Context, scenarioT *f1testing.T) f1testing.RunFn {
+	s.f1.AddScenario(s.scenario, func(_ context.Context, scenarioT *f1testing.T) f1testing.RunFn {
 		scenarioT.Cleanup(s.scenarioCleanup)
 
 		return func(_ context.Context, iterationT *f1testing.T) {
@@ -307,7 +307,7 @@ func (s *RunTestStage) a_test_scenario_that_always_panics() *RunTestStage {
 
 func (s *RunTestStage) a_test_scenario_that_always_fails_an_assertion() *RunTestStage {
 	s.scenario = "scenario_that_always_fails_an_assertion"
-	s.f1.Add(s.scenario, func(_ context.Context, scenarioT *f1testing.T) f1testing.RunFn {
+	s.f1.AddScenario(s.scenario, func(_ context.Context, scenarioT *f1testing.T) f1testing.RunFn {
 		scenarioT.Cleanup(s.scenarioCleanup)
 
 		return func(_ context.Context, iterationT *f1testing.T) {
@@ -321,7 +321,7 @@ func (s *RunTestStage) a_test_scenario_that_always_fails_an_assertion() *RunTest
 
 func (s *RunTestStage) a_test_scenario_that_always_fails_setup() *RunTestStage {
 	s.scenario = "scenario_that_always_fails_setup"
-	s.f1.Add(s.scenario, func(_ context.Context, scenarioT *f1testing.T) f1testing.RunFn {
+	s.f1.AddScenario(s.scenario, func(_ context.Context, scenarioT *f1testing.T) f1testing.RunFn {
 		scenarioT.Cleanup(s.scenarioCleanup)
 
 		scenarioT.FailNow()
@@ -332,7 +332,7 @@ func (s *RunTestStage) a_test_scenario_that_always_fails_setup() *RunTestStage {
 
 func (s *RunTestStage) a_scenario_where_each_iteration_takes(duration time.Duration) *RunTestStage {
 	s.scenario = "scenario_where_each_iteration_takes_" + duration.String()
-	s.f1.Add(s.scenario, func(_ context.Context, scenarioT *f1testing.T) f1testing.RunFn {
+	s.f1.AddScenario(s.scenario, func(_ context.Context, scenarioT *f1testing.T) f1testing.RunFn {
 		scenarioT.Cleanup(s.scenarioCleanup)
 
 		scenarioT.Log("setup")
@@ -371,7 +371,7 @@ func (s *RunTestStage) iteration_teardown_is_called_n_times(n int64) *RunTestSta
 
 func (s *RunTestStage) a_test_scenario_that_fails_intermittently() *RunTestStage {
 	s.scenario = "scenario_that_fails_intermittently"
-	s.f1.Add(s.scenario, func(_ context.Context, scenarioT *f1testing.T) f1testing.RunFn {
+	s.f1.AddScenario(s.scenario, func(_ context.Context, scenarioT *f1testing.T) f1testing.RunFn {
 		scenarioT.Cleanup(s.scenarioCleanup)
 
 		s.runCount.Store(0)
@@ -562,7 +562,7 @@ func (s *RunTestStage) metrics_are_pushed_to_prometheus() *RunTestStage {
 
 func (s *RunTestStage) a_scenario_where_iteration_n_takes_100ms(n uint32) *RunTestStage {
 	s.scenario = fmt.Sprintf("scenario_where_iteration_%d_takes_100ms", n)
-	s.f1.Add(s.scenario, func(_ context.Context, scenarioT *f1testing.T) f1testing.RunFn {
+	s.f1.AddScenario(s.scenario, func(_ context.Context, scenarioT *f1testing.T) f1testing.RunFn {
 		scenarioT.Cleanup(s.scenarioCleanup)
 
 		s.runCount.Store(0)

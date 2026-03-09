@@ -75,7 +75,7 @@ func (s *f1Stage) after_duration_signal_will_be_sent(duration time.Duration, sig
 
 func (s *f1Stage) a_scenario_where_each_iteration_takes(duration time.Duration) *f1Stage {
 	s.scenario = "scenario_where_each_iteration_takes_" + duration.String()
-	s.f1.Add(s.scenario, func(context.Context, *f1testing.T) f1testing.RunFn {
+	s.f1.AddScenario(s.scenario, func(context.Context, *f1testing.T) f1testing.RunFn {
 		return func(context.Context, *f1testing.T) {
 			s.runCount.Add(1)
 			time.Sleep(duration)
@@ -87,7 +87,7 @@ func (s *f1Stage) a_scenario_where_each_iteration_takes(duration time.Duration) 
 
 func (s *f1Stage) a_scenario_that_logs() *f1Stage {
 	s.scenario = "logging_scenario"
-	s.f1.Add(s.scenario, func(_ context.Context, scenarioT *f1testing.T) f1testing.RunFn {
+	s.f1.AddScenario(s.scenario, func(_ context.Context, scenarioT *f1testing.T) f1testing.RunFn {
 		scenarioT.Log("scenario")
 
 		return func(_ context.Context, t *f1testing.T) {

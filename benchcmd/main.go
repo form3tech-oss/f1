@@ -12,10 +12,10 @@ import (
 
 func main() {
 	f1.New().
-		Add("emptyScenario", emptyScenario).
-		Add("failingScenario", failingScenario).
-		Add("sleepScenario", sleepScenario).
-		Add("logScenario", logScenario).
+		AddScenario("emptyScenario", emptyScenario).
+		AddScenario("failingScenario", failingScenario).
+		AddScenario("sleepScenario", sleepScenario).
+		AddScenario("logScenario", logScenario).
 		Execute()
 }
 
