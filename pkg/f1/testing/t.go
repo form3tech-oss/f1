@@ -56,20 +56,6 @@ func WithVUID(id int) TOption {
 	}
 }
 
-// NewT returns a new T state
-//
-// Deprecated: Will be removed in favour of NewTWithOptions
-func NewT(iter, scenarioName string) (*T, func()) {
-	logger := slog.Default()
-
-	t, teardown := NewTWithOptions(scenarioName,
-		WithIteration(iter),
-		WithLogger(logger),
-	)
-
-	return t, teardown
-}
-
 func NewTWithOptions(scenarioName string, options ...TOption) (*T, func()) {
 	t := &T{
 		Scenario:      scenarioName,
