@@ -52,7 +52,7 @@ func (s *f1Stage) and() *f1Stage {
 
 func (s *f1Stage) a_custom_logger_is_configured_with_attr(key, value string) *f1Stage {
 	logger := log.NewTestLogger(&s.logOutput).With(key, value)
-	s.f1 = f1.New().WithLogger(logger)
+	s.f1 = f1.New(f1.WithLogger(logger))
 
 	return s
 }

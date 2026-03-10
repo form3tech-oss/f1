@@ -38,34 +38,40 @@ type f1Options struct {
 	staticMetrics map[string]string
 }
 
-// New instantiates a new instance of an F1 CLI.
-func New() *F1 {
+// Option configures an F1 instance at construction.
+type Option func(*F1)
+
+// WithLogger specifies the logger for internal and scenario logs.
+// This disables F1_LOG_LEVEL and F1_LOG_FORMAT.
+func WithLogger(logger *slog.Logger) Option {
+	return func(f *F1) {
+		f.options.output = ui.NewDefaultOutputWithLogger(logger)
+	}
+}
+
+// WithStaticMetrics registers additional labels with fixed values for f1 metrics.
+func WithStaticMetrics(labels map[string]string) Option {
+	return func(f *F1) {
+		f.options.staticMetrics = labels
+	}
+}
+
+// New instantiates a new F1 CLI. Pass options to configure logger, metrics, etc.
+func New(opts ...Option) *F1 {
 	settings := envsettings.Get()
 
-	return &F1{
+	f := &F1{
 		scenarios: scenarios.New(),
 		profiling: &profiling{},
 		settings:  settings,
 		options: &f1Options{
-			output: ui.NewDefaultOutput(settings.Log.SlogLevel(), settings.Log.IsFormatJSON()),
+			output:        ui.NewDefaultOutput(settings.Log.SlogLevel(), settings.Log.IsFormatJSON()),
+			staticMetrics: nil,
 		},
 	}
-}
-
-// WithLogger allows specifying logger to be used for all internal and scenario logs
-//
-// This will disable the F1_LOG_LEVEL and F1_LOG_FORMAT options, as they only relate to the built-in
-// logger.
-//
-// The logger will be used for non-interactive output, file logs or when `--verbose` is specified.
-func (f *F1) WithLogger(logger *slog.Logger) *F1 {
-	f.options.output = ui.NewDefaultOutputWithLogger(logger)
-	return f
-}
-
-// WithStaticMetrics registers additional labels with fixed values to the f1 metrics
-func (f *F1) WithStaticMetrics(labels map[string]string) *F1 {
-	f.options.staticMetrics = labels
+	for _, opt := range opts {
+		opt(f)
+	}
 	return f
 }
 

@@ -197,16 +197,16 @@ func (s *RunTestStage) setupRun() {
 	logger := log.NewLogger(&s.stdout, logutils.NewLogConfigFromSettings(s.settings))
 	outputer := ui.NewOutput(logger, printer, s.interactive, false)
 
-	r, err := run.NewRun(options.RunOptions{
-		Scenario:                 s.scenario,
-		MaxDuration:              s.duration,
-		Concurrency:              s.concurrency,
-		MaxIterations:            s.maxIterations,
-		MaxFailures:              s.maxFailures,
-		MaxFailuresRate:          s.maxFailuresRate,
-		Verbose:                  s.verbose,
-		WaitForCompletionTimeout: s.waitForCompletionTimeout,
-	}, s.f1.GetScenarios(), s.build_trigger(), s.settings, s.metrics, outputer)
+	r, err := run.NewRun(s.f1.GetScenarios(), s.build_trigger(), s.settings, s.metrics, outputer,
+		options.WithScenario(s.scenario),
+		options.WithMaxDuration(s.duration),
+		options.WithConcurrency(s.concurrency),
+		options.WithMaxIterations(s.maxIterations),
+		options.WithMaxFailures(s.maxFailures),
+		options.WithMaxFailuresRate(s.maxFailuresRate),
+		options.WithVerbose(s.verbose),
+		options.WithWaitForCompletionTimeout(s.waitForCompletionTimeout),
+	)
 
 	s.require.NoError(err)
 	s.runInstance = r

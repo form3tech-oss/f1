@@ -30,13 +30,13 @@ type ScenarioParameter struct {
 
 type ScenarioOption func(info *Scenario)
 
-func Description(d string) ScenarioOption {
+func WithDescription(d string) ScenarioOption {
 	return func(i *Scenario) {
 		i.Description = d
 	}
 }
 
-func Parameter(parameter ScenarioParameter) ScenarioOption {
+func WithParameter(parameter ScenarioParameter) ScenarioOption {
 	return func(i *Scenario) {
 		i.Parameters = append(i.Parameters, parameter)
 	}

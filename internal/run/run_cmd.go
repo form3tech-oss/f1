@@ -186,17 +186,17 @@ func runCmdExecute(
 			return fmt.Errorf("getting flag: %w", err)
 		}
 
-		run, err := NewRun(options.RunOptions{
-			Scenario:                 scenarioName,
-			MaxDuration:              duration,
-			Concurrency:              concurrency,
-			Verbose:                  verbose,
-			MaxIterations:            maxIterations,
-			MaxFailures:              maxFailures,
-			MaxFailuresRate:          maxFailuresRate,
-			IgnoreDropped:            ignoreDropped,
-			WaitForCompletionTimeout: waitForCompletionTimeout,
-		}, s, trig, settings, metricsInstance, output)
+		run, err := NewRun(s, trig, settings, metricsInstance, output,
+			options.WithScenario(scenarioName),
+			options.WithMaxDuration(duration),
+			options.WithConcurrency(concurrency),
+			options.WithVerbose(verbose),
+			options.WithMaxIterations(maxIterations),
+			options.WithMaxFailures(maxFailures),
+			options.WithMaxFailuresRate(maxFailuresRate),
+			options.WithIgnoreDropped(ignoreDropped),
+			options.WithWaitForCompletionTimeout(waitForCompletionTimeout),
+		)
 		if err != nil {
 			return fmt.Errorf("new run: %w", err)
 		}

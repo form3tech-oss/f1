@@ -43,28 +43,33 @@ type Run struct {
 }
 
 func NewRun(
-	options options.RunOptions,
 	scenarios *scenarios.Scenarios,
 	trigger *api.Trigger,
 	settings envsettings.Settings,
 	metricsInstance *metrics.Metrics,
 	parentOutput *ui.Output,
+	opts ...options.RunOption,
 ) (*Run, error) {
+	runOptions := options.DefaultRunOptions()
+	for _, opt := range opts {
+		opt(&runOptions)
+	}
+
 	progressStats := &progress.Stats{}
 	viewsInstance := views.New()
 
-	scenario := scenarios.GetScenario(options.Scenario)
+	scenario := scenarios.GetScenario(runOptions.Scenario)
 	if scenario == nil {
-		return nil, fmt.Errorf("scenario not defined: %s", options.Scenario)
+		return nil, fmt.Errorf("scenario not defined: %s", runOptions.Scenario)
 	}
 
-	result := NewResult(options, viewsInstance, progressStats)
+	result := NewResult(runOptions, viewsInstance, progressStats)
 
 	outputer := ui.NewOutput(
 		parentOutput.Logger.With(log.ScenarioAttr(scenario.Name)),
 		parentOutput.Printer,
 		parentOutput.Interactive,
-		options.LogToFile(),
+		runOptions.LogToFile(),
 	)
 
 	scenarioLogger := NewScenarioLogger(outputer)
@@ -72,7 +77,7 @@ func NewRun(
 		LogFilePathOrDefault(settings.Log.FilePath, scenario.Name),
 		logutils.NewLogConfigFromSettings(settings),
 		scenario.Name,
-		options.LogToFile(),
+		runOptions.LogToFile(),
 	)
 
 	progressRunner, err := newProgressRunner(result, outputer)
@@ -90,7 +95,7 @@ func NewRun(
 	pusher := newMetricsPusher(settings, scenario.Name, metricsInstance)
 
 	return &Run{
-		options:        options,
+		options:        runOptions,
 		trigger:        trigger,
 		metrics:        metricsInstance,
 		views:          viewsInstance,
