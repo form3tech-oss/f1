@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"runtime/debug"
+	"strings"
 	"sync/atomic"
 
 	"github.com/stretchr/testify/require"
@@ -117,40 +118,45 @@ func (t *T) Fail() {
 	}
 }
 
-// Errorf is equivalent to Logf followed by Fail.
+// Errorf is equivalent to Logf followed by Fail. Logs at Error level.
 func (t *T) Errorf(format string, args ...any) {
-	t.logger.Error(fmt.Sprintf(format, args...))
+	t.logger.With(log.IterationAttr(t.Iteration), log.VUIDAttr(t.VUID)).Error(fmt.Sprintf(format, args...))
 	t.Fail()
 }
 
-// Error is equivalent to Log followed by Fail.
-func (t *T) Error(err error) {
-	t.logger.Error("iteration failed", log.IterationAttr(t.Iteration), log.VUIDAttr(t.VUID), log.ErrorAttr(err))
+// Error is equivalent to Log followed by Fail. Logs at Error level.
+func (t *T) Error(args ...any) {
+	msg := strings.TrimSuffix(fmt.Sprintln(args...), "\n")
+	t.logger.With(log.IterationAttr(t.Iteration), log.VUIDAttr(t.VUID)).Error(msg)
 	t.Fail()
 }
 
-// Fatalf is equivalent to Logf followed by FailNow.
+// Fatalf is equivalent to Logf followed by FailNow. Logs at Error level.
 func (t *T) Fatalf(format string, args ...any) {
-	t.logger.Error(fmt.Sprintf(format, args...))
+	t.logger.With(log.IterationAttr(t.Iteration), log.VUIDAttr(t.VUID)).Error(fmt.Sprintf(format, args...))
 	t.FailNow()
 }
 
-// Fatal is equivalent to Log followed by FailNow.
-func (t *T) Fatal(err error) {
-	t.logger.Error("iteration failed", log.IterationAttr(t.Iteration), log.VUIDAttr(t.VUID), log.ErrorAttr(err))
+// Fatal is equivalent to Log followed by FailNow. Logs at Error level.
+func (t *T) Fatal(args ...any) {
+	msg := strings.TrimSuffix(fmt.Sprintln(args...), "\n")
+	t.logger.With(log.IterationAttr(t.Iteration), log.VUIDAttr(t.VUID)).Error(msg)
 	t.FailNow()
 }
 
 // Log formats its arguments using default formatting, analogous to Println, and records the text in the error log.
 // The text will be printed only if f1 is running in verbose mode.
+// Aligns with testing.T: uses fmt.Sprintln for space-separated args (trailing newline trimmed for structured logs).
 func (t *T) Log(args ...any) {
-	t.logger.Info(fmt.Sprint(args...))
+	msg := strings.TrimSuffix(fmt.Sprintln(args...), "\n")
+	t.logger.With(log.IterationAttr(t.Iteration), log.VUIDAttr(t.VUID)).Info(msg)
 }
 
 // Logf formats its arguments according to the format, analogous to Printf, and records the text in the error log.
 // A final newline is added if not provided. The text will be printed only if f1 is running in verbose mode.
+// Aligns with testing.T: uses fmt.Sprintf.
 func (t *T) Logf(format string, args ...any) {
-	t.logger.Info(fmt.Sprintf(format, args...))
+	t.logger.With(log.IterationAttr(t.Iteration), log.VUIDAttr(t.VUID)).Info(fmt.Sprintf(format, args...))
 }
 
 // Failed reports whether the function has failed.

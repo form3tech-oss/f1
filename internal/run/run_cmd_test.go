@@ -831,9 +831,11 @@ func TestOutput_JSONLogging(t *testing.T) {
 
 	scenarioOnlyLogs := []logFieldMatchers{
 		{
-			"message":  "setup",
-			"level":    "info",
-			"scenario": "scenario_where_each_iteration_takes_200ms",
+			"message":   "setup",
+			"level":     "info",
+			"scenario":  "scenario_where_each_iteration_takes_200ms",
+			"iteration": "setup",
+			"vuid":      float64(-1),
 		},
 		{
 			"message":  "slog - setup",
@@ -843,9 +845,11 @@ func TestOutput_JSONLogging(t *testing.T) {
 		},
 
 		{
-			"message":  "first iteration",
-			"level":    "info",
-			"scenario": "scenario_where_each_iteration_takes_200ms",
+			"message":   "first iteration",
+			"level":     "info",
+			"scenario":  "scenario_where_each_iteration_takes_200ms",
+			"iteration": "setup",
+			"vuid":      float64(-1),
 		},
 		{
 			"message":  "slog - first iteration",
@@ -862,9 +866,11 @@ func TestOutput_JSONLogging(t *testing.T) {
 			"scenario": "scenario_where_each_iteration_takes_200ms",
 		},
 		{
-			"message":  "setup",
-			"level":    "info",
-			"scenario": "scenario_where_each_iteration_takes_200ms",
+			"message":   "setup",
+			"level":     "info",
+			"scenario":  "scenario_where_each_iteration_takes_200ms",
+			"iteration": "setup",
+			"vuid":      float64(-1),
 		},
 		{
 			"message":  "slog - setup",
@@ -874,9 +880,11 @@ func TestOutput_JSONLogging(t *testing.T) {
 		},
 
 		{
-			"message":  "first iteration",
-			"level":    "info",
-			"scenario": "scenario_where_each_iteration_takes_200ms",
+			"message":   "first iteration",
+			"level":     "info",
+			"scenario":  "scenario_where_each_iteration_takes_200ms",
+			"iteration": "setup",
+			"vuid":      float64(-1),
 		},
 		{
 			"message":  "slog - first iteration",

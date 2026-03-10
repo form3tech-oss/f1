@@ -64,7 +64,7 @@ type parsedLogLine struct {
 }
 
 type (
-	logFieldMatchers map[string]string
+	logFieldMatchers map[string]any
 )
 
 type RunTestStage struct {
@@ -739,7 +739,7 @@ func (s *RunTestStage) assertJSONLogMatches(t *testing.T, output string, expecte
 		matchers := expectedLogLines[lineIndex]
 		for key, value := range matchers {
 			if value != anyValue {
-				s.assert.Equal(value, parsedLine.parsed[key])
+				s.assert.Equalf(value, parsedLine.parsed[key], "field %q: expected %v, got %v in %s", key, value, parsedLine.parsed[key], parsedLine.raw)
 			}
 		}
 

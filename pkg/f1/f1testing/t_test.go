@@ -2,8 +2,10 @@ package f1testing_test
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"log/slog"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -11,6 +13,50 @@ import (
 	"github.com/form3tech-oss/f1/v3/internal/log"
 	"github.com/form3tech-oss/f1/v3/pkg/f1/f1testing"
 )
+
+// commonTInterface is the subset of methods that f1testing.T and testing.T share with identical
+// signatures. This compile-time check ensures f1testing.T stays compatible with testing.T for
+// these methods, enabling users to share test helpers between f1 scenarios and standard go tests.
+// The interface is test-only and not exposed in the package.
+var (
+	_ commonTInterface = (*f1testing.T)(nil)
+	_ commonTInterface = (*testing.T)(nil)
+)
+
+//nolint:interfacebloat,inamedparam // Single interface for compile-time verification; Cleanup matches testing.T signature
+type commonTInterface interface {
+	Cleanup(func())
+	Error(args ...any)
+	Errorf(format string, args ...any)
+	Fail()
+	FailNow()
+	Failed() bool
+	Fatal(args ...any)
+	Fatalf(format string, args ...any)
+	Log(args ...any)
+	Logf(format string, args ...any)
+	Name() string
+}
+
+func parseJSONLogLine(t *testing.T, line string) map[string]any {
+	t.Helper()
+	var m map[string]any
+	require.NoError(t, json.Unmarshal([]byte(line), &m))
+	return m
+}
+
+func assertLogFormat(t *testing.T, line string, wantLevel, wantMsg, wantIteration string, wantVUID float64) {
+	t.Helper()
+	m := parseJSONLogLine(t, line)
+	require.Contains(t, m, "time", "log must have time field")
+	require.Contains(t, m, "vuid", "log must have vuid field")
+	require.Equal(t, wantLevel, m["level"], "level must match")
+	require.Equal(t, wantMsg, m["msg"], "msg must match")
+	require.Equal(t, wantIteration, m["iteration"], "iteration must match")
+	vuid, ok := m["vuid"].(float64)
+	require.True(t, ok, "vuid must be float64 (JSON number)")
+	require.InDelta(t, wantVUID, vuid, 0, "vuid must match")
+}
 
 func TestNewTIsNotFailed(t *testing.T) {
 	t.Parallel()
@@ -26,16 +72,12 @@ func TestReportsPanicReasonWhenCleanupFails(t *testing.T) {
 
 	var buf bytes.Buffer
 	logger := slog.New(slog.NewTextHandler(&buf, nil))
-
 	newT, teardown := f1testing.NewTWithOptions("test", f1testing.WithLogger(logger))
-
 	newT.Cleanup(func() {
 		panic("boom")
 	})
-
 	teardown()
-	logs := buf.String()
-	require.Contains(t, logs, "recovered panic in scenario")
+	require.Contains(t, buf.String(), "recovered panic in scenario")
 }
 
 func TestReportsErrorMessageWhenCleanupFails(t *testing.T) {
@@ -43,13 +85,10 @@ func TestReportsErrorMessageWhenCleanupFails(t *testing.T) {
 
 	var buf bytes.Buffer
 	logger := slog.New(slog.NewTextHandler(&buf, nil))
-
 	newT, teardown := f1testing.NewTWithOptions("test", f1testing.WithLogger(logger))
-
 	newT.Cleanup(func() {
 		panic(errors.New("boom"))
 	})
-
 	teardown()
 	logs := buf.String()
 	require.Contains(t, logs, "recovered panic in scenario")
@@ -108,56 +147,146 @@ func TestFailSetsTheFailedState(t *testing.T) {
 	require.True(t, newT.Failed())
 }
 
-func TestErrorSetsTheFailedState(t *testing.T) {
+func TestError(t *testing.T) {
 	t.Parallel()
 
-	newT, teardown := newT()
-	defer teardown()
+	tests := map[string]struct {
+		args          []any
+		wantMsg       string
+		wantIteration string
+		wantVUID      float64
+	}{
+		"error argument": {
+			args:          []any{errors.New("boom")},
+			wantMsg:       "boom",
+			wantIteration: "iteration 0",
+			wantVUID:      0,
+		},
+		"no arguments": {
+			args:          []any{},
+			wantMsg:       "",
+			wantIteration: "iteration 0",
+			wantVUID:      0,
+		},
+		"multiple arguments": {
+			args:          []any{"expected", 42, "got", 0},
+			wantMsg:       "expected 42 got 0",
+			wantIteration: "iteration 0",
+			wantVUID:      0,
+		},
+	}
 
-	newT.Error(errors.New("boom"))
-	require.True(t, newT.Failed())
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			var buf bytes.Buffer
+			logger := slog.New(slog.NewJSONHandler(&buf, nil))
+			newT, teardown := f1testing.NewTWithOptions("test",
+				f1testing.WithIteration(tc.wantIteration),
+				f1testing.WithVUID(int(tc.wantVUID)),
+				f1testing.WithLogger(logger),
+			)
+			defer teardown()
+
+			newT.Error(tc.args...)
+			require.True(t, newT.Failed())
+			assertLogFormat(t, strings.TrimSpace(buf.String()), "ERROR", tc.wantMsg, tc.wantIteration, tc.wantVUID)
+		})
+	}
 }
 
-func TestErrorfSetsTheFailedState(t *testing.T) {
+func TestErrorf(t *testing.T) {
 	t.Parallel()
 
-	newT, teardown := newT()
+	var buf bytes.Buffer
+	logger := slog.New(slog.NewJSONHandler(&buf, nil))
+	newT, teardown := f1testing.NewTWithOptions("test",
+		f1testing.WithIteration("iteration 0"),
+		f1testing.WithVUID(0),
+		f1testing.WithLogger(logger),
+	)
 	defer teardown()
 
-	newT.Errorf("boom")
+	newT.Errorf("got %d errors", 3)
 	require.True(t, newT.Failed())
+	assertLogFormat(t, strings.TrimSpace(buf.String()), "ERROR", "got 3 errors", "iteration 0", 0)
 }
 
-func TestFatalSetsTheFailedState(t *testing.T) {
+func TestFatal(t *testing.T) {
 	t.Parallel()
 
-	newT, teardown := newT()
+	tests := map[string]struct {
+		args          []any
+		wantMsg       string
+		wantIteration string
+		wantVUID      float64
+	}{
+		"error argument": {
+			args:          []any{errors.New("boom")},
+			wantMsg:       "boom",
+			wantIteration: "iteration 0",
+			wantVUID:      0,
+		},
+		"no arguments": {
+			args:          []any{},
+			wantMsg:       "",
+			wantIteration: "iteration 0",
+			wantVUID:      0,
+		},
+		"multiple arguments": {
+			args:          []any{"boom", 1, 2.0},
+			wantMsg:       "boom 1 2",
+			wantIteration: "iteration 0",
+			wantVUID:      0,
+		},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			var buf bytes.Buffer
+			logger := slog.New(slog.NewJSONHandler(&buf, nil))
+			newT, teardown := f1testing.NewTWithOptions("test",
+				f1testing.WithIteration(tc.wantIteration),
+				f1testing.WithVUID(int(tc.wantVUID)),
+				f1testing.WithLogger(logger),
+			)
+			defer teardown()
+
+			done := make(chan struct{})
+			go func() {
+				defer catchPanics(done)
+				newT.Fatal(tc.args...)
+			}()
+			<-done
+
+			require.True(t, newT.Failed())
+			assertLogFormat(t, strings.TrimSpace(buf.String()), "ERROR", tc.wantMsg, tc.wantIteration, tc.wantVUID)
+		})
+	}
+}
+
+func TestFatalf(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	logger := slog.New(slog.NewJSONHandler(&buf, nil))
+	newT, teardown := f1testing.NewTWithOptions("test",
+		f1testing.WithIteration("iteration 0"),
+		f1testing.WithVUID(0),
+		f1testing.WithLogger(logger),
+	)
 	defer teardown()
 
 	done := make(chan struct{})
 	go func() {
 		defer catchPanics(done)
-		newT.Fatal(errors.New("boom"))
+		newT.Fatalf("fatal: %s", "boom")
 	}()
 	<-done
 
 	require.True(t, newT.Failed())
-}
-
-func TestFatalfSetsTheFailedState(t *testing.T) {
-	t.Parallel()
-
-	newT, teardown := newT()
-	defer teardown()
-
-	done := make(chan struct{})
-	go func() {
-		defer catchPanics(done)
-		newT.Fatalf("boom")
-	}()
-	<-done
-
-	require.True(t, newT.Failed())
+	assertLogFormat(t, strings.TrimSpace(buf.String()), "ERROR", "fatal: boom", "iteration 0", 0)
 }
 
 func TestNameReturnsScenarioName(t *testing.T) {
@@ -178,22 +307,61 @@ func TestWithVUIDSetsVirtualUserID(t *testing.T) {
 	require.Equal(t, 42, newT.VUID)
 }
 
-func TestWithVUIDIncludedInErrorLogs(t *testing.T) {
+func TestLog(t *testing.T) {
+	t.Parallel()
+
+	tests := map[string]struct {
+		call          func(*f1testing.T)
+		wantMsg       string
+		wantIteration string
+		wantVUID      float64
+	}{
+		"single argument": {
+			call:          func(t *f1testing.T) { t.Log("info message") },
+			wantMsg:       "info message",
+			wantIteration: "iteration 0",
+			wantVUID:      0,
+		},
+		"multiple arguments": {
+			call:          func(t *f1testing.T) { t.Log("step", 1, "of", 3) },
+			wantMsg:       "step 1 of 3",
+			wantIteration: "iteration 0",
+			wantVUID:      0,
+		},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			var buf bytes.Buffer
+			logger := slog.New(slog.NewJSONHandler(&buf, nil))
+			newT, teardown := f1testing.NewTWithOptions("test",
+				f1testing.WithIteration(tc.wantIteration),
+				f1testing.WithVUID(int(tc.wantVUID)),
+				f1testing.WithLogger(logger),
+			)
+			defer teardown()
+
+			tc.call(newT)
+			assertLogFormat(t, strings.TrimSpace(buf.String()), "INFO", tc.wantMsg, tc.wantIteration, tc.wantVUID)
+		})
+	}
+}
+
+func TestLogf(t *testing.T) {
 	t.Parallel()
 
 	var buf bytes.Buffer
-	logger := slog.New(slog.NewTextHandler(&buf, nil))
-
+	logger := slog.New(slog.NewJSONHandler(&buf, nil))
 	newT, teardown := f1testing.NewTWithOptions("test",
-		f1testing.WithVUID(7),
+		f1testing.WithIteration("iteration 0"),
+		f1testing.WithVUID(0),
 		f1testing.WithLogger(logger),
 	)
 	defer teardown()
 
-	newT.Error(errors.New("test error"))
-	logs := buf.String()
-	require.Contains(t, logs, "vuid=7")
-	require.Contains(t, logs, "test error")
+	newT.Logf("progress: %d%%", 50)
+	assertLogFormat(t, strings.TrimSpace(buf.String()), "INFO", "progress: 50%", "iteration 0", 0)
 }
 
 func catchPanics(done chan<- struct{}) {
