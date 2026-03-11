@@ -170,7 +170,7 @@ func (f *F1) execute(ctx context.Context, args []string) error {
 	errs := errors.Join(err, profilingErr)
 
 	if errs != nil {
-		return fmt.Errorf("command execution: %w", err)
+		return fmt.Errorf("command execution: %w", errs)
 	}
 
 	return nil
