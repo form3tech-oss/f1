@@ -45,14 +45,16 @@ func parseJSONLogLine(t *testing.T, line string) map[string]any {
 	return m
 }
 
-func assertLogFormat(t *testing.T, line string, wantLevel, wantMsg, wantIteration string, wantVUID float64) {
+func assertLogFormat(t *testing.T, line string, wantLevel, wantMsg string, wantIteration float64, wantVUID float64) {
 	t.Helper()
 	m := parseJSONLogLine(t, line)
 	require.Contains(t, m, "time", "log must have time field")
 	require.Contains(t, m, "vuid", "log must have vuid field")
 	require.Equal(t, wantLevel, m["level"], "level must match")
 	require.Equal(t, wantMsg, m["msg"], "msg must match")
-	require.Equal(t, wantIteration, m["iteration"], "iteration must match")
+	iter, ok := m["iteration"].(float64)
+	require.True(t, ok, "iteration must be float64 (JSON number)")
+	require.InDelta(t, wantIteration, iter, 0, "iteration must match")
 	vuid, ok := m["vuid"].(float64)
 	require.True(t, ok, "vuid must be float64 (JSON number)")
 	require.InDelta(t, wantVUID, vuid, 0, "vuid must match")
@@ -153,25 +155,25 @@ func TestError(t *testing.T) {
 	tests := map[string]struct {
 		args          []any
 		wantMsg       string
-		wantIteration string
+		wantIteration float64
 		wantVUID      float64
 	}{
 		"error argument": {
 			args:          []any{errors.New("boom")},
 			wantMsg:       "boom",
-			wantIteration: "iteration 0",
+			wantIteration: 0,
 			wantVUID:      0,
 		},
 		"no arguments": {
 			args:          []any{},
 			wantMsg:       "",
-			wantIteration: "iteration 0",
+			wantIteration: 0,
 			wantVUID:      0,
 		},
 		"multiple arguments": {
 			args:          []any{"expected", 42, "got", 0},
 			wantMsg:       "expected 42 got 0",
-			wantIteration: "iteration 0",
+			wantIteration: 0,
 			wantVUID:      0,
 		},
 	}
@@ -182,7 +184,7 @@ func TestError(t *testing.T) {
 			var buf bytes.Buffer
 			logger := slog.New(slog.NewJSONHandler(&buf, nil))
 			newT, teardown := f1testing.NewTWithOptions("test",
-				f1testing.WithIteration(tc.wantIteration),
+				f1testing.WithIteration(uint64(tc.wantIteration)),
 				f1testing.WithVUID(int(tc.wantVUID)),
 				f1testing.WithLogger(logger),
 			)
@@ -201,7 +203,7 @@ func TestErrorf(t *testing.T) {
 	var buf bytes.Buffer
 	logger := slog.New(slog.NewJSONHandler(&buf, nil))
 	newT, teardown := f1testing.NewTWithOptions("test",
-		f1testing.WithIteration("iteration 0"),
+		f1testing.WithIteration(0),
 		f1testing.WithVUID(0),
 		f1testing.WithLogger(logger),
 	)
@@ -209,7 +211,7 @@ func TestErrorf(t *testing.T) {
 
 	newT.Errorf("got %d errors", 3)
 	require.True(t, newT.Failed())
-	assertLogFormat(t, strings.TrimSpace(buf.String()), "ERROR", "got 3 errors", "iteration 0", 0)
+	assertLogFormat(t, strings.TrimSpace(buf.String()), "ERROR", "got 3 errors", 0, 0)
 }
 
 func TestFatal(t *testing.T) {
@@ -218,25 +220,25 @@ func TestFatal(t *testing.T) {
 	tests := map[string]struct {
 		args          []any
 		wantMsg       string
-		wantIteration string
+		wantIteration float64
 		wantVUID      float64
 	}{
 		"error argument": {
 			args:          []any{errors.New("boom")},
 			wantMsg:       "boom",
-			wantIteration: "iteration 0",
+			wantIteration: 0,
 			wantVUID:      0,
 		},
 		"no arguments": {
 			args:          []any{},
 			wantMsg:       "",
-			wantIteration: "iteration 0",
+			wantIteration: 0,
 			wantVUID:      0,
 		},
 		"multiple arguments": {
 			args:          []any{"boom", 1, 2.0},
 			wantMsg:       "boom 1 2",
-			wantIteration: "iteration 0",
+			wantIteration: 0,
 			wantVUID:      0,
 		},
 	}
@@ -247,7 +249,7 @@ func TestFatal(t *testing.T) {
 			var buf bytes.Buffer
 			logger := slog.New(slog.NewJSONHandler(&buf, nil))
 			newT, teardown := f1testing.NewTWithOptions("test",
-				f1testing.WithIteration(tc.wantIteration),
+				f1testing.WithIteration(uint64(tc.wantIteration)),
 				f1testing.WithVUID(int(tc.wantVUID)),
 				f1testing.WithLogger(logger),
 			)
@@ -272,7 +274,7 @@ func TestFatalf(t *testing.T) {
 	var buf bytes.Buffer
 	logger := slog.New(slog.NewJSONHandler(&buf, nil))
 	newT, teardown := f1testing.NewTWithOptions("test",
-		f1testing.WithIteration("iteration 0"),
+		f1testing.WithIteration(0),
 		f1testing.WithVUID(0),
 		f1testing.WithLogger(logger),
 	)
@@ -286,7 +288,7 @@ func TestFatalf(t *testing.T) {
 	<-done
 
 	require.True(t, newT.Failed())
-	assertLogFormat(t, strings.TrimSpace(buf.String()), "ERROR", "fatal: boom", "iteration 0", 0)
+	assertLogFormat(t, strings.TrimSpace(buf.String()), "ERROR", "fatal: boom", 0, 0)
 }
 
 func TestNameReturnsScenarioName(t *testing.T) {
@@ -313,19 +315,19 @@ func TestLog(t *testing.T) {
 	tests := map[string]struct {
 		call          func(*f1testing.T)
 		wantMsg       string
-		wantIteration string
+		wantIteration float64
 		wantVUID      float64
 	}{
 		"single argument": {
 			call:          func(t *f1testing.T) { t.Log("info message") },
 			wantMsg:       "info message",
-			wantIteration: "iteration 0",
+			wantIteration: 0,
 			wantVUID:      0,
 		},
 		"multiple arguments": {
 			call:          func(t *f1testing.T) { t.Log("step", 1, "of", 3) },
 			wantMsg:       "step 1 of 3",
-			wantIteration: "iteration 0",
+			wantIteration: 0,
 			wantVUID:      0,
 		},
 	}
@@ -336,7 +338,7 @@ func TestLog(t *testing.T) {
 			var buf bytes.Buffer
 			logger := slog.New(slog.NewJSONHandler(&buf, nil))
 			newT, teardown := f1testing.NewTWithOptions("test",
-				f1testing.WithIteration(tc.wantIteration),
+				f1testing.WithIteration(uint64(tc.wantIteration)),
 				f1testing.WithVUID(int(tc.wantVUID)),
 				f1testing.WithLogger(logger),
 			)
@@ -354,14 +356,14 @@ func TestLogf(t *testing.T) {
 	var buf bytes.Buffer
 	logger := slog.New(slog.NewJSONHandler(&buf, nil))
 	newT, teardown := f1testing.NewTWithOptions("test",
-		f1testing.WithIteration("iteration 0"),
+		f1testing.WithIteration(0),
 		f1testing.WithVUID(0),
 		f1testing.WithLogger(logger),
 	)
 	defer teardown()
 
 	newT.Logf("progress: %d%%", 50)
-	assertLogFormat(t, strings.TrimSpace(buf.String()), "INFO", "progress: 50%", "iteration 0", 0)
+	assertLogFormat(t, strings.TrimSpace(buf.String()), "INFO", "progress: 50%", 0, 0)
 }
 
 func catchPanics(done chan<- struct{}) {
@@ -374,7 +376,7 @@ func newT() (*f1testing.T, func()) {
 
 	return f1testing.NewTWithOptions(
 		"test",
-		f1testing.WithIteration("iteration 0"),
+		f1testing.WithIteration(0),
 		f1testing.WithLogger(logger),
 	)
 }

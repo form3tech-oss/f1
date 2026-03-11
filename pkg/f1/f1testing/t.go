@@ -15,15 +15,20 @@ import (
 
 var errFailNow = errors.New("FailNow")
 
+// IterationSetup is the value of T.Iteration during the setup phase.
+// Iteration numbers from the run phase are 1-based, so 0 is never used for iterations.
+const IterationSetup uint64 = 0
+
 // T is a type passed to Scenario functions to manage test state and support formatted test logs. A
 // test ends when its Scenario function returns or calls any of the methods FailNow, Fatal, Fatalf.
 // Those methods must be called only from the goroutine running the Scenario function. The other
 // reporting methods, such as the variations of Log and Error, may be called simultaneously from
 // multiple goroutines.
 type T struct {
-	logger    *slog.Logger
-	require   *require.Assertions
-	Iteration string // iteration number or "setup"
+	logger  *slog.Logger
+	require *require.Assertions
+	// Iteration is the iteration index (1-based) or IterationSetup (0) for the setup phase.
+	Iteration uint64
 	Scenario  string
 	// VUID is the Virtual User ID - a stable identifier for the pool worker running this iteration.
 	// Useful for correlating iterations with user-specific test data (e.g. in the "users" trigger mode).
@@ -43,7 +48,7 @@ func WithLogger(logger *slog.Logger) TOption {
 	}
 }
 
-func WithIteration(iteration string) TOption {
+func WithIteration(iteration uint64) TOption {
 	return func(t *T) {
 		t.Iteration = iteration
 	}
@@ -74,7 +79,7 @@ func NewTWithOptions(scenarioName string, options ...TOption) (*T, func()) {
 	return t, t.teardown
 }
 
-func (t *T) Reset(iter string) {
+func (t *T) Reset(iter uint64) {
 	t.Iteration = iter
 	t.failed.Store(false)
 	t.teardownFailed.Store(false)

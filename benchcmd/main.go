@@ -46,7 +46,7 @@ func failingScenario(context.Context, *f1testing.T) f1testing.RunFn {
 func logScenario(_ context.Context, t *f1testing.T) f1testing.RunFn {
 	t.Log("Setup")
 	runFn := func(_ context.Context, t *f1testing.T) {
-		t.Logf("Iteration: %s", t.Iteration)
+		t.Logf("Iteration: %d", t.Iteration)
 		t.Logger().With("iteration", t.Iteration).Debug("Trace log")
 		t.Logger().With("iteration", t.Iteration).Debug("Debug log")
 		t.Logger().With("iteration", t.Iteration).Info("Info log")

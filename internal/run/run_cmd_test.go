@@ -834,7 +834,7 @@ func TestOutput_JSONLogging(t *testing.T) {
 			"message":   "setup",
 			"level":     "info",
 			"scenario":  "scenario_where_each_iteration_takes_200ms",
-			"iteration": "setup",
+			"iteration": float64(0),
 			"vuid":      float64(-1),
 		},
 		{
@@ -848,7 +848,7 @@ func TestOutput_JSONLogging(t *testing.T) {
 			"message":   "first iteration",
 			"level":     "info",
 			"scenario":  "scenario_where_each_iteration_takes_200ms",
-			"iteration": "setup",
+			"iteration": float64(0),
 			"vuid":      float64(-1),
 		},
 		{
@@ -869,7 +869,7 @@ func TestOutput_JSONLogging(t *testing.T) {
 			"message":   "setup",
 			"level":     "info",
 			"scenario":  "scenario_where_each_iteration_takes_200ms",
-			"iteration": "setup",
+			"iteration": float64(0),
 			"vuid":      float64(-1),
 		},
 		{
@@ -883,7 +883,7 @@ func TestOutput_JSONLogging(t *testing.T) {
 			"message":   "first iteration",
 			"level":     "info",
 			"scenario":  "scenario_where_each_iteration_takes_200ms",
-			"iteration": "setup",
+			"iteration": float64(0),
 			"vuid":      float64(-1),
 		},
 		{

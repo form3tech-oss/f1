@@ -2,7 +2,6 @@ package workers
 
 import (
 	"context"
-	"strconv"
 	"sync"
 	"sync/atomic"
 )
@@ -68,7 +67,7 @@ func (p *ContinuousPool) startWorker(
 			return
 		}
 
-		iterationState.t.Reset(strconv.FormatUint(iteration, 10))
+		iterationState.t.Reset(iteration)
 		p.manager.activeScenario.Run(ctx, iterationState)
 	}
 }

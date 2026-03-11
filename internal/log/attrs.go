@@ -25,8 +25,8 @@ func ScenarioAttr(scenarioName string) slog.Attr {
 	return slog.String("scenario", scenarioName)
 }
 
-func IterationAttr(iteration string) slog.Attr {
-	return slog.String("iteration", iteration)
+func IterationAttr(iteration uint64) slog.Attr {
+	return slog.Uint64("iteration", iteration)
 }
 
 func VUIDAttr(vuid int) slog.Attr {

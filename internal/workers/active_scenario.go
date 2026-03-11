@@ -29,7 +29,7 @@ func NewActiveScenario(
 	logger *slog.Logger,
 ) *ActiveScenario {
 	t, teardown := f1testing.NewTWithOptions(scenario.Name,
-		f1testing.WithIteration("setup"),
+		f1testing.WithIteration(f1testing.IterationSetup),
 		f1testing.WithVUID(-1),
 		f1testing.WithLogger(logger),
 	)

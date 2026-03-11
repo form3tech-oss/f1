@@ -36,6 +36,7 @@ This guide documents all breaking changes in F1 v3 and how to migrate your code.
 | Scenario/Run signatures | `func(t *T)` | `func(ctx context.Context, t *T)` |
 | T.Error / T.Fatal | `Error(err error)`, `Fatal(err error)` | `Error(args ...any)`, `Fatal(args ...any)` |
 | T.Logger | `*logrus.Logger` | `*slog.Logger` |
+| T.Iteration | `string` | `uint64` (IterationSetup=0 for setup) |
 | Metrics | `metrics.GetMetrics()` | Removed; use `WithStaticMetrics` |
 
 ---
@@ -263,7 +264,7 @@ Type references:
 t.Error(err)
 t.Error("failed:", err)
 t.Fatal(err)
-t.Fatalf("iteration %s failed: %v", t.Iteration, err)
+t.Fatalf("iteration %d failed: %v", t.Iteration, err)
 ```
 
 ### 9.2 Log Levels
@@ -308,10 +309,24 @@ t.Fatalf("iteration %s failed: %v", t.Iteration, err)
 - t, teardown := testing.NewT("1", "myScenario")
 
 // v3
-+ t, teardown := f1testing.NewTWithOptions("myScenario", f1testing.WithIteration("1"))
++ t, teardown := f1testing.NewTWithOptions("myScenario", f1testing.WithIteration(1))
 ```
 
-### 9.6 WithLogrusLogger Removed
+### 9.6 T.Iteration Type Change
+
+**Change**: `T.Iteration` is now `uint64` instead of `string`. Use `f1testing.IterationSetup` (0) for the setup phase; iteration numbers are 1-based.
+
+```diff
+// v2
+- t.Logf("Iteration: %s", t.Iteration)
+- t.Logger().With("iteration", t.Iteration).Info("msg")
+
+// v3
++ t.Logf("Iteration: %d", t.Iteration)
++ t.Logger().With("iteration", t.Iteration).Info("msg")
+```
+
+### 9.7 WithLogrusLogger Removed
 
 **Change**: `WithLogrusLogger(logrusLogger *logrus.Logger)` is removed. Use `WithLogger(*slog.Logger)` when constructing `T` via `NewTWithOptions`.
 
@@ -484,6 +499,7 @@ Use this checklist when migrating from v2 to v3:
 - [ ] Remove `T.Time()` usage; record timing manually if needed
 - [ ] Update `T.Logger()` call sites: it now returns `*slog.Logger` (not `*logrus.Logger`)
 - [ ] (Optional) `Error`/`Fatal` now use `args ...any`; existing `Error(err)`/`Fatal(err)` calls remain valid
+- [ ] Replace `t.Logf("Iteration: %s", t.Iteration)` with `t.Logf("Iteration: %d", t.Iteration)` if used
 - [ ] Update CLI invocations: `--cpuprofile` → `--cpu-profile`, `--memprofile` → `--mem-profile`, `--iterationFrequency` → `--iteration-frequency`
 - [ ] Remove `--verbose-fail` if used
 - [ ] Remove `f1 chart` usage; use external visualisation tools
