@@ -2,8 +2,6 @@ package scenarios
 
 import (
 	"fmt"
-	"os"
-	"sort"
 
 	"github.com/spf13/cobra"
 )
@@ -19,19 +17,20 @@ func Cmd(s *Scenarios) *cobra.Command {
 }
 
 func lsCmd(s *Scenarios) *cobra.Command {
-	lsCmd := &cobra.Command{
-		Use: "ls",
-		Run: lsCmdExecute(s),
+	return &cobra.Command{
+		Use:   "ls",
+		Short: "List available scenario names",
+		Long:  "List all registered scenario names, one per line, sorted alphabetically.",
+		Run:   lsCmdExecute(s),
 	}
-	return lsCmd
 }
 
 func lsCmdExecute(s *Scenarios) func(*cobra.Command, []string) {
-	return func(*cobra.Command, []string) {
-		scenarios := s.GetScenarioNames()
-		sort.Strings(scenarios)
-		for _, scenario := range scenarios {
-			fmt.Fprintln(os.Stdout, scenario)
+	return func(cmd *cobra.Command, _ []string) {
+		names := s.GetScenarioNames()
+		out := cmd.OutOrStdout()
+		for _, name := range names {
+			fmt.Fprintln(out, name)
 		}
 	}
 }
