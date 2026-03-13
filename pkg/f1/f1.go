@@ -34,18 +34,21 @@ type F1 struct {
 }
 
 type f1Options struct {
-	output        *ui.Output
-	staticMetrics map[string]string
+	output         *ui.Output
+	staticMetrics  map[string]string
+	loggerExplicit bool
 }
 
 // Option configures an F1 instance at construction.
 type Option func(*F1)
 
 // WithLogger specifies the logger for internal and scenario logs.
-// This disables F1_LOG_LEVEL and F1_LOG_FORMAT.
+// When used, WithLogLevel, WithLogFormat, F1_LOG_LEVEL and F1_LOG_FORMAT
+// have no effect because the caller controls the logger directly.
 func WithLogger(logger *slog.Logger) Option {
 	return func(f *F1) {
 		f.options.output = ui.NewDefaultOutputWithLogger(logger)
+		f.options.loggerExplicit = true
 	}
 }
 
@@ -57,21 +60,26 @@ func WithStaticMetrics(labels map[string]string) Option {
 }
 
 // New instantiates a new F1 CLI. Pass options to configure logger, metrics, etc.
+//
+// Construction order:
+//  1. Load settings from environment variables
+//  2. Apply options (may override individual settings or clear them via WithoutEnvSettings)
+//  3. Build default output from final settings unless WithLogger was used
 func New(opts ...Option) *F1 {
-	settings := envsettings.Get()
-
 	f := &F1{
 		scenarios: scenarios.New(),
 		profiling: &profiling{},
-		settings:  settings,
-		options: &f1Options{
-			output:        ui.NewDefaultOutput(settings.Log.SlogLevel(), settings.Log.IsFormatJSON()),
-			staticMetrics: nil,
-		},
+		settings:  envsettings.Get(),
+		options:   &f1Options{},
 	}
 	for _, opt := range opts {
 		opt(f)
 	}
+
+	if !f.options.loggerExplicit {
+		f.options.output = ui.NewDefaultOutput(f.settings.Log.SlogLevel(), f.settings.Log.IsFormatJSON())
+	}
+
 	return f
 }
 

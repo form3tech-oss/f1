@@ -82,6 +82,9 @@ linters:
       # Test files - relaxed rules for readability
       - linters: [dupword, lll, unparam, wrapcheck]
         path: _test\.go
+      # t.Setenv is incompatible with t.Parallel (Go constraint)
+      - linters: [paralleltest, tparallel]
+        path: options_settings_test\.go
       - linters: [staticcheck]
         path: _test\.go
         text: ST1003
