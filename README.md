@@ -88,60 +88,81 @@ It provides the following information:
 - `(20/s)` (attempted) rate,
 - `avg: 72ns, min: 125ns, max: 27.590042ms` average, min and max iteration times.
 
-### Environment variables
+### Configuration
 
-| Name | Format | Default | Description |
+f1 can be configured via environment variables, programmatic options, or both. By default, environment variables are read at construction time. Programmatic options override env vars for the fields they set.
+
+#### Settings reference
+
+| Setting | Environment variable | Programmatic option | Default |
 | --- | --- | --- | --- |
-| `PROMETHEUS_PUSH_GATEWAY` | string - `host:port` or `ip:port` | `""` | Configures the address of a [Prometheus Push Gateway](https://prometheus.io/docs/instrumenting/pushing/) for exposing metrics. The prometheus job name configured will be `f1-{scenario_name}`. Disabled by default.|
-| `PROMETHEUS_NAMESPACE` | string | `""` | Sets the metric label `namespace` to the specified value. Label is omitted if the value provided is empty.|
-| `PROMETHEUS_LABEL_ID` | string | `""` | Sets the metric label `id` to the specified value. Label is omitted if the value provided is empty.|
-| `LOG_FILE_PATH` | string | `""`| Specify the log file path used if `--verbose` is disabled. The logfile path will be an automatically generated temp file if not specified. |
-| `F1_LOG_LEVEL` | string | `"info"`| Specify the log level of the default logger, one of: `debug`, `warn`, `error`  |
-| `F1_LOG_FORMAT` | string | `""`| Specify the log format of the default logger, defaults to `text` formatter, allows `json`  |
+| Prometheus push gateway | `PROMETHEUS_PUSH_GATEWAY` | `f1.WithPrometheusPushGateway(url)` | disabled |
+| Prometheus namespace label | `PROMETHEUS_NAMESPACE` | `f1.WithPrometheusNamespace(ns)` | `""` |
+| Prometheus ID label | `PROMETHEUS_LABEL_ID` | `f1.WithPrometheusLabelID(id)` | `""` |
+| Log file path | `LOG_FILE_PATH` | `f1.WithLogFilePath(path)` | auto temp file |
+| Log level | `F1_LOG_LEVEL` | `f1.WithLogLevel(slog.LevelDebug)` | `slog.LevelInfo` |
+| Log format | `F1_LOG_FORMAT` | `f1.WithLogFormat(f1.LogFormatJSON)` | `f1.LogFormatText` |
 
-### Programmatic configuration
+Log level and format options use Go's standard `slog.Level` and f1's `LogFormat` type for compile-time safety. Use `f1.ParseLogLevel(string)` and `f1.ParseLogFormat(string)` to convert from strings (e.g. from config files).
 
-Every environment variable above has a programmatic equivalent that can be passed as an option to `f1.New()`:
+#### Configuring without environment variables
 
-| Environment variable | Programmatic option | Accepted values |
-| --- | --- | --- |
-| `PROMETHEUS_PUSH_GATEWAY` | `f1.WithPrometheusPushGateway(url)` | `host:port` or full URL |
-| `PROMETHEUS_NAMESPACE` | `f1.WithPrometheusNamespace(ns)` | any string |
-| `PROMETHEUS_LABEL_ID` | `f1.WithPrometheusLabelID(id)` | any string |
-| `LOG_FILE_PATH` | `f1.WithLogFilePath(path)` | file path |
-| `F1_LOG_LEVEL` | `f1.WithLogLevel(level)` | `debug`, `info`, `warn`, `error` (case-insensitive) |
-| `F1_LOG_FORMAT` | `f1.WithLogFormat(format)` | `text`, `json` (case-insensitive) |
+Use `f1.WithSettings(f1.Settings{})` to start from zero values, ignoring all environment variables. Fine-grained options (`WithLogLevel`, `WithPrometheusPushGateway`, etc.) still apply after the baseline:
 
-Additionally, `f1.WithoutEnvSettings()` can be used to ignore all environment variables and start from default values.
+```golang
+f1.New(
+    f1.WithSettings(f1.Settings{}),
+    f1.WithLogLevel(slog.LevelWarn),
+    f1.WithLogFormat(f1.LogFormatJSON),
+).AddScenario("myScenario", mySetup).Execute()
+```
+
+For full control, pass a complete `f1.Settings` struct:
+
+```golang
+f1.New(
+    f1.WithSettings(f1.Settings{
+        Prometheus: f1.PrometheusSettings{
+            PushGateway: "http://pushgateway:9091",
+            Namespace:   "my-namespace",
+        },
+        Logging: f1.LoggingSettings{
+            Level:  slog.LevelDebug,
+            Format: f1.LogFormatJSON,
+        },
+    }),
+).AddScenario("myScenario", mySetup).Execute()
+```
 
 #### Precedence
 
 Settings are resolved in this order (highest priority first):
 
-1. **Programmatic options** — values passed to `f1.New()`
-2. **Environment variables** — read at construction time
-3. **Defaults** — info level, text format, no Prometheus push
+1. **Programmatic options** — values passed to `f1.New()` (applied in order)
+2. **Environment variables** — read at construction time (baseline when no `WithSettings` is used)
+3. **Defaults** — `slog.LevelInfo`, `LogFormatText`, no Prometheus push
 
-When `f1.WithLogger(logger)` is used, the caller owns the logger entirely. In this case `WithLogLevel`, `WithLogFormat`, `F1_LOG_LEVEL` and `F1_LOG_FORMAT` have no effect.
+When `f1.WithLogger(logger)` is used, the caller owns the logger entirely. `WithLogLevel`, `WithLogFormat`, and the corresponding env vars have no effect:
 
 ```golang
-// Example: override push gateway and log level programmatically
-f1.New(
-    f1.WithPrometheusPushGateway("http://pushgateway:9091"),
-    f1.WithLogLevel("debug"),
-).AddScenario("myScenario", mySetup).Execute()
-
-// Example: ignore all env vars, configure everything in code
-f1.New(
-    f1.WithoutEnvSettings(),
-    f1.WithLogLevel("warn"),
-    f1.WithLogFormat("json"),
-).AddScenario("myScenario", mySetup).Execute()
-
-// Example: use a custom logger (log level/format options are ignored)
 logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
 f1.New(
     f1.WithLogger(logger),
+).AddScenario("myScenario", mySetup).Execute()
+```
+
+#### Default env-backed behaviour
+
+When no `WithSettings` is provided, environment variables are used as the baseline (backward-compatible with previous releases):
+
+```golang
+// Env vars like PROMETHEUS_PUSH_GATEWAY are read automatically
+f1.New().AddScenario("myScenario", mySetup).Execute()
+
+// Fine-grained options override individual env var values
+f1.New(
+    f1.WithPrometheusPushGateway("http://pushgateway:9091"),
+    f1.WithLogLevel(slog.LevelDebug),
 ).AddScenario("myScenario", mySetup).Execute()
 ```
 
