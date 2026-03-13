@@ -99,5 +99,51 @@ It provides the following information:
 | `F1_LOG_LEVEL` | string | `"info"`| Specify the log level of the default logger, one of: `debug`, `warn`, `error`  |
 | `F1_LOG_FORMAT` | string | `""`| Specify the log format of the default logger, defaults to `text` formatter, allows `json`  |
 
+### Programmatic configuration
+
+Every environment variable above has a programmatic equivalent that can be passed as an option to `f1.New()`:
+
+| Environment variable | Programmatic option | Accepted values |
+| --- | --- | --- |
+| `PROMETHEUS_PUSH_GATEWAY` | `f1.WithPrometheusPushGateway(url)` | `host:port` or full URL |
+| `PROMETHEUS_NAMESPACE` | `f1.WithPrometheusNamespace(ns)` | any string |
+| `PROMETHEUS_LABEL_ID` | `f1.WithPrometheusLabelID(id)` | any string |
+| `LOG_FILE_PATH` | `f1.WithLogFilePath(path)` | file path |
+| `F1_LOG_LEVEL` | `f1.WithLogLevel(level)` | `debug`, `info`, `warn`, `error` (case-insensitive) |
+| `F1_LOG_FORMAT` | `f1.WithLogFormat(format)` | `text`, `json` (case-insensitive) |
+
+Additionally, `f1.WithoutEnvSettings()` can be used to ignore all environment variables and start from default values.
+
+#### Precedence
+
+Settings are resolved in this order (highest priority first):
+
+1. **Programmatic options** — values passed to `f1.New()`
+2. **Environment variables** — read at construction time
+3. **Defaults** — info level, text format, no Prometheus push
+
+When `f1.WithLogger(logger)` is used, the caller owns the logger entirely. In this case `WithLogLevel`, `WithLogFormat`, `F1_LOG_LEVEL` and `F1_LOG_FORMAT` have no effect.
+
+```golang
+// Example: override push gateway and log level programmatically
+f1.New(
+    f1.WithPrometheusPushGateway("http://pushgateway:9091"),
+    f1.WithLogLevel("debug"),
+).AddScenario("myScenario", mySetup).Execute()
+
+// Example: ignore all env vars, configure everything in code
+f1.New(
+    f1.WithoutEnvSettings(),
+    f1.WithLogLevel("warn"),
+    f1.WithLogFormat("json"),
+).AddScenario("myScenario", mySetup).Execute()
+
+// Example: use a custom logger (log level/format options are ignored)
+logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
+f1.New(
+    f1.WithLogger(logger),
+).AddScenario("myScenario", mySetup).Execute()
+```
+
 ## Contributions
 If you'd like to help improve `f1`, please fork this repo and raise a PR!
