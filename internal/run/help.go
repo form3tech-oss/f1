@@ -3,6 +3,7 @@ package run
 import (
 	"fmt"
 	"strings"
+	"sync"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -31,9 +32,9 @@ func commonFlagGroups() map[string]string {
 	}
 }
 
-func registerHelpTemplateFunc() {
+var registerHelpTemplateFunc = sync.OnceFunc(func() {
 	cobra.AddTemplateFunc("groupedFlagUsages", groupedFlagUsages)
-}
+})
 
 func groupedFlagUsages(cmd *cobra.Command) string {
 	if cmd == nil || !cmd.HasAvailableLocalFlags() {

@@ -4,12 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log/slog"
 	"os"
 	"os/signal"
 	"syscall"
 
-	"github.com/form3tech-oss/f1/v3/internal/envsettings"
 	"github.com/form3tech-oss/f1/v3/internal/ui"
 	"github.com/form3tech-oss/f1/v3/pkg/f1/f1testing"
 	"github.com/form3tech-oss/f1/v3/pkg/f1/scenarios"
@@ -29,7 +27,7 @@ const (
 type F1 struct {
 	scenarios *scenarios.Scenarios
 	profiling *profiling
-	settings  envsettings.Settings
+	settings  Settings
 	options   *f1Options
 }
 
@@ -39,37 +37,17 @@ type f1Options struct {
 	loggerExplicit bool
 }
 
-// Option configures an F1 instance at construction.
-type Option func(*F1)
-
-// WithLogger specifies the logger for internal and scenario logs.
-// When used, WithLogLevel, WithLogFormat, F1_LOG_LEVEL and F1_LOG_FORMAT
-// have no effect because the caller controls the logger directly.
-func WithLogger(logger *slog.Logger) Option {
-	return func(f *F1) {
-		f.options.output = ui.NewDefaultOutputWithLogger(logger)
-		f.options.loggerExplicit = true
-	}
-}
-
-// WithStaticMetrics registers additional labels with fixed values for f1 metrics.
-func WithStaticMetrics(labels map[string]string) Option {
-	return func(f *F1) {
-		f.options.staticMetrics = labels
-	}
-}
-
 // New instantiates a new F1 CLI. Pass options to configure logger, metrics, etc.
 //
 // Construction order:
-//  1. Load settings from environment variables
-//  2. Apply options (may override individual settings or clear them via WithoutEnvSettings)
+//  1. Load default settings from environment variables (see DefaultSettings)
+//  2. Apply options (may replace settings via WithSettings or override individual fields)
 //  3. Build default output from final settings unless WithLogger was used
 func New(opts ...Option) *F1 {
 	f := &F1{
 		scenarios: scenarios.New(),
 		profiling: &profiling{},
-		settings:  envsettings.Get(),
+		settings:  DefaultSettings(),
 		options:   &f1Options{},
 	}
 	for _, opt := range opts {
@@ -77,7 +55,7 @@ func New(opts ...Option) *F1 {
 	}
 
 	if !f.options.loggerExplicit {
-		f.options.output = ui.NewDefaultOutput(f.settings.Log.SlogLevel(), f.settings.Log.IsFormatJSON())
+		f.options.output = ui.NewDefaultOutput(f.settings.Logging.Level, f.settings.Logging.Format == LogFormatJSON)
 	}
 
 	return f
@@ -162,7 +140,10 @@ func (f *F1) execute(ctx context.Context, args []string) error {
 	defer close(stopCh)
 	execCtx := newSignalContext(ctx, stopCh)
 
-	rootCmd, err := buildRootCmd(execCtx, f.scenarios, f.settings, f.profiling, f.options.output, f.options.staticMetrics)
+	rootCmd, err := buildRootCmd(
+		execCtx, f.scenarios, f.settings.toInternal(),
+		f.profiling, f.options.output, f.options.staticMetrics,
+	)
 	if err != nil {
 		return fmt.Errorf("building root command: %w", err)
 	}
