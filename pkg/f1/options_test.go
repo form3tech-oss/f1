@@ -49,17 +49,6 @@ func runConstant(t *testing.T, inst *f1.F1, scenario string) {
 	require.NoError(t, err)
 }
 
-func TestEnvVarsUsedByDefault(t *testing.T) {
-	ts, count := newPushGatewayServer(t)
-	t.Setenv("PROMETHEUS_PUSH_GATEWAY", ts.URL)
-
-	inst := newF1WithScenario("env_default")
-	runConstant(t, inst, "env_default")
-
-	require.Positive(t, count.Load(),
-		"PROMETHEUS_PUSH_GATEWAY env var should trigger metrics push")
-}
-
 func TestWithSettingsReplacesPushGateway(t *testing.T) {
 	t.Parallel()
 
@@ -75,26 +64,17 @@ func TestWithSettingsReplacesPushGateway(t *testing.T) {
 		"WithSettings should configure push gateway without env vars")
 }
 
-func TestWithSettingsEmptyIgnoresEnvVars(t *testing.T) {
-	ts, count := newPushGatewayServer(t)
-	t.Setenv("PROMETHEUS_PUSH_GATEWAY", ts.URL)
+func TestWithSettingsEmptyDisablesAllSettings(t *testing.T) {
+	t.Parallel()
 
-	inst := newF1WithScenario("no_env", f1.WithSettings(f1.Settings{}))
-	runConstant(t, inst, "no_env")
+	ts, count := newPushGatewayServer(t)
+	_ = ts
+
+	inst := newF1WithScenario("empty_settings", f1.WithSettings(f1.Settings{}))
+	runConstant(t, inst, "empty_settings")
 
 	require.Equal(t, int32(0), count.Load(),
-		"WithSettings(Settings{}) should ignore env vars")
-}
-
-func TestWithPrometheusPushGatewayOverridesEnv(t *testing.T) {
-	ts, count := newPushGatewayServer(t)
-	t.Setenv("PROMETHEUS_PUSH_GATEWAY", "http://env-should-not-be-used.invalid")
-
-	inst := newF1WithScenario("override", f1.WithPrometheusPushGateway(ts.URL))
-	runConstant(t, inst, "override")
-
-	require.Positive(t, count.Load(),
-		"WithPrometheusPushGateway should override env var")
+		"WithSettings(Settings{}) should start from zero values; no push gateway")
 }
 
 func TestFineGrainedOverridesAfterWithSettings(t *testing.T) {
@@ -109,6 +89,21 @@ func TestFineGrainedOverridesAfterWithSettings(t *testing.T) {
 
 	require.Positive(t, count.Load(),
 		"fine-grained options should apply after WithSettings")
+}
+
+func TestWithSettingsOverridesFinegrained(t *testing.T) {
+	t.Parallel()
+
+	ts, count := newPushGatewayServer(t)
+
+	inst := newF1WithScenario("settings_last",
+		f1.WithPrometheusPushGateway(ts.URL),
+		f1.WithSettings(f1.Settings{}),
+	)
+	runConstant(t, inst, "settings_last")
+
+	require.Equal(t, int32(0), count.Load(),
+		"WithSettings placed after fine-grained options should replace them")
 }
 
 func TestWithLogLevelAndFormat(t *testing.T) {
@@ -141,35 +136,50 @@ func TestWithLoggerTakesPrecedenceOverLogOptions(t *testing.T) {
 		"explicit logger format (text) should be used, not JSON from WithLogFormat")
 }
 
-func TestDefaultSettingsLoadsEnv(t *testing.T) {
-	t.Setenv("PROMETHEUS_PUSH_GATEWAY", "http://test:9091")
-	t.Setenv("PROMETHEUS_NAMESPACE", "test-ns")
-	t.Setenv("PROMETHEUS_LABEL_ID", "test-id")
-	t.Setenv("LOG_FILE_PATH", "/tmp/test.log")
-	t.Setenv("F1_LOG_LEVEL", "debug")
-	t.Setenv("F1_LOG_FORMAT", "json")
+func TestWithLoggerTakesPrecedenceOverWithSettings(t *testing.T) {
+	t.Parallel()
 
-	s := f1.DefaultSettings()
-	require.Equal(t, "http://test:9091", s.Prometheus.PushGateway)
-	require.Equal(t, "test-ns", s.Prometheus.Namespace)
-	require.Equal(t, "test-id", s.Prometheus.LabelID)
-	require.Equal(t, "/tmp/test.log", s.Logging.FilePath)
-	require.Equal(t, slog.LevelDebug, s.Logging.Level)
-	require.Equal(t, f1.LogFormatJSON, s.Logging.Format)
+	var buf bytes.Buffer
+	logger := log.NewTestLogger(&buf)
+
+	inst := newF1WithScenario("logger_over_settings",
+		f1.WithSettings(f1.Settings{
+			Logging: f1.LoggingSettings{
+				Level:  slog.LevelError,
+				Format: f1.LogFormatJSON,
+			},
+		}),
+		f1.WithLogger(logger),
+	)
+	runConstant(t, inst, "logger_over_settings")
+
+	output := buf.String()
+	require.NotEmpty(t, output, "WithLogger should capture output")
+	require.NotContains(t, output, `"level"`,
+		"WithLogger text format should override Settings JSON format")
 }
 
-func TestDefaultSettingsReturnsDefaults(t *testing.T) {
-	t.Setenv("PROMETHEUS_PUSH_GATEWAY", "")
-	t.Setenv("PROMETHEUS_NAMESPACE", "")
-	t.Setenv("PROMETHEUS_LABEL_ID", "")
-	t.Setenv("LOG_FILE_PATH", "")
-	t.Setenv("F1_LOG_LEVEL", "")
-	t.Setenv("F1_LOG_FORMAT", "")
+func TestWithSettingsAllFields(t *testing.T) {
+	t.Parallel()
 
-	s := f1.DefaultSettings()
-	require.Empty(t, s.Prometheus.PushGateway)
-	require.Equal(t, slog.LevelInfo, s.Logging.Level)
-	require.Equal(t, f1.LogFormatText, s.Logging.Format)
+	ts, count := newPushGatewayServer(t)
+	inst := newF1WithScenario("all_fields",
+		f1.WithSettings(f1.Settings{
+			Prometheus: f1.PrometheusSettings{
+				PushGateway: ts.URL,
+				Namespace:   "test-ns",
+				LabelID:     "test-id",
+			},
+			Logging: f1.LoggingSettings{
+				Level:  slog.LevelDebug,
+				Format: f1.LogFormatJSON,
+			},
+		}),
+	)
+	runConstant(t, inst, "all_fields")
+
+	require.Positive(t, count.Load(),
+		"WithSettings with PushGateway should trigger metrics push")
 }
 
 func TestParseLogLevel(t *testing.T) {

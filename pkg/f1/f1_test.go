@@ -5,6 +5,8 @@ import (
 	"syscall"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestSignalHandling(t *testing.T) {
@@ -44,6 +46,17 @@ func TestMissingScenario(t *testing.T) {
 
 	then.
 		the_execute_command_returns_an_error("scenario not defined: unknownScenario")
+}
+
+func TestEnvVarsUsedByDefault(t *testing.T) {
+	ts, count := newPushGatewayServer(t)
+	t.Setenv("PROMETHEUS_PUSH_GATEWAY", ts.URL)
+
+	inst := newF1WithScenario("env_default")
+	runConstant(t, inst, "env_default")
+
+	require.Positive(t, count.Load(),
+		"PROMETHEUS_PUSH_GATEWAY env var should trigger metrics push")
 }
 
 func TestWithCustomLogger(t *testing.T) {

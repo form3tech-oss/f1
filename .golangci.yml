@@ -85,9 +85,6 @@ linters:
       # cobra.AddTemplateFunc modifies a global map; sync.Once is required
       - linters: [gochecknoglobals]
         path: internal/run/help\.go
-      # t.Setenv is incompatible with t.Parallel (Go constraint)
-      - linters: [paralleltest, tparallel]
-        path: options_test\.go
       - linters: [staticcheck]
         path: _test\.go
         text: ST1003
