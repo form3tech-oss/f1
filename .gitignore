@@ -3,3 +3,5 @@
 /vendor
 /bin
 *.pprof
+*.csv
+/local

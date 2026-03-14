@@ -18,8 +18,9 @@ This guide documents all breaking changes in F1 v3 and how to migrate your code.
 10. [Metrics Package Removal](#10-metrics-package-removal)
 11. [CLI and Flag Changes](#11-cli-and-flag-changes)
 12. [Removed Features](#12-removed-features)
-13. [Complete Before/After Example](#13-complete-beforeafter-example)
-14. [Migration Checklist](#14-migration-checklist)
+13. [Configuration Changes](#13-configuration-changes)
+14. [Complete Before/After Example](#14-complete-beforeafter-example)
+15. [Migration Checklist](#15-migration-checklist)
 
 ---
 
@@ -36,8 +37,10 @@ This guide documents all breaking changes in F1 v3 and how to migrate your code.
 | Scenario/Run signatures | `func(t *T)` | `func(ctx context.Context, t *T)` |
 | T.Error / T.Fatal | `Error(err error)`, `Fatal(err error)` | `Error(args ...any)`, `Fatal(args ...any)` |
 | T.Logger | `*logrus.Logger` | `*slog.Logger` |
-| T.Iteration | `string` | `uint64` (IterationSetup=0 for setup) |
+| T.Iteration | `string` | `uint64` (`IterationSetup=0` for setup) |
+| T.VUID | not available | `int` (Virtual User ID: -1 for setup, 0-based for workers) |
 | Metrics | `metrics.GetMetrics()` | Removed; use `WithStaticMetrics` |
+| Logging | logrus | `log/slog` |
 
 ---
 
@@ -55,13 +58,6 @@ Update your dependency:
 
 ```bash
 go get github.com/form3tech-oss/f1/v3@latest
-```
-
-Or in `go.mod`:
-
-```diff
-- github.com/form3tech-oss/f1/v2 v2.x.x
-+ github.com/form3tech-oss/f1/v3 v3.x.x
 ```
 
 ---
@@ -148,6 +144,16 @@ f.Run(context.Background(), nil)  // equivalent to Execute() but returns error
 + )
 ```
 
+**New in v3**: Additional constructor options for programmatic configuration:
+
+```go
+f1.New(
+    f1.WithLogLevel(slog.LevelDebug),
+    f1.WithLogFormat(f1.LogFormatJSON),
+    f1.WithPrometheusPushGateway("http://pushgateway:9091"),
+)
+```
+
 ---
 
 ## 6. Scenario Registration
@@ -194,6 +200,12 @@ f.Run(context.Background(), nil)  // equivalent to Execute() but returns error
 |----|-----|
 | `func(t *T) RunFn` | `func(ctx context.Context, t *T) RunFn` |
 
+### RunFn
+
+| v2 | v3 |
+|----|-----|
+| `func(t *T)` | `func(ctx context.Context, t *T)` |
+
 ```diff
 // v2
 - func myScenario(t *f1testing.T) f1testing.RunFn {
@@ -203,12 +215,6 @@ f.Run(context.Background(), nil)  // equivalent to Execute() but returns error
   	return runFn
   }
 ```
-
-### RunFn
-
-| v2 | v3 |
-|----|-----|
-| `func(t *T)` | `func(ctx context.Context, t *T)` |
 
 **Using context** for cancellation or timeouts:
 
@@ -250,7 +256,7 @@ Type references:
 
 ### 9.1 Error and Fatal Signatures
 
-**Change**: `Error` and `Fatal` now accept `args ...any` (matching `testing.T`), instead of `err error`. This enables sharing test helpers between `go test` and f1 scenarios.
+**Change**: `Error` and `Fatal` now accept `args ...any` (matching `testing.T`), instead of `err error`.
 
 | v2 | v3 |
 |----|-----|
@@ -287,9 +293,9 @@ t.Fatalf("iteration %d failed: %v", t.Iteration, err)
 
 ### 9.4 T.Time() Removed
 
-**Change**: `T.Time(stageName string, f func())` is removed. Internal metrics are no longer exposed via the testing package. If you need timing, record it yourself:
+**Change**: `T.Time(stageName string, f func())` is removed. Internal metrics are no longer exposed via the testing package.
 
-```go
+```diff
 // v2
 - t.Time("http_request", func() { doRequest() })
 
@@ -297,12 +303,11 @@ t.Fatalf("iteration %d failed: %v", t.Iteration, err)
 + start := time.Now()
 + doRequest()
 + duration := time.Since(start)
-+ // use duration as needed (e.g. custom metrics, logging)
 ```
 
 ### 9.5 NewT() Removed
 
-**Change**: `NewT(iter, scenarioName string)` is removed. Use `NewTWithOptions` only. The framework creates `T` instances internally; you typically only need `NewTWithOptions` for tests.
+**Change**: `NewT(iter, scenarioName string)` is removed. Use `NewTWithOptions` only.
 
 ```diff
 // v2
@@ -319,16 +324,14 @@ t.Fatalf("iteration %d failed: %v", t.Iteration, err)
 ```diff
 // v2
 - t.Logf("Iteration: %s", t.Iteration)
-- t.Logger().With("iteration", t.Iteration).Info("msg")
 
 // v3
 + t.Logf("Iteration: %d", t.Iteration)
-+ t.Logger().With("iteration", t.Iteration).Info("msg")
 ```
 
 ### 9.7 WithLogrusLogger Removed
 
-**Change**: `WithLogrusLogger(logrusLogger *logrus.Logger)` is removed. Use `WithLogger(*slog.Logger)` when constructing `T` via `NewTWithOptions`.
+**Change**: `WithLogrusLogger(logrusLogger *logrus.Logger)` is removed. Use `WithLogger(*slog.Logger)`.
 
 ```diff
 // v2
@@ -340,6 +343,20 @@ t.Fatalf("iteration %d failed: %v", t.Iteration, err)
 + t, teardown := f1testing.NewTWithOptions("myScenario",
 + 	f1testing.WithLogger(slogLogger),
 + )
+```
+
+### 9.8 T.VUID (New in v3)
+
+**New**: `T.VUID` is a `int` field representing the Virtual User ID. It's -1 during setup and 0-based for pool workers. Useful for per-user state in `users` trigger mode.
+
+```go
+func myScenario(ctx context.Context, t *f1testing.T) f1testing.RunFn {
+    userAccounts := loadUserAccounts()
+    return func(ctx context.Context, t *f1testing.T) {
+        account := userAccounts[t.VUID]
+        // use account for this virtual user
+    }
+}
 ```
 
 ---
@@ -355,16 +372,6 @@ t.Fatalf("iteration %d failed: %v", t.Iteration, err)
 
 // v3 — no replacement for GetMetrics
 + // Use f1.New(WithStaticMetrics(map[string]string{"env": "prod"})) for labels
-+ // Internal metrics (iteration counts, latency, etc.) are not exposed
-```
-
-If you used `GetMetrics()` for custom labels, migrate to `WithStaticMetrics`:
-
-```go
-f1.New(WithStaticMetrics(map[string]string{
-	"environment": "staging",
-	"service":     "my-api",
-}))
 ```
 
 ---
@@ -407,7 +414,46 @@ Run command flags are now grouped in help output (Output, Duration & limits, Con
 
 ---
 
-## 13. Complete Before/After Example
+## 13. Configuration Changes
+
+### 13.1 Programmatic Configuration (New in v3)
+
+v3 adds typed, programmatic configuration options as an alternative to environment variables:
+
+```go
+f1.New(
+    f1.WithLogLevel(slog.LevelDebug),
+    f1.WithLogFormat(f1.LogFormatJSON),
+    f1.WithPrometheusPushGateway("http://pushgateway:9091"),
+    f1.WithPrometheusNamespace("my-namespace"),
+)
+```
+
+Environment variables continue to work as the default baseline (backward compatible).
+
+### 13.2 `WithSettings` for Full Control
+
+Use `WithSettings(Settings{})` to ignore all environment variables:
+
+```go
+f1.New(
+    f1.WithSettings(f1.Settings{}),
+    f1.WithLogLevel(slog.LevelWarn),
+)
+```
+
+### 13.3 Precedence
+
+Settings are resolved in this order (highest to lowest):
+1. Programmatic options (applied in order)
+2. Environment variables (baseline when no `WithSettings` is used)
+3. Defaults (`slog.LevelInfo`, `LogFormatText`, no Prometheus push)
+
+`WithLogger` takes absolute precedence for logging.
+
+---
+
+## 14. Complete Before/After Example
 
 ### v2
 
@@ -415,7 +461,6 @@ Run command flags are now grouped in help output (Output, Duration & limits, Con
 package main
 
 import (
-	"context"
 	"fmt"
 	"log/slog"
 
@@ -482,7 +527,7 @@ func myScenario(ctx context.Context, t *f1testing.T) f1testing.RunFn {
 
 ---
 
-## 14. Migration Checklist
+## 15. Migration Checklist
 
 Use this checklist when migrating from v2 to v3:
 
@@ -493,11 +538,11 @@ Use this checklist when migrating from v2 to v3:
 - [ ] Replace `Description(` → `WithDescription(`, `Parameter(` → `WithParameter(`
 - [ ] Replace `New().WithLogger(l)` → `New(WithLogger(l))`, `New().WithStaticMetrics(m)` → `New(WithStaticMetrics(m))`
 - [ ] Replace `ExecuteWithArgs(args)` → `Run(context.Background(), args)` (or `Run(ctx, args)` with a context)
-- [ ] Replace `NewT()` with `NewTWithOptions()` if used (e.g. in tests)
+- [ ] Replace `NewT()` with `NewTWithOptions()` if used
 - [ ] Replace `WithLogrusLogger()` with `WithLogger(*slog.Logger)` if used
 - [ ] Remove `metrics.GetMetrics()` usage; use `WithStaticMetrics` for labels
 - [ ] Remove `T.Time()` usage; record timing manually if needed
-- [ ] Update `T.Logger()` call sites: it now returns `*slog.Logger` (not `*logrus.Logger`)
+- [ ] Update `T.Logger()` call sites: returns `*slog.Logger` (not `*logrus.Logger`)
 - [ ] (Optional) `Error`/`Fatal` now use `args ...any`; existing `Error(err)`/`Fatal(err)` calls remain valid
 - [ ] Replace `t.Logf("Iteration: %s", t.Iteration)` with `t.Logf("Iteration: %d", t.Iteration)` if used
 - [ ] Update CLI invocations: `--cpuprofile` → `--cpu-profile`, `--memprofile` → `--mem-profile`, `--iterationFrequency` → `--iteration-frequency`
