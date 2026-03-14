@@ -1,4 +1,4 @@
-<a href="https://pkg.go.dev/github.com/form3tech-oss/f1/v2/pkg/f1"><img align="right" src="https://pkg.go.dev/badge/github.com/form3tech-oss/f1/v2/pkg/f1.svg" alt="Go Reference"></a>
+<a href="https://pkg.go.dev/github.com/form3tech-oss/f1/v3/pkg/f1"><img align="right" src="https://pkg.go.dev/badge/github.com/form3tech-oss/f1/v3/pkg/f1.svg" alt="Go Reference"></a>
 # f1
 `f1` is a flexible load testing framework using the `go` language for test scenarios. This allows test scenarios to be developed as code, utilising full development principles such as test driven development. Test scenarios with multiple stages and multiple modes are ideally suited to this environment.
 
@@ -15,12 +15,12 @@ These `ScenarioFn` and `RunFn` functions are defined as types in `f1`:
 
 ```golang
 // ScenarioFn initialises a scenario and returns the iteration function (RunFn) to be invoked for every iteration
-// of the tests.
-type ScenarioFn func(t *T) RunFn
+// of the tests. ctx is cancelled when the run is interrupted or times out.
+type ScenarioFn func(ctx context.Context, t *T) RunFn
 
 // RunFn performs a single iteration of the scenario. 't' may be used for asserting
-// results or failing the scenario.
-type RunFn func(t *T)
+// results or failing the scenario. ctx is cancelled when the run is stopped; check ctx.Done() for cancellation.
+type RunFn func(ctx context.Context, t *T)
 ```
 
 Writing tests is simply a case of implementing the types and registering them with `f1`:
@@ -29,31 +29,32 @@ Writing tests is simply a case of implementing the types and registering them wi
 package main
 
 import (
+	"context"
 	"fmt"
 
-	"github.com/form3tech-oss/f1/v2/pkg/f1"
-	"github.com/form3tech-oss/f1/v2/pkg/f1/testing"
+	"github.com/form3tech-oss/f1/v3/pkg/f1"
+	"github.com/form3tech-oss/f1/v3/pkg/f1/f1testing"
 )
 
 func main() {
 	// Create a new f1 instance, add all the scenarios and execute the f1 tool.
 	// Any scenario that is added here can be executed like: `go run main.go run constant mySuperFastLoadTest`
-	f1.New().Add("mySuperFastLoadTest", setupMySuperFastLoadTest).Execute()
+	f1.New().AddScenario("mySuperFastLoadTest", setupMySuperFastLoadTest).Execute()
 }
 
 // Performs any setup steps and returns a function to run on every iteration of the scenario
-func setupMySuperFastLoadTest(t *testing.T) testing.RunFn {
+func setupMySuperFastLoadTest(ctx context.Context, t *f1testing.T) f1testing.RunFn {
 	fmt.Println("Setup the scenario")
-	
+
 	// Register clean up function which will be invoked at the end of the scenario execution to clean up the setup
 	t.Cleanup(func() {
 		fmt.Println("Clean up the setup of the scenario")
 	})
-	
-	runFn := func(t *testing.T) {
-	    fmt.Println("Run the test")
 
-		// Register clean up function for each test which will be invoked in LIFO order after each iteration 
+	runFn := func(ctx context.Context, t *f1testing.T) {
+		fmt.Println("Run the test")
+
+		// Register clean up function for each test which will be invoked in LIFO order after each iteration
 		t.Cleanup(func() {
 			fmt.Println("Clean up the test execution")
 		})
@@ -87,16 +88,83 @@ It provides the following information:
 - `(20/s)` (attempted) rate,
 - `avg: 72ns, min: 125ns, max: 27.590042ms` average, min and max iteration times.
 
-### Environment variables
+### Configuration
 
-| Name | Format | Default | Description |
+f1 can be configured via environment variables, programmatic options, or both. By default, environment variables are read at construction time. Programmatic options override env vars for the fields they set.
+
+#### Settings reference
+
+| Setting | Environment variable | Programmatic option | Default |
 | --- | --- | --- | --- |
-| `PROMETHEUS_PUSH_GATEWAY` | string - `host:port` or `ip:port` | `""` | Configures the address of a [Prometheus Push Gateway](https://prometheus.io/docs/instrumenting/pushing/) for exposing metrics. The prometheus job name configured will be `f1-{scenario_name}`. Disabled by default.|
-| `PROMETHEUS_NAMESPACE` | string | `""` | Sets the metric label `namespace` to the specified value. Label is omitted if the value provided is empty.|
-| `PROMETHEUS_LABEL_ID` | string | `""` | Sets the metric label `id` to the specified value. Label is omitted if the value provided is empty.|
-| `LOG_FILE_PATH` | string | `""`| Specify the log file path used if `--verbose` is disabled. The logfile path will be an automatically generated temp file if not specified. |
-| `F1_LOG_LEVEL` | string | `"info"`| Specify the log level of the default logger, one of: `debug`, `warn`, `error`  |
-| `F1_LOG_FORMAT` | string | `""`| Specify the log format of the default logger, defaults to `text` formatter, allows `json`  |
+| Prometheus push gateway | `PROMETHEUS_PUSH_GATEWAY` | `f1.WithPrometheusPushGateway(url)` | disabled |
+| Prometheus namespace label | `PROMETHEUS_NAMESPACE` | `f1.WithPrometheusNamespace(ns)` | `""` |
+| Prometheus ID label | `PROMETHEUS_LABEL_ID` | `f1.WithPrometheusLabelID(id)` | `""` |
+| Log file path | `LOG_FILE_PATH` | `f1.WithLogFilePath(path)` | auto temp file |
+| Log level | `F1_LOG_LEVEL` | `f1.WithLogLevel(slog.LevelDebug)` | `slog.LevelInfo` |
+| Log format | `F1_LOG_FORMAT` | `f1.WithLogFormat(f1.LogFormatJSON)` | `f1.LogFormatText` |
+
+Log level and format options use Go's standard `slog.Level` and f1's `LogFormat` type for compile-time safety. Use `f1.ParseLogLevel(string)` and `f1.ParseLogFormat(string)` to convert from strings (e.g. from config files).
+
+#### Configuring without environment variables
+
+Use `f1.WithSettings(f1.Settings{})` to start from zero values, ignoring all environment variables. Fine-grained options (`WithLogLevel`, `WithPrometheusPushGateway`, etc.) still apply after the baseline:
+
+```golang
+f1.New(
+    f1.WithSettings(f1.Settings{}),
+    f1.WithLogLevel(slog.LevelWarn),
+    f1.WithLogFormat(f1.LogFormatJSON),
+).AddScenario("myScenario", mySetup).Execute()
+```
+
+For full control, pass a complete `f1.Settings` struct:
+
+```golang
+f1.New(
+    f1.WithSettings(f1.Settings{
+        Prometheus: f1.PrometheusSettings{
+            PushGateway: "http://pushgateway:9091",
+            Namespace:   "my-namespace",
+        },
+        Logging: f1.LoggingSettings{
+            Level:  slog.LevelDebug,
+            Format: f1.LogFormatJSON,
+        },
+    }),
+).AddScenario("myScenario", mySetup).Execute()
+```
+
+#### Precedence
+
+Settings are resolved in this order (highest priority first):
+
+1. **Programmatic options** — values passed to `f1.New()` (applied in order)
+2. **Environment variables** — read at construction time (baseline when no `WithSettings` is used)
+3. **Defaults** — `slog.LevelInfo`, `LogFormatText`, no Prometheus push
+
+When `f1.WithLogger(logger)` is used, the caller owns the logger entirely. `WithLogLevel`, `WithLogFormat`, and the corresponding env vars have no effect:
+
+```golang
+logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
+f1.New(
+    f1.WithLogger(logger),
+).AddScenario("myScenario", mySetup).Execute()
+```
+
+#### Default env-backed behaviour
+
+When no `WithSettings` is provided, environment variables are used as the baseline (backward-compatible with previous releases):
+
+```golang
+// Env vars like PROMETHEUS_PUSH_GATEWAY are read automatically
+f1.New().AddScenario("myScenario", mySetup).Execute()
+
+// Fine-grained options override individual env var values
+f1.New(
+    f1.WithPrometheusPushGateway("http://pushgateway:9091"),
+    f1.WithLogLevel(slog.LevelDebug),
+).AddScenario("myScenario", mySetup).Execute()
+```
 
 ## Contributions
 If you'd like to help improve `f1`, please fork this repo and raise a PR!

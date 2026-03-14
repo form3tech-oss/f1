@@ -7,8 +7,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/form3tech-oss/f1/v2/internal/log"
-	"github.com/form3tech-oss/f1/v2/internal/run/views"
+	"github.com/form3tech-oss/f1/v3/internal/log"
+	"github.com/form3tech-oss/f1/v3/internal/run/views"
 )
 
 func Test_RenderTimeout(t *testing.T) {

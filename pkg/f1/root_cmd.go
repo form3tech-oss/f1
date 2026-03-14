@@ -1,27 +1,29 @@
 package f1
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path"
 
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/spf13/cobra"
 
-	"github.com/form3tech-oss/f1/v2/internal/chart"
-	"github.com/form3tech-oss/f1/v2/internal/envsettings"
-	"github.com/form3tech-oss/f1/v2/internal/metrics"
-	"github.com/form3tech-oss/f1/v2/internal/run"
-	"github.com/form3tech-oss/f1/v2/internal/trigger"
-	"github.com/form3tech-oss/f1/v2/internal/ui"
-	"github.com/form3tech-oss/f1/v2/pkg/f1/scenarios"
+	"github.com/form3tech-oss/f1/v3/internal/envsettings"
+	"github.com/form3tech-oss/f1/v3/internal/metrics"
+	"github.com/form3tech-oss/f1/v3/internal/run"
+	"github.com/form3tech-oss/f1/v3/internal/trigger"
+	"github.com/form3tech-oss/f1/v3/internal/ui"
+	"github.com/form3tech-oss/f1/v3/pkg/f1/scenarios"
 )
 
 const (
-	flagCPUProfile = "cpuprofile"
-	flagMemProfile = "memprofile"
+	flagCPUProfile = "cpu-profile"
+	flagMemProfile = "mem-profile"
 )
 
 func buildRootCmd(
+	ctx context.Context,
 	scenarioList *scenarios.Scenarios,
 	settings envsettings.Settings,
 	p *profiling,
@@ -44,19 +46,19 @@ func buildRootCmd(
 		return nil, fmt.Errorf("marking flag as filename: %w", err)
 	}
 
-	metrics.InitWithStaticMetrics(settings.PrometheusEnabled(), staticMetrics)
-	metricsInstance := metrics.Instance()
+	registry := prometheus.NewRegistry()
+	metricsInstance := metrics.NewInstance(registry, settings.PrometheusEnabled(), staticMetrics)
 
 	builders := trigger.GetBuilders(output)
 
 	rootCmd.AddCommand(run.Cmd(
+		ctx,
 		scenarioList,
 		builders,
 		settings,
 		metricsInstance,
 		output,
 	))
-	rootCmd.AddCommand(chart.Cmd(builders, output))
 	rootCmd.AddCommand(scenarios.Cmd(scenarioList))
 	rootCmd.AddCommand(completionsCmd(rootCmd))
 	return rootCmd, nil

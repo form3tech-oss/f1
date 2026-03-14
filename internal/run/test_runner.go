@@ -9,19 +9,19 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus/push"
 
-	"github.com/form3tech-oss/f1/v2/internal/envsettings"
-	"github.com/form3tech-oss/f1/v2/internal/log"
-	"github.com/form3tech-oss/f1/v2/internal/logutils"
-	"github.com/form3tech-oss/f1/v2/internal/metrics"
-	"github.com/form3tech-oss/f1/v2/internal/options"
-	"github.com/form3tech-oss/f1/v2/internal/progress"
-	"github.com/form3tech-oss/f1/v2/internal/raterun"
-	"github.com/form3tech-oss/f1/v2/internal/run/views"
-	"github.com/form3tech-oss/f1/v2/internal/trigger/api"
-	"github.com/form3tech-oss/f1/v2/internal/ui"
-	"github.com/form3tech-oss/f1/v2/internal/workers"
-	"github.com/form3tech-oss/f1/v2/internal/xcontext"
-	"github.com/form3tech-oss/f1/v2/pkg/f1/scenarios"
+	"github.com/form3tech-oss/f1/v3/internal/envsettings"
+	"github.com/form3tech-oss/f1/v3/internal/log"
+	"github.com/form3tech-oss/f1/v3/internal/logutils"
+	"github.com/form3tech-oss/f1/v3/internal/metrics"
+	"github.com/form3tech-oss/f1/v3/internal/options"
+	"github.com/form3tech-oss/f1/v3/internal/progress"
+	"github.com/form3tech-oss/f1/v3/internal/raterun"
+	"github.com/form3tech-oss/f1/v3/internal/run/views"
+	"github.com/form3tech-oss/f1/v3/internal/trigger/api"
+	"github.com/form3tech-oss/f1/v3/internal/ui"
+	"github.com/form3tech-oss/f1/v3/internal/workers"
+	"github.com/form3tech-oss/f1/v3/internal/xcontext"
+	"github.com/form3tech-oss/f1/v3/pkg/f1/scenarios"
 )
 
 const (
@@ -43,28 +43,33 @@ type Run struct {
 }
 
 func NewRun(
-	options options.RunOptions,
 	scenarios *scenarios.Scenarios,
 	trigger *api.Trigger,
 	settings envsettings.Settings,
 	metricsInstance *metrics.Metrics,
 	parentOutput *ui.Output,
+	opts ...options.RunOption,
 ) (*Run, error) {
+	runOptions := options.DefaultRunOptions()
+	for _, opt := range opts {
+		opt(&runOptions)
+	}
+
 	progressStats := &progress.Stats{}
 	viewsInstance := views.New()
 
-	scenario := scenarios.GetScenario(options.Scenario)
+	scenario := scenarios.GetScenario(runOptions.Scenario)
 	if scenario == nil {
-		return nil, fmt.Errorf("scenario not defined: %s", options.Scenario)
+		return nil, fmt.Errorf("scenario not defined: %s", runOptions.Scenario)
 	}
 
-	result := NewResult(options, viewsInstance, progressStats)
+	result := NewResult(runOptions, viewsInstance, progressStats)
 
 	outputer := ui.NewOutput(
 		parentOutput.Logger.With(log.ScenarioAttr(scenario.Name)),
 		parentOutput.Printer,
 		parentOutput.Interactive,
-		options.LogToFile(),
+		runOptions.LogToFile(),
 	)
 
 	scenarioLogger := NewScenarioLogger(outputer)
@@ -72,7 +77,7 @@ func NewRun(
 		LogFilePathOrDefault(settings.Log.FilePath, scenario.Name),
 		logutils.NewLogConfigFromSettings(settings),
 		scenario.Name,
-		options.LogToFile(),
+		runOptions.LogToFile(),
 	)
 
 	progressRunner, err := newProgressRunner(result, outputer)
@@ -85,13 +90,12 @@ func NewRun(
 		metricsInstance,
 		progressStats,
 		scenarioLogger.Logger,
-		log.NewSlogLogrusLogger(scenarioLogger.Logger),
 	)
 
 	pusher := newMetricsPusher(settings, scenario.Name, metricsInstance)
 
 	return &Run{
-		options:        options,
+		options:        runOptions,
 		trigger:        trigger,
 		metrics:        metricsInstance,
 		views:          viewsInstance,
@@ -114,7 +118,7 @@ func newMetricsPusher(
 	}
 
 	pusher := push.New(settings.Prometheus.PushGateway, "f1-"+scenarioName).
-		Gatherer(metricsInstance.Registry)
+		Gatherer(metricsInstance.Gatherer())
 
 	if settings.Prometheus.Namespace != "" {
 		pusher = pusher.Grouping("namespace", settings.Prometheus.Namespace)
@@ -170,7 +174,7 @@ func (r *Run) Do(ctx context.Context) (*Result, error) {
 
 	r.metrics.Reset()
 
-	r.activeScenario.Setup()
+	r.activeScenario.Setup(ctx)
 
 	r.pushMetrics(ctx)
 

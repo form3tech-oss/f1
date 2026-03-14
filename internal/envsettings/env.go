@@ -14,24 +14,12 @@ const (
 	EnvLogFilePath = "LOG_FILE_PATH"
 	EnvLogFormat   = "F1_LOG_FORMAT"
 	EnvLogLevel    = "F1_LOG_LEVEL"
-
-	EnvFluentdHost = "FLUENTD_HOST"
-	EnvFluentdPort = "FLUENTD_PORT"
 )
 
 type Prometheus struct {
 	LabelID     string
 	Namespace   string
 	PushGateway string
-}
-
-type Fluentd struct {
-	Host string
-	Port string
-}
-
-func (f Fluentd) Present() bool {
-	return f.Host != "" || f.Port != ""
 }
 
 type Log struct {
@@ -60,7 +48,6 @@ func (l Log) IsFormatJSON() bool {
 
 type Settings struct {
 	Prometheus Prometheus
-	Fluentd    Fluentd
 	Log        Log
 }
 
@@ -74,10 +61,6 @@ func Get() Settings {
 			FilePath: os.Getenv(EnvLogFilePath),
 			Level:    os.Getenv(EnvLogLevel),
 			Format:   os.Getenv(EnvLogFormat),
-		},
-		Fluentd: Fluentd{
-			Host: os.Getenv(EnvFluentdHost),
-			Port: os.Getenv(EnvFluentdPort),
 		},
 		Prometheus: Prometheus{
 			LabelID:     os.Getenv(EnvPrometheusLabelID),

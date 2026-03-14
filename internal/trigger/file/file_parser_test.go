@@ -6,7 +6,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/form3tech-oss/f1/v2/internal/trigger/file"
+	"github.com/form3tech-oss/f1/v3/internal/trigger/file"
 )
 
 func TestFileRate_SingleStages(t *testing.T) {

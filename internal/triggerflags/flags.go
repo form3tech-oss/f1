@@ -5,12 +5,11 @@ import (
 
 	"github.com/spf13/pflag"
 
-	"github.com/form3tech-oss/f1/v2/internal/trigger/api"
+	"github.com/form3tech-oss/f1/v3/internal/trigger/api"
 )
 
 const (
 	FlagVerbose                  = "verbose"
-	FlagVerboseFail              = "verbose-fail"
 	FlagIgnoreDropped            = "ignore-dropped"
 	FlagMaxDuration              = "max-duration"
 	FlagMaxIterations            = "max-iterations"
@@ -31,12 +30,12 @@ func DistributionFlag(flagSet *pflag.FlagSet) {
 
 	distributions := strings.Join(distributionTypes, "|")
 	flagSet.String(FlagDistribution, string(api.RegularDistribution),
-		"optional parameter to distribute the rate over steps of 100ms, which can be "+distributions)
+		"rate distribution: "+distributions)
 }
 
 const FlagJitter = "jitter"
 
 func JitterFlag(flagSet *pflag.FlagSet) {
 	flagSet.Float64P(FlagJitter, "j", 0.0,
-		"vary the rate randomly by up to jitter percent")
+		"random rate variation, e.g. 5 for ±5%")
 }

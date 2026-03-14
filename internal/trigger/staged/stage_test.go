@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/form3tech-oss/f1/v2/internal/trigger/staged"
+	"github.com/form3tech-oss/f1/v3/internal/trigger/staged"
 )
 
 func TestParseStages_With_Valid_String(t *testing.T) {

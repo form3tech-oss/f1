@@ -2,6 +2,7 @@ package f1_test
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"os"
 	"strings"
@@ -14,9 +15,9 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/goleak"
 
-	"github.com/form3tech-oss/f1/v2/internal/log"
-	"github.com/form3tech-oss/f1/v2/pkg/f1"
-	f1_testing "github.com/form3tech-oss/f1/v2/pkg/f1/testing"
+	"github.com/form3tech-oss/f1/v3/internal/log"
+	"github.com/form3tech-oss/f1/v3/pkg/f1"
+	"github.com/form3tech-oss/f1/v3/pkg/f1/f1testing"
 )
 
 type f1Stage struct {
@@ -51,7 +52,7 @@ func (s *f1Stage) and() *f1Stage {
 
 func (s *f1Stage) a_custom_logger_is_configured_with_attr(key, value string) *f1Stage {
 	logger := log.NewTestLogger(&s.logOutput).With(key, value)
-	s.f1 = f1.New().WithLogger(logger)
+	s.f1 = f1.New(f1.WithLogger(logger))
 
 	return s
 }
@@ -74,8 +75,8 @@ func (s *f1Stage) after_duration_signal_will_be_sent(duration time.Duration, sig
 
 func (s *f1Stage) a_scenario_where_each_iteration_takes(duration time.Duration) *f1Stage {
 	s.scenario = "scenario_where_each_iteration_takes_" + duration.String()
-	s.f1.Add(s.scenario, func(*f1_testing.T) f1_testing.RunFn {
-		return func(*f1_testing.T) {
+	s.f1.AddScenario(s.scenario, func(context.Context, *f1testing.T) f1testing.RunFn {
+		return func(context.Context, *f1testing.T) {
 			s.runCount.Add(1)
 			time.Sleep(duration)
 		}
@@ -86,12 +87,12 @@ func (s *f1Stage) a_scenario_where_each_iteration_takes(duration time.Duration) 
 
 func (s *f1Stage) a_scenario_that_logs() *f1Stage {
 	s.scenario = "logging_scenario"
-	s.f1.Add(s.scenario, func(sceanrioT *f1_testing.T) f1_testing.RunFn {
-		sceanrioT.Log("scenario")
+	s.f1.AddScenario(s.scenario, func(_ context.Context, scenarioT *f1testing.T) f1testing.RunFn {
+		scenarioT.Log("scenario")
 
-		return func(*f1_testing.T) {
-			sceanrioT.Log("iteration")
-			sceanrioT.Logger().Info("iteration")
+		return func(_ context.Context, t *f1testing.T) {
+			t.Log("iteration")
+			t.Logger().Info("iteration")
 		}
 	})
 
@@ -99,7 +100,7 @@ func (s *f1Stage) a_scenario_that_logs() *f1Stage {
 }
 
 func (s *f1Stage) the_f1_scenario_is_executed_with_constant_rate_and_args(args ...string) *f1Stage {
-	err := s.f1.ExecuteWithArgs(append([]string{
+	err := s.f1.Run(context.TODO(), append([]string{
 		"run", "constant", s.scenario,
 	}, args...))
 	s.require.NoError(err, "error executing scenarios")
@@ -108,7 +109,7 @@ func (s *f1Stage) the_f1_scenario_is_executed_with_constant_rate_and_args(args .
 }
 
 func (s *f1Stage) an_unknown_f1_scenario_is_executed() *f1Stage {
-	s.executeErr = s.f1.ExecuteWithArgs([]string{
+	s.executeErr = s.f1.Run(context.TODO(), []string{
 		"run", "constant", "unknownScenario",
 	})
 

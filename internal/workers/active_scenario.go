@@ -1,25 +1,23 @@
 package workers
 
 import (
+	"context"
 	"log/slog"
 
-	"github.com/sirupsen/logrus"
-
-	"github.com/form3tech-oss/f1/v2/internal/metrics"
-	"github.com/form3tech-oss/f1/v2/internal/progress"
-	"github.com/form3tech-oss/f1/v2/internal/xtime"
-	"github.com/form3tech-oss/f1/v2/pkg/f1/scenarios"
-	"github.com/form3tech-oss/f1/v2/pkg/f1/testing"
+	"github.com/form3tech-oss/f1/v3/internal/metrics"
+	"github.com/form3tech-oss/f1/v3/internal/progress"
+	"github.com/form3tech-oss/f1/v3/internal/xtime"
+	"github.com/form3tech-oss/f1/v3/pkg/f1/f1testing"
+	"github.com/form3tech-oss/f1/v3/pkg/f1/scenarios"
 )
 
 type ActiveScenario struct {
-	scenario     *scenarios.Scenario
-	m            *metrics.Metrics
-	progress     *progress.Stats
-	t            *testing.T
-	Teardown     func()
-	logger       *slog.Logger
-	logrusLogger *logrus.Logger
+	scenario *scenarios.Scenario
+	m        *metrics.Metrics
+	progress *progress.Stats
+	t        *f1testing.T
+	Teardown func()
+	logger   *slog.Logger
 }
 
 const instantDuration = 0
@@ -29,34 +27,31 @@ func NewActiveScenario(
 	metricsInstance *metrics.Metrics,
 	stats *progress.Stats,
 	logger *slog.Logger,
-	logrusLogger *logrus.Logger,
 ) *ActiveScenario {
-	t, teardown := testing.NewTWithOptions(scenario.Name,
-		testing.WithIteration("setup"),
-		testing.WithVUID(-1),
-		testing.WithLogger(logger),
-		testing.WithLogrusLogger(logrusLogger),
+	t, teardown := f1testing.NewTWithOptions(scenario.Name,
+		f1testing.WithIteration(f1testing.IterationSetup),
+		f1testing.WithVUID(-1),
+		f1testing.WithLogger(logger),
 	)
 
 	s := &ActiveScenario{
-		scenario:     scenario,
-		m:            metricsInstance,
-		t:            t,
-		Teardown:     teardown,
-		progress:     stats,
-		logger:       logger,
-		logrusLogger: logrusLogger,
+		scenario: scenario,
+		m:        metricsInstance,
+		t:        t,
+		Teardown: teardown,
+		progress: stats,
+		logger:   logger,
 	}
 
 	return s
 }
 
-func (s *ActiveScenario) Setup() {
+func (s *ActiveScenario) Setup(ctx context.Context) {
 	start := xtime.NanoTime()
 	func() {
-		defer testing.CheckResults(s.t, nil)
+		defer f1testing.CheckResults(s.t, nil)
 
-		s.scenario.RunFn = s.scenario.ScenarioFn(s.t)
+		s.scenario.RunFn = s.scenario.ScenarioFn(ctx, s.t)
 	}()
 	duration := xtime.NanoTime() - start
 
@@ -73,13 +68,13 @@ func (s *ActiveScenario) Failed() bool {
 }
 
 // Run performs a single iteration of the test.
-func (s *ActiveScenario) Run(state *iterationState) {
+func (s *ActiveScenario) Run(ctx context.Context, state *iterationState) {
 	defer state.teardown()
 
 	start := xtime.NanoTime()
 	func() {
-		defer testing.CheckResults(state.t, nil)
-		s.scenario.RunFn(state.t)
+		defer f1testing.CheckResults(state.t, nil)
+		s.scenario.RunFn(ctx, state.t)
 	}()
 
 	failed := state.t.Failed()
@@ -95,10 +90,9 @@ func (s *ActiveScenario) RecordDroppedIteration() {
 }
 
 func (s *ActiveScenario) newIterationState(id int) *iterationState {
-	t, teardown := testing.NewTWithOptions(s.scenario.Name,
-		testing.WithVUID(id),
-		testing.WithLogger(s.logger),
-		testing.WithLogrusLogger(s.logrusLogger),
+	t, teardown := f1testing.NewTWithOptions(s.scenario.Name,
+		f1testing.WithVUID(id),
+		f1testing.WithLogger(s.logger),
 	)
 
 	return &iterationState{

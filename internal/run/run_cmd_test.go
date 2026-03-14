@@ -831,26 +831,30 @@ func TestOutput_JSONLogging(t *testing.T) {
 
 	scenarioOnlyLogs := []logFieldMatchers{
 		{
-			"message":  "setup",
-			"level":    "info",
-			"scenario": "scenario_where_each_iteration_takes_200ms",
+			"message":   "setup",
+			"level":     "info",
+			"scenario":  "scenario_where_each_iteration_takes_200ms",
+			"iteration": float64(0),
+			"vuid":      float64(-1),
 		},
 		{
-			"message":  "logrus - setup",
+			"message":  "slog - setup",
 			"level":    "info",
-			"logger":   "logrus",
+			"logger":   "slog",
 			"scenario": "scenario_where_each_iteration_takes_200ms",
 		},
 
 		{
-			"message":  "first iteration",
-			"level":    "info",
-			"scenario": "scenario_where_each_iteration_takes_200ms",
+			"message":   "first iteration",
+			"level":     "info",
+			"scenario":  "scenario_where_each_iteration_takes_200ms",
+			"iteration": float64(0),
+			"vuid":      float64(-1),
 		},
 		{
-			"message":  "logrus - first iteration",
+			"message":  "slog - first iteration",
 			"level":    "info",
-			"logger":   "logrus",
+			"logger":   "slog",
 			"scenario": "scenario_where_each_iteration_takes_200ms",
 		},
 	}
@@ -862,26 +866,30 @@ func TestOutput_JSONLogging(t *testing.T) {
 			"scenario": "scenario_where_each_iteration_takes_200ms",
 		},
 		{
-			"message":  "setup",
-			"level":    "info",
-			"scenario": "scenario_where_each_iteration_takes_200ms",
+			"message":   "setup",
+			"level":     "info",
+			"scenario":  "scenario_where_each_iteration_takes_200ms",
+			"iteration": float64(0),
+			"vuid":      float64(-1),
 		},
 		{
-			"message":  "logrus - setup",
+			"message":  "slog - setup",
 			"level":    "info",
-			"logger":   "logrus",
+			"logger":   "slog",
 			"scenario": "scenario_where_each_iteration_takes_200ms",
 		},
 
 		{
-			"message":  "first iteration",
-			"level":    "info",
-			"scenario": "scenario_where_each_iteration_takes_200ms",
+			"message":   "first iteration",
+			"level":     "info",
+			"scenario":  "scenario_where_each_iteration_takes_200ms",
+			"iteration": float64(0),
+			"vuid":      float64(-1),
 		},
 		{
-			"message":  "logrus - first iteration",
+			"message":  "slog - first iteration",
 			"level":    "info",
-			"logger":   "logrus",
+			"logger":   "slog",
 			"scenario": "scenario_where_each_iteration_takes_200ms",
 		},
 

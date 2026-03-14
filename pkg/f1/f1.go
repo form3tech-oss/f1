@@ -4,15 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log/slog"
 	"os"
 	"os/signal"
 	"syscall"
 
-	"github.com/form3tech-oss/f1/v2/internal/envsettings"
-	"github.com/form3tech-oss/f1/v2/internal/ui"
-	"github.com/form3tech-oss/f1/v2/pkg/f1/scenarios"
-	"github.com/form3tech-oss/f1/v2/pkg/f1/testing"
+	"github.com/form3tech-oss/f1/v3/internal/ui"
+	"github.com/form3tech-oss/f1/v3/pkg/f1/f1testing"
+	"github.com/form3tech-oss/f1/v3/pkg/f1/scenarios"
 )
 
 const (
@@ -29,55 +27,49 @@ const (
 type F1 struct {
 	scenarios *scenarios.Scenarios
 	profiling *profiling
-	settings  envsettings.Settings
+	settings  Settings
 	options   *f1Options
 }
 
 type f1Options struct {
-	output        *ui.Output
-	staticMetrics map[string]string
+	output         *ui.Output
+	staticMetrics  map[string]string
+	loggerExplicit bool
 }
 
-// New instantiates a new instance of an F1 CLI.
-func New() *F1 {
-	settings := envsettings.Get()
-
-	return &F1{
+// New instantiates a new F1 CLI. Pass options to configure logger, metrics, etc.
+//
+// Construction order:
+//  1. Load default settings from environment variables (see DefaultSettings)
+//  2. Apply options (may replace settings via WithSettings or override individual fields)
+//  3. Build default output from final settings unless WithLogger was used
+func New(opts ...Option) *F1 {
+	f := &F1{
 		scenarios: scenarios.New(),
 		profiling: &profiling{},
-		settings:  settings,
-		options: &f1Options{
-			output: ui.NewDefaultOutput(settings.Log.SlogLevel(), settings.Log.IsFormatJSON()),
-		},
+		settings:  DefaultSettings(),
+		options:   &f1Options{},
 	}
-}
+	for _, opt := range opts {
+		opt(f)
+	}
 
-// WithLogger allows specifying logger to be used for all internal and scenario logs
-//
-// This will disable the F1_LOG_LEVEL and F1_LOG_FORMAT options, as they only relate to the built-in
-// logger.
-//
-// The logger will be used for non-interactive output, file logs or when `--verbose` is specified.
-func (f *F1) WithLogger(logger *slog.Logger) *F1 {
-	f.options.output = ui.NewDefaultOutputWithLogger(logger)
+	if !f.options.loggerExplicit {
+		f.options.output = ui.NewDefaultOutput(f.settings.Logging.Level, f.settings.Logging.Format == LogFormatJSON)
+	}
+
 	return f
 }
 
-// WithStaticMetrics registers additional labels with fixed values to the f1 metrics
-func (f *F1) WithStaticMetrics(labels map[string]string) *F1 {
-	f.options.staticMetrics = labels
-	return f
-}
-
-// Add registers a new test scenario with the given name. This is the name used when running
+// AddScenario registers a new test scenario with the given name. This is the name used when running
 // load test scenarios. For example, calling the function with the following arguments:
 //
-//	f.Add("myTest", myScenario)
+//	f.AddScenario("myTest", myScenario)
 //
 // will result in the test "myTest" being runnable from the command line:
 //
 //	f1 run constant -r 1/s -d 10s myTest
-func (f *F1) Add(name string, scenarioFn testing.ScenarioFn, options ...scenarios.ScenarioOption) *F1 {
+func (f *F1) AddScenario(name string, scenarioFn f1testing.ScenarioFn, options ...scenarios.ScenarioOption) *F1 {
 	info := &scenarios.Scenario{
 		Name:       name,
 		ScenarioFn: scenarioFn,
@@ -87,15 +79,14 @@ func (f *F1) Add(name string, scenarioFn testing.ScenarioFn, options ...scenario
 		opt(info)
 	}
 
-	f.scenarios.Add(info)
+	f.scenarios.AddScenario(info)
 	return f
 }
 
-// NewSignalContext returns a context.Context that is cancelled whenever
-// 'SIGINT' or 'SIGTERM' are received.
-// If one of these two signals is received a second time, the application exits.
-func newSignalContext(stopCh <-chan struct{}) context.Context {
-	ctx, cancel := context.WithCancel(context.Background())
+// newSignalContext returns a context that is cancelled when parent is cancelled or
+// when SIGINT/SIGTERM is received. If a signal is received a second time, the app exits.
+func newSignalContext(parent context.Context, stopCh <-chan struct{}) context.Context {
+	ctx, cancel := context.WithCancel(parent)
 
 	c := make(chan os.Signal, signalChanBufferSize)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
@@ -104,6 +95,8 @@ func newSignalContext(stopCh <-chan struct{}) context.Context {
 		select {
 		case <-c:
 			cancel()
+		case <-parent.Done():
+			return
 		case <-stopCh:
 			return
 		}
@@ -119,24 +112,22 @@ func newSignalContext(stopCh <-chan struct{}) context.Context {
 	return ctx
 }
 
-// Execute synchronously runs the F1 CLI. This function is the blocking entrypoint to the CLI,
-// so you should register your test scenarios with the Add function prior to calling this
-// function.
+// Run runs the CLI with the given args. Returns error on failure; never exits.
+// ctx controls cancellation; SIGINT/SIGTERM also cancel via internal signal handling.
+// Pass nil for args to use os.Args (e.g. when called from main).
+func (f *F1) Run(ctx context.Context, args []string) error {
+	if err := f.execute(ctx, args); err != nil {
+		return fmt.Errorf("run: %w", err)
+	}
+	return nil
+}
+
+// Execute runs the CLI and exits with code 1 on error. Convenience for main().
 func (f *F1) Execute() {
-	if err := f.execute(nil); err != nil {
+	if err := f.Run(context.Background(), nil); err != nil {
 		f.options.output.Display(ui.ErrorMessage{Message: "f1 failed", Error: err})
 		os.Exit(1)
 	}
-}
-
-// ExecuteWithArgs is similar to Execute, but takes command line arguments from the args array.
-// Useful for testing F1 test scenarios.
-func (f *F1) ExecuteWithArgs(args []string) error {
-	if err := f.execute(args); err != nil {
-		return fmt.Errorf("execute with args: %w", err)
-	}
-
-	return nil
 }
 
 // GetScenarios returns the list of registered scenarios.
@@ -144,8 +135,15 @@ func (f *F1) GetScenarios() *scenarios.Scenarios {
 	return f.scenarios
 }
 
-func (f *F1) execute(args []string) error {
-	rootCmd, err := buildRootCmd(f.scenarios, f.settings, f.profiling, f.options.output, f.options.staticMetrics)
+func (f *F1) execute(ctx context.Context, args []string) error {
+	stopCh := make(chan struct{})
+	defer close(stopCh)
+	execCtx := newSignalContext(ctx, stopCh)
+
+	rootCmd, err := buildRootCmd(
+		execCtx, f.scenarios, f.settings.toInternal(),
+		f.profiling, f.options.output, f.options.staticMetrics,
+	)
 	if err != nil {
 		return fmt.Errorf("building root command: %w", err)
 	}
@@ -154,18 +152,14 @@ func (f *F1) execute(args []string) error {
 		rootCmd.SetArgs(args)
 	}
 
-	stopCh := make(chan struct{})
-	defer close(stopCh)
-	ctx := newSignalContext(stopCh)
-
-	err = rootCmd.ExecuteContext(ctx)
+	err = rootCmd.ExecuteContext(execCtx)
 	// stop profiling regardless of err
 	profilingErr := f.profiling.stop()
 
 	errs := errors.Join(err, profilingErr)
 
 	if errs != nil {
-		return fmt.Errorf("command execution: %w", err)
+		return fmt.Errorf("command execution: %w", errs)
 	}
 
 	return nil

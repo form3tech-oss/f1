@@ -6,9 +6,9 @@ import (
 
 	"github.com/spf13/pflag"
 
-	"github.com/form3tech-oss/f1/v2/internal/options"
-	"github.com/form3tech-oss/f1/v2/internal/ui"
-	"github.com/form3tech-oss/f1/v2/internal/workers"
+	"github.com/form3tech-oss/f1/v3/internal/options"
+	"github.com/form3tech-oss/f1/v3/internal/ui"
+	"github.com/form3tech-oss/f1/v3/internal/workers"
 )
 
 type (
@@ -28,6 +28,7 @@ type Builder struct {
 	Flags             *pflag.FlagSet
 	Name              string
 	Description       string
+	Long              string // optional long description (e.g. short-flag meanings)
 	IgnoreCommonFlags bool
 }
 
@@ -49,7 +50,6 @@ type Options struct {
 	MaxFailures              uint64
 	MaxFailuresRate          int
 	Verbose                  bool
-	VerboseFail              bool
 	IgnoreDropped            bool
 	WaitForCompletionTimeout time.Duration
 }

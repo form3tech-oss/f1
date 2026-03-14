@@ -1,21 +1,23 @@
-package testing
+package f1testing
 
 import (
 	"errors"
 	"fmt"
 	"log/slog"
 	"runtime/debug"
+	"strings"
 	"sync/atomic"
-	"time"
 
-	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/require"
 
-	"github.com/form3tech-oss/f1/v2/internal/log"
-	"github.com/form3tech-oss/f1/v2/internal/metrics"
+	"github.com/form3tech-oss/f1/v3/internal/log"
 )
 
 var errFailNow = errors.New("FailNow")
+
+// IterationSetup is the value of T.Iteration during the setup phase.
+// Iteration numbers from the run phase are 1-based, so 0 is never used for iterations.
+const IterationSetup uint64 = 0
 
 // T is a type passed to Scenario functions to manage test state and support formatted test logs. A
 // test ends when its Scenario function returns or calls any of the methods FailNow, Fatal, Fatalf.
@@ -23,11 +25,11 @@ var errFailNow = errors.New("FailNow")
 // reporting methods, such as the variations of Log and Error, may be called simultaneously from
 // multiple goroutines.
 type T struct {
-	logrusLogger *logrus.Logger
-	logger       *slog.Logger
-	require      *require.Assertions
-	Iteration    string // iteration number or "setup"
-	Scenario     string
+	logger  *slog.Logger
+	require *require.Assertions
+	// Iteration is the iteration index (1-based) or IterationSetup (0) for the setup phase.
+	Iteration uint64
+	Scenario  string
 	// VUID is the Virtual User ID - a stable identifier for the pool worker running this iteration.
 	// Useful for correlating iterations with user-specific test data (e.g. in the "users" trigger mode).
 	// VUID is -1 for setup; 0-based for pool workers.
@@ -40,22 +42,13 @@ type T struct {
 
 type TOption func(*T)
 
-// WithLogrusLogger will be removed in future versions, needed for backwards compatibility
-//
-// Deprecated: Will be removed in future versions.
-func WithLogrusLogger(logrusLogger *logrus.Logger) TOption {
-	return func(t *T) {
-		t.logrusLogger = logrusLogger
-	}
-}
-
 func WithLogger(logger *slog.Logger) TOption {
 	return func(t *T) {
 		t.logger = logger
 	}
 }
 
-func WithIteration(iteration string) TOption {
+func WithIteration(iteration uint64) TOption {
 	return func(t *T) {
 		t.Iteration = iteration
 	}
@@ -69,21 +62,6 @@ func WithVUID(id int) TOption {
 	}
 }
 
-// NewT returns a new T state
-//
-// Deprecated: Will be removed in favour of NewTWithOptions
-func NewT(iter, scenarioName string) (*T, func()) {
-	logger := slog.Default()
-
-	t, teardown := NewTWithOptions(scenarioName,
-		WithIteration(iter),
-		WithLogrusLogger(log.NewSlogLogrusLogger(logger)),
-		WithLogger(logger),
-	)
-
-	return t, teardown
-}
-
 func NewTWithOptions(scenarioName string, options ...TOption) (*T, func()) {
 	t := &T{
 		Scenario:      scenarioName,
@@ -94,11 +72,14 @@ func NewTWithOptions(scenarioName string, options ...TOption) (*T, func()) {
 	for _, opt := range options {
 		opt(t)
 	}
+	if t.logger == nil {
+		t.logger = slog.Default()
+	}
 
 	return t, t.teardown
 }
 
-func (t *T) Reset(iter string) {
+func (t *T) Reset(iter uint64) {
 	t.Iteration = iter
 	t.failed.Store(false)
 	t.teardownFailed.Store(false)
@@ -106,17 +87,7 @@ func (t *T) Reset(iter string) {
 	t.teardownStack = []func(){}
 }
 
-// Logger returns a logrus logger, needed for backwards compatibility. Use StandardLogger
-// instead.
-//
-// Internally it uses slog as a logging backend.
-//
-// Deprecated: logrus will be removed in future versions.
-func (t *T) Logger() *logrus.Logger {
-	return t.logrusLogger
-}
-
-func (t *T) StandardLogger() *slog.Logger {
+func (t *T) Logger() *slog.Logger {
 	return t.logger
 }
 
@@ -152,40 +123,45 @@ func (t *T) Fail() {
 	}
 }
 
-// Errorf is equivalent to Logf followed by Fail.
+// Errorf is equivalent to Logf followed by Fail. Logs at Error level.
 func (t *T) Errorf(format string, args ...any) {
-	t.logger.Error(fmt.Sprintf(format, args...))
+	t.logger.With(log.IterationAttr(t.Iteration), log.VUIDAttr(t.VUID)).Error(fmt.Sprintf(format, args...))
 	t.Fail()
 }
 
-// Error is equivalent to Log followed by Fail.
-func (t *T) Error(err error) {
-	t.logger.Error("iteration failed", log.IterationAttr(t.Iteration), log.VUIDAttr(t.VUID), log.ErrorAttr(err))
+// Error is equivalent to Log followed by Fail. Logs at Error level.
+func (t *T) Error(args ...any) {
+	msg := strings.TrimSuffix(fmt.Sprintln(args...), "\n")
+	t.logger.With(log.IterationAttr(t.Iteration), log.VUIDAttr(t.VUID)).Error(msg)
 	t.Fail()
 }
 
-// Fatalf is equivalent to Logf followed by FailNow.
+// Fatalf is equivalent to Logf followed by FailNow. Logs at Error level.
 func (t *T) Fatalf(format string, args ...any) {
-	t.logger.Error(fmt.Sprintf(format, args...))
+	t.logger.With(log.IterationAttr(t.Iteration), log.VUIDAttr(t.VUID)).Error(fmt.Sprintf(format, args...))
 	t.FailNow()
 }
 
-// Fatal is equivalent to Log followed by FailNow.
-func (t *T) Fatal(err error) {
-	t.logger.Error("iteration failed", log.IterationAttr(t.Iteration), log.VUIDAttr(t.VUID), log.ErrorAttr(err))
+// Fatal is equivalent to Log followed by FailNow. Logs at Error level.
+func (t *T) Fatal(args ...any) {
+	msg := strings.TrimSuffix(fmt.Sprintln(args...), "\n")
+	t.logger.With(log.IterationAttr(t.Iteration), log.VUIDAttr(t.VUID)).Error(msg)
 	t.FailNow()
 }
 
 // Log formats its arguments using default formatting, analogous to Println, and records the text in the error log.
 // The text will be printed only if f1 is running in verbose mode.
+// Aligns with testing.T: uses fmt.Sprintln for space-separated args (trailing newline trimmed for structured logs).
 func (t *T) Log(args ...any) {
-	t.logger.Info(fmt.Sprint(args...))
+	msg := strings.TrimSuffix(fmt.Sprintln(args...), "\n")
+	t.logger.With(log.IterationAttr(t.Iteration), log.VUIDAttr(t.VUID)).Info(msg)
 }
 
 // Logf formats its arguments according to the format, analogous to Printf, and records the text in the error log.
 // A final newline is added if not provided. The text will be printed only if f1 is running in verbose mode.
+// Aligns with testing.T: uses fmt.Sprintf.
 func (t *T) Logf(format string, args ...any) {
-	t.logger.Info(fmt.Sprintf(format, args...))
+	t.logger.With(log.IterationAttr(t.Iteration), log.VUIDAttr(t.VUID)).Info(fmt.Sprintf(format, args...))
 }
 
 // Failed reports whether the function has failed.
@@ -195,13 +171,6 @@ func (t *T) Failed() bool {
 
 func (t *T) TeardownFailed() bool {
 	return t.teardownFailed.Load()
-}
-
-// Time records a metric for the duration of the given function
-func (t *T) Time(stageName string, f func()) {
-	start := time.Now()
-	defer recordTime(t, stageName, start)
-	f()
 }
 
 // Cleanup registers a function to be called when the scenario or the iteration completes.
@@ -257,13 +226,4 @@ func (t *T) teardown() {
 			t.teardownStack[i]()
 		}()
 	}
-}
-
-func recordTime(t *T, stageName string, start time.Time) {
-	metrics.Instance().RecordIterationStage(
-		t.Scenario,
-		stageName,
-		metrics.Result(t.Failed()),
-		time.Since(start).Nanoseconds(),
-	)
 }

@@ -50,7 +50,6 @@ func (c *Config) JSONHandlerOptions() *slog.HandlerOptions {
 			case slog.MessageKey:
 				a.Key = "message"
 			case slog.LevelKey:
-				// logrus compatibility
 				if l, ok := a.Value.Any().(slog.Level); ok {
 					switch l {
 					case slog.LevelDebug:

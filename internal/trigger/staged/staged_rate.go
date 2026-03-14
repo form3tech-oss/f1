@@ -6,24 +6,23 @@ import (
 
 	"github.com/spf13/pflag"
 
-	"github.com/form3tech-oss/f1/v2/internal/trigger/api"
-	"github.com/form3tech-oss/f1/v2/internal/triggerflags"
+	"github.com/form3tech-oss/f1/v3/internal/trigger/api"
+	"github.com/form3tech-oss/f1/v3/internal/triggerflags"
 )
 
 const (
 	flagStages             = "stages"
-	flagIterationFrequency = "iterationFrequency"
+	flagIterationFrequency = "iteration-frequency"
 	flagStartTime          = "startTime"
 )
 
 func Rate() api.Builder {
 	flags := pflag.NewFlagSet("staged", pflag.ContinueOnError)
-	flags.StringP("stages", "s", "0s:1, 10s:1",
-		"Comma separated list of <stage_duration>:<target_concurrent_iterations>. "+
-			"During the stage, the number of concurrent iterations will ramp up or down to the target.")
+	flags.StringP(flagStages, "s", "0s:1, 10s:1",
+		"comma-separated <duration>:<target> pairs, e.g. 0s:1, 10s:5, 20s:10")
 	flags.DurationP(flagIterationFrequency, "f", 1*time.Second,
-		"How frequently iterations should be started")
-	flags.String(flagStartTime, "", "Starting point of stage calculation, defaults to now")
+		"how often to start iterations (e.g. 1s)")
+	flags.String(flagStartTime, "", "start time for stage calculation (default: now)")
 
 	triggerflags.JitterFlag(flags)
 	triggerflags.DistributionFlag(flags)
@@ -31,6 +30,7 @@ func Rate() api.Builder {
 	return api.Builder{
 		Name:        "staged <scenario>",
 		Description: "triggers iterations at varying rates",
+		Long:        "Short flags: -s stages, -f iteration-frequency",
 		Flags:       flags,
 		New: func(params *pflag.FlagSet) (*api.Trigger, error) {
 			jitterArg, err := params.GetFloat64(triggerflags.FlagJitter)

@@ -1,9 +1,7 @@
 package metrics
 
 import (
-	"errors"
 	"sort"
-	"sync"
 
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -22,18 +20,12 @@ const (
 const IterationStage = "iteration"
 
 type Metrics struct {
-	Setup                   *prometheus.SummaryVec
-	Iteration               *prometheus.SummaryVec
-	Registry                *prometheus.Registry
-	IterationMetricsEnabled bool
+	setup                   *prometheus.SummaryVec
+	iteration               *prometheus.SummaryVec
+	registry                *prometheus.Registry
+	iterationMetricsEnabled bool
 	staticMetricLabelValues []string
 }
-
-//nolint:gochecknoglobals // removing the global Instance is a breaking change
-var (
-	m    *Metrics
-	once sync.Once
-)
 
 func buildMetrics(staticMetrics map[string]string) *Metrics {
 	percentileObjectives := map[float64]float64{
@@ -41,14 +33,14 @@ func buildMetrics(staticMetrics map[string]string) *Metrics {
 	}
 	labelKeys := getStaticMetricLabelKeys(staticMetrics)
 	return &Metrics{
-		Setup: prometheus.NewSummaryVec(prometheus.SummaryOpts{
+		setup: prometheus.NewSummaryVec(prometheus.SummaryOpts{
 			Namespace:  metricNamespace,
 			Subsystem:  metricSubsystem,
 			Name:       "setup",
 			Help:       "Duration of setup functions.",
 			Objectives: percentileObjectives,
 		}, append([]string{TestNameLabel, ResultLabel}, labelKeys...)),
-		Iteration: prometheus.NewSummaryVec(prometheus.SummaryOpts{
+		iteration: prometheus.NewSummaryVec(prometheus.SummaryOpts{
 			Namespace:  metricNamespace,
 			Subsystem:  metricSubsystem,
 			Name:       "iteration",
@@ -63,59 +55,43 @@ func NewInstance(registry *prometheus.Registry,
 	staticMetrics map[string]string,
 ) *Metrics {
 	i := buildMetrics(staticMetrics)
-	i.Registry = registry
+	i.registry = registry
 
-	i.Registry.MustRegister(
-		i.Setup,
-		i.Iteration,
+	i.registry.MustRegister(
+		i.setup,
+		i.iteration,
 	)
-	i.IterationMetricsEnabled = iterationMetricsEnabled
+	i.iterationMetricsEnabled = iterationMetricsEnabled
 	i.staticMetricLabelValues = getStaticMetricLabelValues(staticMetrics)
 	return i
 }
 
-func Init(iterationMetricsEnabled bool) {
-	InitWithStaticMetrics(iterationMetricsEnabled, nil)
+// Gatherer returns the Prometheus registry for pushing metrics to a gateway.
+func (m *Metrics) Gatherer() *prometheus.Registry {
+	return m.registry
 }
 
-func InitWithStaticMetrics(iterationMetricsEnabled bool, staticMetrics map[string]string) {
-	once.Do(func() {
-		defaultRegistry, ok := prometheus.DefaultRegisterer.(*prometheus.Registry)
-		if !ok {
-			panic(errors.New("casting prometheus.DefaultRegisterer to Registry"))
-		}
-		m = NewInstance(defaultRegistry, iterationMetricsEnabled, staticMetrics)
-	})
+// IterationCollector returns the iteration metric for testing.
+func (m *Metrics) IterationCollector() *prometheus.SummaryVec {
+	return m.iteration
 }
 
-func Instance() *Metrics {
-	return m
+func (m *Metrics) Reset() {
+	m.iteration.Reset()
+	m.setup.Reset()
 }
 
-func (metrics *Metrics) Reset() {
-	metrics.Iteration.Reset()
-	metrics.Setup.Reset()
+func (m *Metrics) RecordSetupResult(name string, result ResultType, nanoseconds int64) {
+	labels := append([]string{name, result.String()}, m.staticMetricLabelValues...)
+	m.setup.WithLabelValues(labels...).Observe(float64(nanoseconds))
 }
 
-func (metrics *Metrics) RecordSetupResult(name string, result ResultType, nanoseconds int64) {
-	labels := append([]string{name, result.String()}, metrics.staticMetricLabelValues...)
-	metrics.Setup.WithLabelValues(labels...).Observe(float64(nanoseconds))
-}
-
-func (metrics *Metrics) RecordIterationResult(name string, result ResultType, nanoseconds int64) {
-	if !metrics.IterationMetricsEnabled {
+func (m *Metrics) RecordIterationResult(name string, result ResultType, nanoseconds int64) {
+	if !m.iterationMetricsEnabled {
 		return
 	}
-	labels := append([]string{name, IterationStage, result.String()}, metrics.staticMetricLabelValues...)
-	metrics.Iteration.WithLabelValues(labels...).Observe(float64(nanoseconds))
-}
-
-func (metrics *Metrics) RecordIterationStage(name string, stage string, result ResultType, nanoseconds int64) {
-	if !metrics.IterationMetricsEnabled {
-		return
-	}
-	labels := append([]string{name, stage, result.String()}, metrics.staticMetricLabelValues...)
-	metrics.Iteration.WithLabelValues(labels...).Observe(float64(nanoseconds))
+	labels := append([]string{name, IterationStage, result.String()}, m.staticMetricLabelValues...)
+	m.iteration.WithLabelValues(labels...).Observe(float64(nanoseconds))
 }
 
 func getStaticMetricLabelKeys(staticMetrics map[string]string) []string {

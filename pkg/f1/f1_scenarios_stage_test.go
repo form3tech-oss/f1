@@ -1,14 +1,15 @@
 package f1_test
 
 import (
+	"context"
 	"sync/atomic"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/form3tech-oss/f1/v2/pkg/f1"
-	f1_testing "github.com/form3tech-oss/f1/v2/pkg/f1/testing"
+	"github.com/form3tech-oss/f1/v3/pkg/f1"
+	"github.com/form3tech-oss/f1/v3/pkg/f1/f1testing"
 )
 
 type f1ScenariosStage struct {
@@ -22,10 +23,10 @@ type scenario struct {
 	iterations atomic.Uint32
 }
 
-func (s *scenario) scenariofn(*f1_testing.T) f1_testing.RunFn {
+func (s *scenario) scenariofn(context.Context, *f1testing.T) f1testing.RunFn {
 	s.setups.Add(1)
 
-	return func(*f1_testing.T) {
+	return func(context.Context, *f1testing.T) {
 		s.iterations.Add(1)
 	}
 }
@@ -54,17 +55,17 @@ func newF1ScenarioStage(t *testing.T) (*f1ScenariosStage, *f1ScenariosStage, *f1
 }
 
 func (s *f1ScenariosStage) f1_is_configured_to_run_a_combined_scenario() {
-	scenarios := make([]f1_testing.ScenarioFn, len(s.scenarios))
+	scenarios := make([]f1testing.ScenarioFn, len(s.scenarios))
 	for i, scn := range s.scenarios {
 		fn := scn.scenariofn
 		scenarios[i] = fn
 	}
 
-	s.runner = f1.New().Add("combined", f1.CombineScenarios(scenarios...))
+	s.runner = f1.New().AddScenario("combined", f1.CombineScenarios(scenarios...))
 }
 
 func (s *f1ScenariosStage) the_f1_scenario_is_executed() {
-	err := s.runner.ExecuteWithArgs([]string{
+	err := s.runner.Run(context.TODO(), []string{
 		"run", "constant", "combined",
 		"--rate", "5/1s",
 		"--max-duration", "1s",

@@ -57,7 +57,7 @@ linters:
     exhaustruct:
       # Structs that must have all fields explicitly set
       include:
-        - github.com/form3tech-oss/f1/v2/internal/run/views.*
+        - github.com/form3tech-oss/f1/v3/internal/run/views.*
 
     nolintlint:
       require-explanation: true   # nolint directives must explain why
@@ -79,14 +79,12 @@ linters:
       - std-error-handling
 
     rules:
-      # Deprecated Logger/WithLogrusLogger - legacy API support
-      - linters: [staticcheck]
-        path: \.go
-        text: "SA1019: (.*.Logger|testing.WithLogrusLogger)"
-
       # Test files - relaxed rules for readability
       - linters: [dupword, lll, unparam, wrapcheck]
         path: _test\.go
+      # cobra.AddTemplateFunc modifies a global map; sync.Once is required
+      - linters: [gochecknoglobals]
+        path: internal/run/help\.go
       - linters: [staticcheck]
         path: _test\.go
         text: ST1003

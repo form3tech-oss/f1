@@ -2,7 +2,6 @@ package workers
 
 import (
 	"context"
-	"strconv"
 	"sync"
 	"sync/atomic"
 )
@@ -47,7 +46,7 @@ func (p *TriggerPool) Start(ctx context.Context) context.Context {
 	p.workerCtxCancel = cancel
 
 	for _, statePool := range p.iterationStatePool {
-		go p.run(statePool, &startedWg)
+		go p.run(workerCtx, statePool, &startedWg)
 	}
 
 	// wait for all workers to start, to make sure we have the concurrency requested,
@@ -102,6 +101,7 @@ func (p *TriggerPool) waitForNewJobs() {
 }
 
 func (p *TriggerPool) run(
+	ctx context.Context,
 	iterationState *iterationState,
 	startWg *sync.WaitGroup,
 ) {
@@ -120,8 +120,8 @@ func (p *TriggerPool) run(
 				return
 			}
 
-			iterationState.t.Reset(strconv.FormatUint(iteration, 10))
-			p.manager.activeScenario.Run(iterationState)
+			iterationState.t.Reset(iteration)
+			p.manager.activeScenario.Run(ctx, iterationState)
 		}
 	}
 }

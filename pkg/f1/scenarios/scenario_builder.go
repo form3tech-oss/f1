@@ -3,7 +3,7 @@ package scenarios
 import (
 	"sort"
 
-	"github.com/form3tech-oss/f1/v2/pkg/f1/testing"
+	"github.com/form3tech-oss/f1/v3/pkg/f1/f1testing"
 )
 
 // Scenarios represents a list of test scenarios.
@@ -17,9 +17,9 @@ type Scenario struct {
 	Name        string
 	Description string
 	Parameters  []ScenarioParameter
-	ScenarioFn  testing.ScenarioFn
+	ScenarioFn  f1testing.ScenarioFn
 	// The function that is invoked on each iteration of the test scenario.
-	RunFn testing.RunFn
+	RunFn f1testing.RunFn
 }
 
 type ScenarioParameter struct {
@@ -30,13 +30,13 @@ type ScenarioParameter struct {
 
 type ScenarioOption func(info *Scenario)
 
-func Description(d string) ScenarioOption {
+func WithDescription(d string) ScenarioOption {
 	return func(i *Scenario) {
 		i.Description = d
 	}
 }
 
-func Parameter(parameter ScenarioParameter) ScenarioOption {
+func WithParameter(parameter ScenarioParameter) ScenarioOption {
 	return func(i *Scenario) {
 		i.Parameters = append(i.Parameters, parameter)
 	}
@@ -48,7 +48,8 @@ func New() *Scenarios {
 	}
 }
 
-func (s *Scenarios) Add(scenario *Scenario) *Scenarios {
+// AddScenario adds a scenario to the collection.
+func (s *Scenarios) AddScenario(scenario *Scenario) *Scenarios {
 	s.scenarios[scenario.Name] = scenario
 	return s
 }

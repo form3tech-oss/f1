@@ -6,7 +6,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/form3tech-oss/f1/v2/internal/trigger/gaussian"
+	"github.com/form3tech-oss/f1/v3/internal/trigger/gaussian"
 )
 
 func Benchmark_calculateVolume(b *testing.B) {

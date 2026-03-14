@@ -5,11 +5,11 @@ import (
 	"os"
 	"time"
 
-	"github.com/form3tech-oss/f1/v2/internal/options"
-	"github.com/form3tech-oss/f1/v2/internal/trigger/api"
-	"github.com/form3tech-oss/f1/v2/internal/trigger/users"
-	"github.com/form3tech-oss/f1/v2/internal/ui"
-	"github.com/form3tech-oss/f1/v2/internal/workers"
+	"github.com/form3tech-oss/f1/v3/internal/options"
+	"github.com/form3tech-oss/f1/v3/internal/trigger/api"
+	"github.com/form3tech-oss/f1/v3/internal/trigger/users"
+	"github.com/form3tech-oss/f1/v3/internal/ui"
+	"github.com/form3tech-oss/f1/v3/internal/workers"
 )
 
 const safeDurationBeforeNextStage = 20 * time.Millisecond
@@ -67,7 +67,7 @@ func setEnvs(envs map[string]string, output *ui.Output) {
 		err := os.Setenv(key, value)
 		if err != nil {
 			output.Display(ui.ErrorMessage{
-				Message: "unable set environment variables for given scenario",
+				Message: "unable to set environment variables for given scenario",
 				Error:   err,
 			})
 		}
@@ -79,7 +79,7 @@ func unsetEnvs(envs map[string]string, output *ui.Output) {
 		err := os.Unsetenv(key)
 		if err != nil {
 			output.Display(ui.ErrorMessage{
-				Message: "unable unset environment variables for given scenario",
+				Message: "unable to unset environment variables for given scenario",
 				Error:   err,
 			})
 		}
