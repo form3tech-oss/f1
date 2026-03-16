@@ -35,9 +35,7 @@ func Rate() api.Builder {
 					Description: "Makes requests from a set of users specified by --concurrency",
 					// The rate function used by the `users` mode, is actually dependent
 					// on the number of users specified in the `--concurrency` flag.
-					// This flag is not required for the `chart` command, which uses the `DryRun`
-					// function, so its not possible to provide an accurate rate function here.
-					DryRun: func(time.Time) int { return 1 },
+					Rate: func(time.Time) int { return 1 },
 				},
 				nil
 		},
