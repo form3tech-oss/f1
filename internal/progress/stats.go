@@ -66,6 +66,15 @@ func (s *Snapshot) IterationsStarted() uint64 {
 	return s.SuccessfulIterationDurations.Count + s.FailedIterationDurations.Count
 }
 
+// FailedIterationsRate is the whole-number percentage of failed iterations, rounded down,
+// with dropped iterations counted in the total. --max-failures-rate compares against this
+// value, so changing the rounding or the total would change which runs pass. Kept as is
+// for v2 compatibility; revisit in v3.
 func (s *Snapshot) FailedIterationsRate() uint64 {
-	return s.FailedIterationDurations.Count * 100 / s.Iterations()
+	iterations := s.Iterations()
+	if iterations == 0 {
+		return 0
+	}
+
+	return s.FailedIterationDurations.Count * 100 / iterations
 }
