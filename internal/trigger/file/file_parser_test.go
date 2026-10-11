@@ -315,43 +315,6 @@ stages:
 			expectedParameters:       map[string]string{"FOO": "bar"},
 		},
 		{
-			testName: "Skip completed stages when stage-start is provided",
-			fileContent: `
-scenario: template
-limits:
-  max-duration: 1m
-  concurrency: 50
-  max-iterations: 100
-  ignore-dropped: true
-schedule:
-  stage-start: "2020-12-10T09:00:00+00:00"
-stages:
-- duration: 1h
-  mode: constant
-  rate: 1/s
-  jitter: 0
-  distribution: none
-  parameters:
-    FOO: bar
-- duration: 5s
-  mode: constant
-  rate: 2/s
-  jitter: 0
-  distribution: none
-  parameters:
-    FOO: bar
-`,
-			expectedScenario:          "template",
-			expectedMaxDuration:       1 * time.Minute,
-			expectedConcurrency:       50,
-			expectedMaxIterations:     100,
-			expectedIgnoreDropped:     true,
-			expectedTotalDuration:     5 * time.Second,
-			expectedIterationDuration: 1 * time.Second,
-			expectedRates:             []int{2, 2, 2, 2, 2},
-			expectedParameters:        map[string]string{"FOO": "bar"},
-		},
-		{
 			testName: "Include max failures",
 			fileContent: `scenario: template
 limits:
@@ -417,7 +380,7 @@ stages:
 
 			now, _ := time.Parse(time.RFC3339, "2020-12-10T10:00:00+00:00")
 
-			stagesToRun, err := file.ParseConfigFile([]byte(test.fileContent), now)
+			stagesToRun, err := file.ParseConfigFile([]byte(test.fileContent))
 
 			require.NoError(t, err)
 			require.Len(t, stagesToRun.Stages, 1)
@@ -468,9 +431,7 @@ stages:
   distribution: none
   ` + stage + `
 `
-			now, _ := time.Parse(time.RFC3339, "2020-12-10T10:00:00+00:00")
-
-			stagesToRun, err := file.ParseConfigFile([]byte(fileContent), now)
+			stagesToRun, err := file.ParseConfigFile([]byte(fileContent))
 
 			require.NoError(t, err)
 			require.Len(t, stagesToRun.Stages, 1)
@@ -493,9 +454,7 @@ stages:
   mode: users
   concurrency: 5
 `
-	now, _ := time.Parse(time.RFC3339, "2020-12-10T10:00:00+00:00")
-
-	stagesToRun, err := file.ParseConfigFile([]byte(fileContent), now)
+	stagesToRun, err := file.ParseConfigFile([]byte(fileContent))
 
 	require.NoError(t, err)
 	require.Len(t, stagesToRun.Stages, 1)
@@ -521,9 +480,7 @@ stages:
   iteration-frequency: 1s
   distribution: none
 `
-	now, _ := time.Parse(time.RFC3339, "2020-12-10T10:00:00+00:00")
-
-	stagesToRun, err := file.ParseConfigFile([]byte(fileContent), now)
+	stagesToRun, err := file.ParseConfigFile([]byte(fileContent))
 
 	require.NoError(t, err)
 	require.Len(t, stagesToRun.Stages, 1)
@@ -852,9 +809,7 @@ invalid file content
 		t.Run(test.expectedError, func(t *testing.T) {
 			t.Parallel()
 
-			now, _ := time.Parse(time.RFC3339, "2020-12-10T10:00:00+00:00")
-
-			runnableStages, err := file.ParseConfigFile([]byte(test.fileContent), now)
+			runnableStages, err := file.ParseConfigFile([]byte(test.fileContent))
 
 			require.Nil(t, runnableStages)
 			require.ErrorContains(t, err, test.expectedError)

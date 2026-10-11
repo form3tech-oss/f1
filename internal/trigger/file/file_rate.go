@@ -16,7 +16,8 @@ import (
 type RunnableStages struct {
 	Scenario                 string
 	Stages                   []runnableStage
-	stagesTotalDuration      time.Duration
+	stageStart               *time.Time
+	totalDuration            time.Duration
 	MaxDuration              time.Duration
 	Concurrency              int
 	MaxIterations            uint64
@@ -47,19 +48,24 @@ func Rate(output *ui.Output) api.Builder {
 			if err != nil {
 				return nil, err
 			}
-			runnableStages, err := ParseConfigFile(*fileContent, time.Now())
+			runnableStages, err := ParseConfigFile(*fileContent)
 			if err != nil {
 				return nil, err
 			}
 
-			worker := newStagesWorker(runnableStages.Stages)
+			var start time.Time
+			if runnableStages.stageStart != nil {
+				start = *runnableStages.stageStart
+			}
+			worker := newStagesWorker(runnableStages.Stages, start)
 
 			return &api.Trigger{
 				Trigger:     worker.run,
 				Cleanup:     worker.cleanup,
-				DryRun:      newDryRun(runnableStages.Stages),
+				DryRun:      newDryRun(runnableStages.Stages, start),
 				Description: fmt.Sprintf("%d different stages", len(runnableStages.Stages)),
-				Duration:    runnableStages.stagesTotalDuration,
+				Start:       start,
+				Duration:    runnableStages.totalDuration,
 				Options: api.Options{
 					Scenario:                 runnableStages.Scenario,
 					MaxDuration:              runnableStages.MaxDuration,
@@ -98,33 +104,29 @@ func readFile(filename string, output *ui.Output) (*[]byte, error) {
 	return &fileContent, nil
 }
 
-func newDryRun(stagesToRun []runnableStage) api.RateFunction {
-	var startTime time.Time
-	started := false
+// newDryRun returns the rate of the stage running at each time, with the stages starting
+// at start, or at the first time asked for if start is the zero time.
+func newDryRun(stagesToRun []runnableStage, start time.Time) api.RateFunction {
+	stageStart := start
 	stageIdx := 0
 
-	return func(time time.Time) int {
-		if stageIdx >= len(stagesToRun) {
+	return func(now time.Time) int {
+		if stageStart.IsZero() {
+			stageStart = now
+		}
+		for stageIdx < len(stagesToRun) && !now.Before(stageStart.Add(stagesToRun[stageIdx].StageDuration)) {
+			stageStart = stageStart.Add(stagesToRun[stageIdx].StageDuration)
+			stageIdx++
+		}
+		if stageIdx >= len(stagesToRun) || now.Before(stageStart) {
 			return 0
 		}
 
-		if !started {
-			startTime = time
-			started = true
-		}
-
 		currentStage := stagesToRun[stageIdx]
-
-		if startTime.Add(currentStage.StageDuration).Before(time) {
-			startTime = startTime.Add(currentStage.StageDuration)
-			stageIdx++
-		}
-
 		if currentStage.UsersConcurrency > 0 {
 			return 1
 		}
 
-		rate := currentStage.Rate(time)
-		return rate
+		return currentStage.Rate(now)
 	}
 }

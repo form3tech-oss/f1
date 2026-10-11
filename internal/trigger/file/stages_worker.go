@@ -16,6 +16,8 @@ const safeDurationBeforeNextStage = 20 * time.Millisecond
 // stagesWorker runs the stages of a config file in order. Stage parameters are passed
 // to iterations as process environment variables.
 type stagesWorker struct {
+	// start is when the first stage starts, or the zero time to start it with the run.
+	start  time.Time
 	stages []runnableStage
 	// output is the run's output, set by run.
 	output *ui.Output
@@ -24,10 +26,13 @@ type stagesWorker struct {
 	replacedEnv previousEnv
 }
 
-func newStagesWorker(stages []runnableStage) *stagesWorker {
-	return &stagesWorker{stages: stages}
+func newStagesWorker(stages []runnableStage, start time.Time) *stagesWorker {
+	return &stagesWorker{stages: stages, start: start}
 }
 
+// run runs each stage from its scheduled start to its scheduled end, skipping the stages
+// that already ended. A late start therefore shortens a stage instead of moving the ones
+// after it, so the run ends when the schedule does.
 func (w *stagesWorker) run(
 	ctx context.Context,
 	output *ui.Output,
@@ -35,11 +40,23 @@ func (w *stagesWorker) run(
 	options options.RunOptions,
 ) {
 	w.output = output
+
+	stageStart := w.start
+	if stageStart.IsZero() {
+		stageStart = time.Now()
+	}
 	for i, stage := range w.stages {
 		if ctx.Err() != nil {
 			return
 		}
-		w.runStage(ctx, workers, stage, options, i == len(w.stages)-1)
+		stageEnd := stageStart.Add(stage.StageDuration)
+		if !waitUntil(ctx, stageStart) {
+			return
+		}
+		if w.start.IsZero() || stageEnd.After(time.Now()) {
+			w.runStage(ctx, workers, stage, stageEnd, options, i == len(w.stages)-1)
+		}
+		stageStart = stageEnd
 	}
 }
 
@@ -54,13 +71,14 @@ func (w *stagesWorker) runStage(
 	ctx context.Context,
 	workers *workers.PoolManager,
 	stage runnableStage,
+	stageEnd time.Time,
 	options options.RunOptions,
 	last bool,
 ) {
 	w.replacedEnv = setEnvs(stage.Params, w.output)
 
 	// stop the stage early to avoid starting a new tick
-	stageCtx, stageCancel := context.WithTimeout(ctx, stage.StageDuration-safeDurationBeforeNextStage)
+	stageCtx, stageCancel := context.WithDeadline(ctx, stageEnd.Add(-safeDurationBeforeNextStage))
 	defer stageCancel()
 
 	if stage.UsersConcurrency == 0 {
@@ -95,6 +113,19 @@ func (w *stagesWorker) runStage(
 	// the next stage's parameters. Fixing this needs per-iteration parameters instead of
 	// process environment variables, which is planned for v3.
 	w.cleanup()
+}
+
+// waitUntil waits until t, and reports false if ctx ended first.
+func waitUntil(ctx context.Context, t time.Time) bool {
+	timer := time.NewTimer(time.Until(t))
+	defer timer.Stop()
+
+	select {
+	case <-ctx.Done():
+		return false
+	case <-timer.C:
+		return true
+	}
 }
 
 // previousEnv maps each variable a stage set to its value before the stage, or to nil

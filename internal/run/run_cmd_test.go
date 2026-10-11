@@ -805,6 +805,47 @@ stages:
 		env_var_is_not_set("F1_TEST_RATE_STAGE_PARAM")
 }
 
+func TestFileStages_ResumeMidStageFromAPastStageStart(t *testing.T) {
+	t.Parallel()
+
+	given, when, then := NewRunTestStage(t)
+
+	// The first stage ended and the second is half way through, so the run lasts as long
+	// as what is left of the second stage.
+	stageStart := time.Now().Add(-2 * time.Second).UTC().Format(time.RFC3339Nano)
+	given.
+		a_trigger_type_of(File).and().
+		a_duration_of(10 * time.Second).and().
+		a_concurrency_of(1).and().
+		a_scenario_where_each_iteration_takes(time.Millisecond).and().
+		a_config_file_with_content(`
+scenario: scenario_where_each_iteration_takes_1ms
+limits:
+  max-duration: 10s
+  concurrency: 1
+  max-iterations: 0
+  ignore-dropped: true
+schedule:
+  stage-start: "` + stageStart + `"
+stages:
+- duration: 1s
+  mode: constant
+  rate: 1/100ms
+  distribution: none
+- duration: 2s
+  mode: constant
+  rate: 1/100ms
+  distribution: none
+`)
+
+	when.
+		the_run_command_is_executed()
+
+	then.
+		the_command_should_have_run_for_approx(time.Second).and().
+		expect_the_stdout_output_to_include([]string{"Max Duration Elapsed"})
+}
+
 func TestFileStage_RestoresEnvVarsItOverrides(t *testing.T) {
 	t.Parallel()
 

@@ -54,7 +54,7 @@ type Stage struct {
 	Parameters         *map[string]string `yaml:"parameters"`
 }
 
-func ParseConfigFile(fileContent []byte, now time.Time) (*RunnableStages, error) {
+func ParseConfigFile(fileContent []byte) (*RunnableStages, error) {
 	configFile := ConfigFile{}
 	err := yaml.Unmarshal(fileContent, &configFile)
 	if err != nil {
@@ -65,30 +65,36 @@ func ParseConfigFile(fileContent []byte, now time.Time) (*RunnableStages, error)
 		return nil, err
 	}
 
-	var stages []runnableStage
+	stageStart := validatedConfigFile.Schedule.StageStart
+	stages := make([]runnableStage, 0, len(validatedConfigFile.Stages))
 	stagesTotalDuration := 0 * time.Second
 	for idx, stageConfig := range validatedConfigFile.Stages {
 		validatedStage, err := stageConfig.validateCommonFieldsOfStage(idx, validatedConfigFile.Default)
 		if err != nil {
 			return nil, err
 		}
+
+		// Stages that vary their rate over time follow the schedule, so a run that starts
+		// part way through a stage continues it instead of starting it over.
+		var start *time.Time
+		if stageStart != nil {
+			s := stageStart.Add(stagesTotalDuration)
+			start = &s
+		}
 		stagesTotalDuration += *validatedStage.Duration
 
-		stageStart := validatedConfigFile.Schedule.StageStart
-		if stageStart == nil || stageStart.Add(stagesTotalDuration).After(now) {
-			parsedStage, err := validatedStage.parseStage(idx, validatedConfigFile.Default)
-			if err != nil {
-				return nil, err
-			}
-			// Rate stages run on a pool sized by limits.concurrency; users stages use their own.
-			// The chart command parses the same file, so it also rejects such configs. That is
-			// intended: a config that can't run shouldn't chart either.
-			if parsedStage.UsersConcurrency == 0 && *validatedConfigFile.Limits.Concurrency < 1 {
-				return nil, fmt.Errorf("limits.concurrency %d can't be less than 1, required by rate stage %d",
-					*validatedConfigFile.Limits.Concurrency, idx)
-			}
-			stages = append(stages, *parsedStage)
+		parsedStage, err := validatedStage.parseStage(idx, validatedConfigFile.Default, start)
+		if err != nil {
+			return nil, err
 		}
+		// Rate stages run on a pool sized by limits.concurrency; users stages use their own.
+		// The chart command parses the same file, so it also rejects such configs. That is
+		// intended: a config that can't run shouldn't chart either.
+		if parsedStage.UsersConcurrency == 0 && *validatedConfigFile.Limits.Concurrency < 1 {
+			return nil, fmt.Errorf("limits.concurrency %d can't be less than 1, required by rate stage %d",
+				*validatedConfigFile.Limits.Concurrency, idx)
+		}
+		stages = append(stages, *parsedStage)
 	}
 
 	// With no duration the run would fall back to limits.max-duration and start no iterations.
@@ -99,7 +105,8 @@ func ParseConfigFile(fileContent []byte, now time.Time) (*RunnableStages, error)
 	return &RunnableStages{
 		Scenario:                 *validatedConfigFile.Scenario,
 		Stages:                   stages,
-		stagesTotalDuration:      stagesTotalDuration,
+		stageStart:               stageStart,
+		totalDuration:            stagesTotalDuration,
 		MaxDuration:              *validatedConfigFile.Limits.MaxDuration,
 		Concurrency:              *validatedConfigFile.Limits.Concurrency,
 		MaxIterations:            *validatedConfigFile.Limits.MaxIterations,
@@ -110,7 +117,7 @@ func ParseConfigFile(fileContent []byte, now time.Time) (*RunnableStages, error)
 	}, nil
 }
 
-func (s *Stage) parseStage(stageIdx int, defaults Stage) (*runnableStage, error) {
+func (s *Stage) parseStage(stageIdx int, defaults Stage, start *time.Time) (*runnableStage, error) {
 	switch *s.Mode {
 	case "constant":
 		validatedConstantStage, err := s.validateConstantStage(stageIdx, defaults)
@@ -143,6 +150,7 @@ func (s *Stage) parseStage(stageIdx int, defaults Stage) (*runnableStage, error)
 			*validatedRampStage.Distribution,
 			*validatedRampStage.Duration,
 			*validatedRampStage.Jitter,
+			start,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("calculating ramp rate: %w", err)
@@ -164,7 +172,7 @@ func (s *Stage) parseStage(stageIdx int, defaults Stage) (*runnableStage, error)
 			*validatedStagedStage.IterationFrequency,
 			*validatedStagedStage.Stages,
 			*validatedStagedStage.Distribution,
-			nil,
+			start,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("calculating staged rate: %w", err)

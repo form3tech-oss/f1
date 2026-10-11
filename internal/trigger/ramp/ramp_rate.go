@@ -62,7 +62,7 @@ func Rate() api.Builder {
 				return nil, fmt.Errorf("getting flag: %w", err)
 			}
 
-			rates, err := CalculateRampRate(startRateArg, endRateArg, distributionTypeArg, duration, jitterArg)
+			rates, err := CalculateRampRate(startRateArg, endRateArg, distributionTypeArg, duration, jitterArg, nil)
 			if err != nil {
 				return nil, fmt.Errorf("calculating ramp rate: %w", err)
 			}
@@ -77,15 +77,16 @@ func Rate() api.Builder {
 	}
 }
 
+// CalculateRampRate ramps the rate from startTime, or from the first time the rate is
+// requested if startTime is nil.
 func CalculateRampRate(
 	startRateArg string,
 	endRateArg string,
 	distributionTypeArg string,
 	duration time.Duration,
 	jitterArg float64,
+	startTime *time.Time,
 ) (*api.Rates, error) {
-	var startTime *time.Time
-
 	startRate, startUnit, err := rate.ParseRate(startRateArg)
 	if err != nil {
 		return nil, fmt.Errorf("parsing start rate: %w", err)
@@ -110,7 +111,7 @@ func CalculateRampRate(
 			startTime = &now
 		}
 
-		if startTime.Add(duration).Before(now) {
+		if now.Before(*startTime) || startTime.Add(duration).Before(now) {
 			return 0
 		}
 

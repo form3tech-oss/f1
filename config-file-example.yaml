@@ -26,7 +26,7 @@ limits:                   # Global limits to apply to the program execution
   max-failures-rate: 0    # Equivalent to --max-failures-rate flag, the load test will fail if the percentage of failures is superior to the percentage specified here
   ignore-dropped: true    # Equivalent to --ignore-dropped flag, drop requests will not fail the run
 schedule:
-  stage-start: "2020-12-10T09:00:00+00:00"  # Restarting an execution will skip the stages which were completed, based on the stage duration and this field
+  stage-start: "2020-12-10T09:00:00+00:00"  # Stages run on a schedule from this time: a run started later skips completed stages and resumes the current one part way, and the run waits for a start time in the future
 stages:                   # List of stages to run sequentially
   - duration: 500ms       # For how long a stage should run
     mode: constant        # Stage mode which can be any existing trigger mode: constant, staged, ramp, gaussian, users
