@@ -255,6 +255,9 @@ func (s *Stage) validateCommonFieldsOfStage(idx int, defaults Stage) (*Stage, er
 		}
 		s.Duration = defaults.Duration
 	}
+	if *s.Duration < 0 {
+		return nil, fmt.Errorf("duration %s at stage %d can't be negative", *s.Duration, idx)
+	}
 	if s.Mode == nil {
 		if defaults.Mode == nil {
 			return nil, fmt.Errorf("missing stage mode at stage %d", idx)
