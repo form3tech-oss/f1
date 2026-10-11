@@ -694,6 +694,39 @@ func TestUsersMaxDurationReached_TimesOut(t *testing.T) {
 	time.Sleep(3 * time.Second)
 }
 
+func TestFileRun_ReportsMaxDurationElapsed(t *testing.T) {
+	t.Parallel()
+
+	given, when, then := NewRunTestStage(t)
+
+	given.
+		a_trigger_type_of(File).and().
+		a_duration_of(time.Second).and().
+		a_concurrency_of(1).and().
+		a_scenario_where_each_iteration_takes(0).and().
+		a_config_file_with_content(`
+scenario: scenario_where_each_iteration_takes_0s
+limits:
+  max-duration: 1s
+  concurrency: 1
+  max-iterations: 0
+  ignore-dropped: true
+stages:
+- duration: 300ms
+  mode: constant
+  rate: 10/100ms
+  distribution: none
+`)
+
+	when.
+		the_run_command_is_executed()
+
+	then.
+		expect_the_stdout_output_to_include([]string{
+			"Max Duration Elapsed - waiting for active tests to complete",
+		})
+}
+
 func TestFileUsersStage_KeepsParametersUntilIterationsComplete(t *testing.T) {
 	t.Parallel()
 
@@ -731,6 +764,45 @@ stages:
 	then.
 		the_iteration_should_have_observed_env_value("stage-value").and().
 		env_var_is_not_set("F1_TEST_USERS_STAGE_PARAM")
+}
+
+func TestFileRateStage_KeepsLastStageParametersUntilIterationsComplete(t *testing.T) {
+	t.Parallel()
+
+	given, when, then := NewRunTestStage(t)
+
+	given.
+		env_var_is_not_set("F1_TEST_RATE_STAGE_PARAM").and().
+		a_trigger_type_of(File).and().
+		a_duration_of(300*time.Millisecond).and().
+		a_concurrency_of(1).and().
+		an_iteration_limit_of(1).and().
+		wait_for_completion_timeout_of(2*time.Second).and().
+		// the only iteration starts with the stage and reads the parameter after it ends
+		a_scenario_that_reads_env_var_after("F1_TEST_RATE_STAGE_PARAM", 600*time.Millisecond).and().
+		a_config_file_with_content(`
+scenario: scenario_that_reads_env_var_after_600ms
+limits:
+  max-duration: 300ms
+  concurrency: 1
+  max-iterations: 1
+  ignore-dropped: true
+  wait-for-completion-timeout: 2s
+stages:
+- duration: 300ms
+  mode: constant
+  rate: 1/s
+  distribution: none
+  parameters:
+    F1_TEST_RATE_STAGE_PARAM: stage-value
+`)
+
+	when.
+		the_run_command_is_executed()
+
+	then.
+		the_iteration_should_have_observed_env_value("stage-value").and().
+		env_var_is_not_set("F1_TEST_RATE_STAGE_PARAM")
 }
 
 func TestFileStage_RestoresEnvVarsItOverrides(t *testing.T) {

@@ -21,7 +21,7 @@ type stagesWorker struct {
 	// output is the run's output, set by run.
 	output *ui.Output
 	// replacedEnv holds what the running stage's parameters replaced, or the last stage's
-	// if the run ended during it. cleanup restores it.
+	// once it has run. cleanup restores it.
 	replacedEnv previousEnv
 }
 
@@ -36,16 +36,16 @@ func (w *stagesWorker) run(
 	options options.RunOptions,
 ) {
 	w.output = output
-	for _, stage := range w.stages {
+	for i, stage := range w.stages {
 		if ctx.Err() != nil {
 			return
 		}
-		w.runStage(ctx, workers, stage, options)
+		w.runStage(ctx, workers, stage, options, i == len(w.stages)-1)
 	}
 }
 
-// cleanup restores the environment when the run ended during a stage. The runner calls
-// it after it stops waiting for in-flight iterations, so they keep their parameters.
+// cleanup restores the environment the current stage replaced. The runner calls it after
+// it stops waiting for in-flight iterations, so they keep their parameters.
 func (w *stagesWorker) cleanup() {
 	restoreEnvs(w.replacedEnv, w.output)
 	w.replacedEnv = nil
@@ -56,6 +56,7 @@ func (w *stagesWorker) runStage(
 	workers *workers.PoolManager,
 	stage runnableStage,
 	options options.RunOptions,
+	last bool,
 ) {
 	w.replacedEnv = setEnvs(stage.Params, w.output)
 
@@ -80,16 +81,24 @@ func (w *stagesWorker) runStage(
 
 	if ctx.Err() != nil {
 		// The run is ending while iterations may still be in flight. Keep the parameters
-		// set for them; cleanup restores the environment once the runner stops waiting.
+		// set for them; the runner calls cleanup once it stops waiting.
+		return
+	}
+
+	// Pause after every stage, the last one included: the trigger then returns once the
+	// runner's max-duration deadline has passed, so the runner reports why the run ended.
+	time.Sleep(safeDurationBeforeNextStage)
+
+	if last {
+		// Iterations may still be in flight. Keep the parameters set for them; the runner
+		// calls cleanup once it stops waiting.
 		return
 	}
 
 	// Known limitation: rate stages do not wait for in-flight iterations, so those can see
 	// the next stage's parameters. Fixing this needs per-iteration parameters instead of
 	// process environment variables, which is planned for v3.
-	restoreEnvs(w.replacedEnv, w.output)
-	w.replacedEnv = nil
-	time.Sleep(safeDurationBeforeNextStage)
+	w.cleanup()
 }
 
 // previousEnv maps each variable a stage set to its value before the stage, or to nil
