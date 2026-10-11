@@ -234,6 +234,9 @@ func (c *ConfigFile) validateCommonFields() (*ConfigFile, error) {
 	if c.Default.Concurrency == nil {
 		c.Default.Concurrency = c.Limits.Concurrency
 	}
+	if c.Default.Jitter == nil {
+		c.Default.Jitter = new(float64)
+	}
 
 	return c, nil
 }

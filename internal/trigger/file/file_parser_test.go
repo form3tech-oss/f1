@@ -443,6 +443,41 @@ stages:
 	}
 }
 
+func TestFileRate_JitterIsOptional(t *testing.T) {
+	t.Parallel()
+
+	for mode, stage := range map[string]string{
+		"constant": "rate: 6/s",
+		"ramp":     "start-rate: 0/s\n  end-rate: 10/s",
+		"staged":   "stages: 0s:0,10s:10\n  iteration-frequency: 1s",
+		"gaussian": "volume: 100\n  repeat: 10s\n  iteration-frequency: 1s\n  peak: 5s\n  standard-deviation: 1s\n  weights: \"1.0\"",
+	} {
+		t.Run(mode, func(t *testing.T) {
+			t.Parallel()
+
+			fileContent := `
+scenario: template
+limits:
+  max-duration: 1m
+  concurrency: 50
+  max-iterations: 100
+  ignore-dropped: true
+stages:
+- duration: 10s
+  mode: ` + mode + `
+  distribution: none
+  ` + stage + `
+`
+			now, _ := time.Parse(time.RFC3339, "2020-12-10T10:00:00+00:00")
+
+			stagesToRun, err := file.ParseConfigFile([]byte(fileContent), now)
+
+			require.NoError(t, err)
+			require.Len(t, stagesToRun.Stages, 1)
+		})
+	}
+}
+
 func TestFileRate_FileErrors(t *testing.T) {
 	t.Parallel()
 
