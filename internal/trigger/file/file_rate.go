@@ -52,8 +52,11 @@ func Rate(output *ui.Output) api.Builder {
 				return nil, err
 			}
 
+			worker := newStagesWorker(runnableStages.Stages)
+
 			return &api.Trigger{
-				Trigger:     newStagesWorker(runnableStages.Stages),
+				Trigger:     worker.run,
+				Cleanup:     worker.cleanup,
 				DryRun:      newDryRun(runnableStages.Stages),
 				Description: fmt.Sprintf("%d different stages", len(runnableStages.Stages)),
 				Duration:    runnableStages.stagesTotalDuration,

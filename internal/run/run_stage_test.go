@@ -103,6 +103,7 @@ type RunTestStage struct {
 	runCount                 atomic.Uint32
 	stdout                   syncWriter
 	stderr                   syncWriter
+	observedEnvValue         atomic.Pointer[string]
 	interactive              bool
 	verbose                  bool
 }
@@ -352,6 +353,42 @@ func (s *RunTestStage) a_scenario_where_each_iteration_takes(duration time.Durat
 			time.Sleep(duration)
 		}
 	})
+	return s
+}
+
+func (s *RunTestStage) a_scenario_that_reads_env_var_after(key string, delay time.Duration) *RunTestStage {
+	s.scenario = "scenario_that_reads_env_var_after_" + delay.String()
+	s.f1.Add(s.scenario, func(scenarioT *f1_testing.T) f1_testing.RunFn {
+		scenarioT.Cleanup(s.scenarioCleanup)
+
+		return func(iterationT *f1_testing.T) {
+			iterationT.Cleanup(s.iterationCleanup)
+
+			time.Sleep(delay)
+			value := os.Getenv(key)
+			s.observedEnvValue.Store(&value)
+		}
+	})
+	return s
+}
+
+func (s *RunTestStage) a_config_file_with_content(content string) *RunTestStage {
+	path := s.t.TempDir() + "/config.yaml"
+	s.require.NoError(os.WriteFile(path, []byte(content), 0o600))
+	s.configFile = path
+	return s
+}
+
+func (s *RunTestStage) env_var_is_not_set(key string) *RunTestStage {
+	_, set := os.LookupEnv(key)
+	s.require.False(set, "%s is set", key)
+	return s
+}
+
+func (s *RunTestStage) the_iteration_should_have_observed_env_value(expected string) *RunTestStage {
+	observed := s.observedEnvValue.Load()
+	s.require.NotNil(observed, "iteration did not record the env var")
+	s.assert.Equal(expected, *observed)
 	return s
 }
 

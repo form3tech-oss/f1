@@ -638,6 +638,101 @@ func TestMaxDurationReached_TimesOut(t *testing.T) {
 	time.Sleep(3 * time.Second)
 }
 
+func TestUsersInterruptedRun_TimesOut(t *testing.T) {
+	t.Parallel()
+
+	given, when, then := NewRunTestStage(t)
+
+	given.
+		a_timer_is_started().
+		a_trigger_type_of(Users).and().
+		a_concurrency_of(1).and().
+		a_duration_of(5 * time.Second).and().
+		a_scenario_where_each_iteration_takes(3 * time.Second).and().
+		wait_for_completion_timeout_of(1 * time.Second)
+
+	when.
+		the_run_command_is_executed_and_cancelled_after(500 * time.Millisecond)
+
+	then.
+		setup_teardown_is_called_within(600*time.Millisecond + 1*time.Second).and().
+		expect_the_stdout_output_to_include([]string{
+			"Interrupted - waiting for active tests to complete",
+			"Active tests not completed after 1s. Stopping...",
+		})
+
+	// needed for goroutine checker
+	// sleep is the time left in the interation duration after the timeout
+	time.Sleep(3 * time.Second)
+}
+
+func TestUsersMaxDurationReached_TimesOut(t *testing.T) {
+	t.Parallel()
+
+	given, when, then := NewRunTestStage(t)
+
+	given.
+		a_timer_is_started().
+		a_trigger_type_of(Users).and().
+		a_concurrency_of(1).and().
+		a_duration_of(500 * time.Millisecond).and().
+		a_scenario_where_each_iteration_takes(3 * time.Second).and().
+		wait_for_completion_timeout_of(1 * time.Second)
+
+	when.
+		the_run_command_is_executed()
+
+	then.
+		setup_teardown_is_called_within(600*time.Millisecond + 1*time.Second).and().
+		expect_the_stdout_output_to_include([]string{
+			"Max Duration Elapsed - waiting for active tests to complete",
+			"Active tests not completed after 1s. Stopping...",
+		})
+
+	// needed for goroutine checker
+	// sleep is the time left in the interation duration after the timeout
+	time.Sleep(3 * time.Second)
+}
+
+func TestFileUsersStage_KeepsParametersUntilIterationsComplete(t *testing.T) {
+	t.Parallel()
+
+	given, when, then := NewRunTestStage(t)
+
+	given.
+		env_var_is_not_set("F1_TEST_USERS_STAGE_PARAM").and().
+		a_trigger_type_of(File).and().
+		// The harness passes run options directly, so these limits apply rather than the
+		// config file's. The file keeps its required limits, set to the same values.
+		a_duration_of(300*time.Millisecond).and().
+		a_concurrency_of(1).and().
+		an_iteration_limit_of(1).and().
+		wait_for_completion_timeout_of(2*time.Second).and().
+		a_scenario_that_reads_env_var_after("F1_TEST_USERS_STAGE_PARAM", 600*time.Millisecond).and().
+		a_config_file_with_content(`
+scenario: scenario_that_reads_env_var_after_600ms
+limits:
+  max-duration: 300ms
+  concurrency: 1
+  max-iterations: 1
+  ignore-dropped: true
+  wait-for-completion-timeout: 2s
+stages:
+- duration: 1s
+  mode: users
+  concurrency: 1
+  parameters:
+    F1_TEST_USERS_STAGE_PARAM: stage-value
+`)
+
+	when.
+		the_run_command_is_executed()
+
+	then.
+		the_iteration_should_have_observed_env_value("stage-value").and().
+		env_var_is_not_set("F1_TEST_USERS_STAGE_PARAM")
+}
+
 func TestFinalRunMetrics(t *testing.T) {
 	t.Parallel()
 

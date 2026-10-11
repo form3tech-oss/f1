@@ -22,12 +22,18 @@ func Rate() api.Builder {
 		New: func(*pflag.FlagSet) (*api.Trigger, error) {
 			trigger := func(
 				ctx context.Context,
-				output *ui.Output,
+				_ *ui.Output,
 				workers *workers.PoolManager,
 				options options.RunOptions,
 			) {
-				doWork := NewWorker(options.Concurrency)
-				doWork(ctx, output, workers, options)
+				StartPool(ctx, workers, options.Concurrency)
+
+				// Return once the context ends so the caller can apply its wait-for-completion
+				// timeout, rather than blocking on iterations that may never finish.
+				select {
+				case <-ctx.Done():
+				case <-workers.WaitForCompletion():
+				}
 			}
 
 			return &api.Trigger{
@@ -44,10 +50,8 @@ func Rate() api.Builder {
 	}
 }
 
-func NewWorker(concurrency int) api.WorkTriggerer {
-	return func(ctx context.Context, _ *ui.Output, workers *workers.PoolManager, _ options.RunOptions) {
-		pool := workers.NewContinuousPool(concurrency)
-		pool.Start(ctx)
-		<-workers.WaitForCompletion()
-	}
+// StartPool starts concurrency users that run iterations until ctx ends, and returns
+// without waiting for them. Callers choose how to wait using WaitForCompletion.
+func StartPool(ctx context.Context, workers *workers.PoolManager, concurrency int) {
+	workers.NewContinuousPool(concurrency).Start(ctx)
 }

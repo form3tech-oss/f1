@@ -34,8 +34,11 @@ type Builder struct {
 type Constructor func(*pflag.FlagSet) (*Trigger, error)
 
 type Trigger struct {
-	Trigger     WorkTriggerer
-	DryRun      RateFunction
+	Trigger WorkTriggerer
+	DryRun  RateFunction
+	// Cleanup, if set, is called once the run has stopped waiting for in-flight
+	// iterations, before scenario teardown.
+	Cleanup     func()
 	Description string
 	Options     Options
 	Duration    time.Duration

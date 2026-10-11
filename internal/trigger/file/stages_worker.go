@@ -14,52 +14,83 @@ import (
 
 const safeDurationBeforeNextStage = 20 * time.Millisecond
 
-func newStagesWorker(stages []runnableStage) api.WorkTriggerer {
-	return func(ctx context.Context, output *ui.Output, workers *workers.PoolManager, options options.RunOptions) {
-		for _, stage := range stages {
-			if ctx.Err() != nil {
-				return
-			}
-			runStage(ctx, output, workers, stage, options)
+// stagesWorker runs the stages of a config file in order. Stage parameters are passed
+// to iterations as process environment variables.
+type stagesWorker struct {
+	stages []runnableStage
+	// output is the run's output, set by run.
+	output *ui.Output
+	// activeParams are the parameters of the stage that is running, or of the last stage
+	// if the run ended during it. They are unset by cleanup.
+	activeParams map[string]string
+}
+
+func newStagesWorker(stages []runnableStage) *stagesWorker {
+	return &stagesWorker{stages: stages}
+}
+
+func (w *stagesWorker) run(
+	ctx context.Context,
+	output *ui.Output,
+	workers *workers.PoolManager,
+	options options.RunOptions,
+) {
+	w.output = output
+	for _, stage := range w.stages {
+		if ctx.Err() != nil {
+			return
 		}
+		w.runStage(ctx, workers, stage, options)
 	}
 }
 
-func runStage(
+// cleanup unsets the parameters left set when the run ended during a stage. The runner
+// calls it after it stops waiting for in-flight iterations, so they keep their parameters.
+func (w *stagesWorker) cleanup() {
+	unsetEnvs(w.activeParams, w.output)
+	w.activeParams = nil
+}
+
+func (w *stagesWorker) runStage(
 	ctx context.Context,
-	output *ui.Output,
 	workers *workers.PoolManager,
 	stage runnableStage,
 	options options.RunOptions,
 ) {
-	setEnvs(stage.Params, output)
-	defer unsetEnvs(stage.Params, output)
+	setEnvs(stage.Params, w.output)
+	w.activeParams = stage.Params
 
 	// stop the stage early to avoid starting a new tick
 	stageCtx, stageCancel := context.WithTimeout(ctx, stage.StageDuration-safeDurationBeforeNextStage)
 	defer stageCancel()
 
-	stageDone := make(chan struct{})
+	if stage.UsersConcurrency == 0 {
+		api.NewIterationWorker(stage.IterationDuration, stage.Rate)(stageCtx, w.output, workers, options)
+	} else {
+		users.StartPool(stageCtx, workers, stage.UsersConcurrency)
 
-	go func() {
-		defer close(stageDone)
-
-		if stage.UsersConcurrency == 0 {
-			doWork := api.NewIterationWorker(stage.IterationDuration, stage.Rate)
-			doWork(stageCtx, output, workers, options)
-		} else {
-			doWork := users.NewWorker(stage.UsersConcurrency)
-			doWork(stageCtx, output, workers, options)
+		// The users stop when stageCtx ends. Let their in-flight iterations finish before
+		// the next stage starts, unless the run ends. This wait is deliberately not bounded
+		// by --wait-for-completion-timeout: it keeps the behaviour stages have always had,
+		// where the next stage only starts once the previous users are done.
+		select {
+		case <-ctx.Done():
+		case <-workers.WaitForCompletion():
 		}
-	}()
-
-	select {
-	case <-ctx.Done():
-		<-stageDone
-		return
-	case <-stageDone:
-		time.Sleep(safeDurationBeforeNextStage)
 	}
+
+	if ctx.Err() != nil {
+		// The run is ending while iterations may still be in flight. Keep the parameters
+		// set for them; cleanup unsets them once the runner stops waiting.
+		return
+	}
+
+	// Known limitation: rate stages do not wait for in-flight iterations, so those can see
+	// the next stage's parameters. Fixing this needs per-iteration parameters instead of
+	// process environment variables, which is planned for v3.
+	unsetEnvs(stage.Params, w.output)
+	w.activeParams = nil
+	time.Sleep(safeDurationBeforeNextStage)
 }
 
 func setEnvs(envs map[string]string, output *ui.Output) {
