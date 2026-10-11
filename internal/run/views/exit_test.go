@@ -118,3 +118,15 @@ func Test_Interrupt(t *testing.T) {
 		})
 	}
 }
+
+func Test_TriggerCompleted(t *testing.T) {
+	t.Parallel()
+
+	view := views.New().TriggerCompleted(views.TriggerCompletedData{Duration: 1 * time.Minute})
+
+	var logOutput bytes.Buffer
+	view.Log(log.NewTestLogger(&logOutput))
+
+	assert.Equal(t, "[ 1m0s]  Trigger Completed", view.Render())
+	assert.Equal(t, "level=INFO msg=\"Trigger Completed\" duration=1m0s\n", logOutput.String())
+}

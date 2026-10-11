@@ -13,6 +13,7 @@ const (
 	timeoutTemplate              = `{cyan}[{{durationSeconds .Duration | printf "%5s"}}]  Max Duration Elapsed - waiting for active tests to complete{-}`
 	maxIterationsReachedTemplate = `{cyan}[{{durationSeconds .Duration | printf "%5s"}}]  Max Iterations Reached - waiting for active tests to complete{-}`
 	interruptTemplate            = `{cyan}[{{durationSeconds .Duration | printf "%5s"}}]  Interrupted - waiting for active tests to complete{-}`
+	triggerCompletedTemplate     = `{cyan}[{{durationSeconds .Duration | printf "%5s"}}]  Trigger Completed{-}`
 )
 
 type exitData struct {
@@ -23,12 +24,14 @@ var (
 	_ ui.Outputable = (*ViewContext[TimeoutData])(nil)
 	_ ui.Outputable = (*ViewContext[MaxIterationsReachedData])(nil)
 	_ ui.Outputable = (*ViewContext[InterruptData])(nil)
+	_ ui.Outputable = (*ViewContext[TriggerCompletedData])(nil)
 )
 
 type (
 	TimeoutData              exitData
 	MaxIterationsReachedData exitData
 	InterruptData            exitData
+	TriggerCompletedData     exitData
 )
 
 func (d TimeoutData) Log(logger *slog.Logger) {
@@ -62,6 +65,17 @@ func (d InterruptData) Log(logger *slog.Logger) {
 func (v *Views) Interrupt(data InterruptData) *ViewContext[InterruptData] {
 	return &ViewContext[InterruptData]{
 		view: v.interrupt,
+		data: data,
+	}
+}
+
+func (d TriggerCompletedData) Log(logger *slog.Logger) {
+	logger.Info("Trigger Completed", log.DurationAttr(d.Duration))
+}
+
+func (v *Views) TriggerCompleted(data TriggerCompletedData) *ViewContext[TriggerCompletedData] {
+	return &ViewContext[TriggerCompletedData]{
+		view: v.triggerCompleted,
 		data: data,
 	}
 }

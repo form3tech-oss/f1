@@ -37,6 +37,7 @@ type Views struct {
 	timeout              *View
 	maxIterationsReached *View
 	interrupt            *View
+	triggerCompleted     *View
 }
 
 type View struct {
@@ -88,6 +89,10 @@ func New() *Views {
 		interrupt: &View{
 			tty:   tty.interrupt,
 			notty: notty.interrupt,
+		},
+		triggerCompleted: &View{
+			tty:   tty.triggerCompleted,
+			notty: notty.triggerCompleted,
 		},
 	}
 }

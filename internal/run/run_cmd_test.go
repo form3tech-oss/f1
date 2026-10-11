@@ -807,6 +807,26 @@ stages:
 		expect_the_stdout_output_to_include([]string{"Max Duration Elapsed"})
 }
 
+func TestUsersMaxIterationsReached_ReportedWhenIterationsOutlastTheDeadline(t *testing.T) {
+	t.Parallel()
+
+	given, when, then := NewRunTestStage(t)
+
+	given.
+		a_trigger_type_of(Users).and().
+		a_concurrency_of(2).and().
+		an_iteration_limit_of(1).and().
+		a_duration_of(300 * time.Millisecond).and().
+		a_scenario_where_each_iteration_takes(time.Second).and().
+		wait_for_completion_timeout_of(2 * time.Second)
+
+	when.
+		the_run_command_is_executed()
+
+	then.
+		expect_the_stdout_output_to_include([]string{"Max Iterations Reached"})
+}
+
 func TestFileStage_RestoresEnvVarsItOverrides(t *testing.T) {
 	t.Parallel()
 

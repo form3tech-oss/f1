@@ -58,6 +58,10 @@ func (w *stagesWorker) run(
 		}
 		stageStart = stageEnd
 	}
+
+	// The run's deadline is the end of the last stage, unless the run's max duration ends
+	// it sooner. Return once it passes, so the runner reports that the duration elapsed.
+	<-ctx.Done()
 }
 
 // cleanup restores the environment the current stage replaced. The runner calls it after
@@ -94,10 +98,6 @@ func (w *stagesWorker) runStage(
 		// set for them; the runner calls cleanup once it stops waiting.
 		return
 	}
-
-	// Pause after every stage, the last one included: the trigger then returns once the
-	// runner's max-duration deadline has passed, so the runner reports why the run ended.
-	time.Sleep(safeDurationBeforeNextStage)
 
 	if last {
 		// Iterations may still be in flight. Keep the parameters set for them; the runner

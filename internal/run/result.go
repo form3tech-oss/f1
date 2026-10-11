@@ -174,6 +174,15 @@ func (r *Result) Interrupted() *views.ViewContext[views.InterruptData] {
 	})
 }
 
+func (r *Result) TriggerCompleted() *views.ViewContext[views.TriggerCompletedData] {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	return r.views.TriggerCompleted(views.TriggerCompletedData{
+		Duration: r.duration(),
+	})
+}
+
 func (r *Result) RecordStarted() {
 	r.mu.Lock()
 	defer r.mu.Unlock()

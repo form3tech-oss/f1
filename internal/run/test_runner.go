@@ -251,8 +251,8 @@ func (r *Run) run(ctx context.Context) {
 	poolManager := workers.New(r.options.MaxIterations, r.activeScenario)
 	r.trigger.Trigger(triggerCtx, r.output, poolManager, r.options)
 
-	// Wait for the trigger's run to end or for every worker to stop on its own. Several of
-	// these can happen at once, so decide what happened afterwards, in a fixed order.
+	// Wait for the run's deadline or for every worker to stop on its own. Several reasons
+	// for the run to end can apply at once, so report them in a fixed order.
 	select {
 	case <-triggerCtx.Done():
 	case <-poolManager.WaitForCompletion():
@@ -262,13 +262,16 @@ func (r *Run) run(ctx context.Context) {
 	case ctx.Err() != nil:
 		r.output.Display(r.result.Interrupted())
 		r.progressRunner.Restart()
-	case errors.Is(triggerCtx.Err(), context.DeadlineExceeded):
+	case poolManager.MaxIterationsReached():
+		r.output.Display(r.result.MaxIterationsReached())
+	case triggerCtx.Err() != nil:
 		r.output.Display(r.result.MaxDurationElapsed())
 	default:
+		r.output.Display(r.result.TriggerCompleted())
+	}
+
+	if triggerCtx.Err() == nil {
 		// The workers stopped on their own, so there is nothing left to wait for.
-		if poolManager.MaxIterationsReached() {
-			r.output.Display(r.result.MaxIterationsReached())
-		}
 		return
 	}
 

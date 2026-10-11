@@ -25,6 +25,7 @@ type templates struct {
 	timeout              *template.Template
 	maxIterationsReached *template.Template
 	interrupt            *template.Template
+	triggerCompleted     *template.Template
 }
 
 func parseTemplates(renderTermColors renderTermColorsType) *templates {
@@ -83,6 +84,10 @@ func parseTemplates(renderTermColors renderTermColorsType) *templates {
 		Funcs(templateFunctions).
 		Parse(applyReplacements(interruptTemplate, replacements)))
 
+	triggerCompleted := template.Must(template.New("triggerCompleted").
+		Funcs(templateFunctions).
+		Parse(applyReplacements(triggerCompletedTemplate, replacements)))
+
 	return &templates{
 		start:                start,
 		result:               result,
@@ -92,6 +97,7 @@ func parseTemplates(renderTermColors renderTermColorsType) *templates {
 		timeout:              timeout,
 		maxIterationsReached: maxIterationsReached,
 		interrupt:            interrupt,
+		triggerCompleted:     triggerCompleted,
 	}
 }
 
