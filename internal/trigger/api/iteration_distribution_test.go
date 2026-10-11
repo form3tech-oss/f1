@@ -17,6 +17,9 @@ func TestRegularRateDistribution(t *testing.T) {
 		iterationDuration        time.Duration
 		rate                     int
 		expectedDistributedRates []int
+		// expectedStep is the tick length, 100ms unless set. Durations that aren't a
+		// multiple of 100ms are split into equal steps that span the whole duration.
+		expectedStep time.Duration
 	}{
 		{
 			iterationDuration:        100 * time.Millisecond,
@@ -37,11 +40,13 @@ func TestRegularRateDistribution(t *testing.T) {
 			iterationDuration:        215 * time.Millisecond,
 			rate:                     1,
 			expectedDistributedRates: []int{0, 1},
+			expectedStep:             107500 * time.Microsecond,
 		},
 		{
 			iterationDuration:        299 * time.Millisecond,
 			rate:                     1,
 			expectedDistributedRates: []int{0, 1},
+			expectedStep:             149500 * time.Microsecond,
 		},
 
 		{
@@ -168,7 +173,11 @@ func TestRegularRateDistribution(t *testing.T) {
 				result = append(result, distributedRate(time.Now()))
 			}
 
-			require.Equal(t, 100*time.Millisecond, distributedIterationDuration)
+			expectedStep := test.expectedStep
+			if expectedStep == 0 {
+				expectedStep = 100 * time.Millisecond
+			}
+			require.Equal(t, expectedStep, distributedIterationDuration)
 			require.Equal(t, test.expectedDistributedRates, result)
 		})
 	}

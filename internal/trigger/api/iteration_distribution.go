@@ -40,6 +40,14 @@ func NewDistribution(
 	}
 }
 
+// distributionSteps splits iterationDuration into as many steps of at least minStep as
+// fit, spread evenly over the whole duration. Durations that aren't a multiple of minStep
+// then keep their rate: 215ms is 2 steps of 107.5ms, not 2 steps of 100ms.
+func distributionSteps(iterationDuration, minStep time.Duration) (int, time.Duration) {
+	steps := iterationDuration / minStep
+	return int(steps), iterationDuration / steps
+}
+
 func withRegularDistribution(iterationDuration time.Duration, rateFn RateFunction) (time.Duration, RateFunction) {
 	distributedIterationDuration := 100 * time.Millisecond
 
@@ -50,7 +58,7 @@ func withRegularDistribution(iterationDuration time.Duration, rateFn RateFunctio
 	rate := 0
 	accRate := 0.0
 	remainingSteps := 0
-	tickSteps := int(iterationDuration.Milliseconds() / distributedIterationDuration.Milliseconds())
+	tickSteps, distributedIterationDuration := distributionSteps(iterationDuration, distributedIterationDuration)
 
 	distributedRateFn := func(time time.Time) int {
 		if remainingSteps == 0 {
@@ -89,7 +97,7 @@ func withRandomDistribution(
 
 	remainingSteps := 0
 	remainingRate := 0
-	tickSteps := int(iterationDuration.Milliseconds() / distributedIterationDuration.Milliseconds())
+	tickSteps, distributedIterationDuration := distributionSteps(iterationDuration, distributedIterationDuration)
 
 	distributedRateFn := func(time time.Time) int {
 		if remainingSteps == 0 {
