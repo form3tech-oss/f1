@@ -91,6 +91,11 @@ func ParseConfigFile(fileContent []byte, now time.Time) (*RunnableStages, error)
 		}
 	}
 
+	// With no duration the run would fall back to limits.max-duration and start no iterations.
+	if stagesTotalDuration <= 0 {
+		return nil, errors.New("stages must have a total duration above 0")
+	}
+
 	return &RunnableStages{
 		Scenario:                 *validatedConfigFile.Scenario,
 		Stages:                   stages,

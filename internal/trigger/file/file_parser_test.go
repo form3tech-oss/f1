@@ -622,6 +622,25 @@ limits:
   max-iterations: 100
   ignore-dropped: true
 stages:
+- duration: 0s
+  mode: constant
+  rate: 6/s
+  distribution: none
+- duration: 0s
+  mode: users
+  concurrency: 1
+`,
+			expectedError: "stages must have a total duration above 0",
+		},
+		{
+			fileContent: `
+scenario: template
+limits:
+  max-duration: 1m
+  concurrency: 50
+  max-iterations: 100
+  ignore-dropped: true
+stages:
 - duration: 5s
   mode: staged
   stages: 0s:0,5s:10
