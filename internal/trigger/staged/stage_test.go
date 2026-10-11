@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/form3tech-oss/f1/v2/internal/options"
+	"github.com/form3tech-oss/f1/v2/internal/trigger/api"
 	"github.com/form3tech-oss/f1/v2/internal/trigger/staged"
 	"github.com/form3tech-oss/f1/v2/internal/ui"
 	"github.com/form3tech-oss/f1/v2/internal/workers"
@@ -171,6 +172,48 @@ func TestRate_UnparseableStartTime_WarnsAndStartsNow(t *testing.T) {
 	assert.Equal(t, 0, trigger.DryRun(now), "at start")
 	assert.Equal(t, 5, trigger.DryRun(now.Add(5*time.Second)), "mid stage")
 
+	assert.Contains(t, logsWhenTriggered(t, trigger), "ignoring --startTime, stages start now: parsing startTime")
+}
+
+func TestRate_StartTimeAfterEveryStage_Warns(t *testing.T) {
+	t.Parallel()
+
+	for _, test := range []struct {
+		name        string
+		startTime   time.Time
+		expectsWarn bool
+	}{
+		{name: "every stage ended", startTime: time.Now().Add(-time.Minute), expectsWarn: true},
+		{name: "a stage is still running", startTime: time.Now().Add(-5 * time.Second), expectsWarn: false},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
+			builder := staged.Rate()
+			require.NoError(t, builder.Flags.Parse([]string{
+				"--startTime", test.startTime.UTC().Format(time.RFC3339),
+				"--stages", "10s:10",
+				"--distribution", "none",
+			}))
+
+			trigger, err := builder.New(builder.Flags)
+			require.NoError(t, err)
+
+			const warning = "every stage ended before now with --startTime"
+			if test.expectsWarn {
+				assert.Contains(t, logsWhenTriggered(t, trigger), warning)
+			} else {
+				assert.NotContains(t, logsWhenTriggered(t, trigger), warning)
+			}
+		})
+	}
+}
+
+// logsWhenTriggered starts trigger with an already cancelled context, so it runs no
+// iterations, and returns what it logged.
+func logsWhenTriggered(t *testing.T, trigger *api.Trigger) string {
+	t.Helper()
+
 	var logs bytes.Buffer
 	output := ui.NewOutput(slog.New(slog.NewTextHandler(&logs, nil)), ui.NewDiscardPrinter(), false, false)
 	ctx, cancel := context.WithCancel(t.Context())
@@ -178,5 +221,5 @@ func TestRate_UnparseableStartTime_WarnsAndStartsNow(t *testing.T) {
 
 	trigger.Trigger(ctx, output, workers.New(0, nil), options.RunOptions{})
 
-	assert.Contains(t, logs.String(), "ignoring --startTime, stages start now: parsing startTime")
+	return logs.String()
 }

@@ -82,8 +82,17 @@ func Rate() api.Builder {
 			}
 
 			trigger := api.NewIterationWorker(rates.IterationDuration, rates.Rate)
-			if startTimeErr != nil {
-				trigger = warnStartTimeIgnored(startTimeErr, trigger)
+			switch {
+			case startTimeErr != nil:
+				// Remove in v3: return the parse error from the builder instead. Earlier
+				// versions silently ignored values they couldn't parse, so for v2
+				// compatibility this only warns.
+				trigger = withWarning(
+					fmt.Sprintf("ignoring --%s, stages start now: %s", flagStartTime, startTimeErr), trigger)
+			case startTime != nil && !startTime.Add(rates.Duration).After(time.Now()):
+				trigger = withWarning(
+					fmt.Sprintf("every stage ended before now with --%s %s, so no iterations will start",
+						flagStartTime, startTimeStr), trigger)
 			}
 
 			return &api.Trigger{
@@ -118,16 +127,11 @@ func parseStartTime(value string) (time.Time, error) {
 	return startTime, nil
 }
 
-// warnStartTimeIgnored warns, when the run starts, that --startTime couldn't be parsed
-// and the stages start now instead.
-//
-// Remove in v3: return the parse error from the builder instead. Earlier versions
-// silently ignored values they couldn't parse, so for v2 compatibility this only warns.
-func warnStartTimeIgnored(startTimeErr error, trigger api.WorkTriggerer) api.WorkTriggerer {
+// withWarning shows message when the run starts, then runs trigger. The builder has no
+// output of its own to warn through.
+func withWarning(message string, trigger api.WorkTriggerer) api.WorkTriggerer {
 	return func(ctx context.Context, output *ui.Output, workers *workers.PoolManager, opts options.RunOptions) {
-		output.Display(ui.WarningMessage{
-			Message: fmt.Sprintf("ignoring --%s, stages start now: %s", flagStartTime, startTimeErr),
-		})
+		output.Display(ui.WarningMessage{Message: message})
 		trigger(ctx, output, workers, opts)
 	}
 }
