@@ -229,7 +229,7 @@ func CalculateGaussianRate(
 	return &api.Rates{
 		IterationDuration: distributedIterationDuration,
 		Rate:              distributedRateFn,
-		Duration:          time.Hour * 24 * 356,
+		Duration:          time.Hour * 24 * 365,
 	}, nil
 }
 
