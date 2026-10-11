@@ -91,9 +91,10 @@ func (f *F1) Add(name string, scenarioFn testing.ScenarioFn, options ...scenario
 	return f
 }
 
-// NewSignalContext returns a context.Context that is cancelled whenever
+// newSignalContext returns a context.Context that is cancelled whenever
 // 'SIGINT' or 'SIGTERM' are received.
 // If one of these two signals is received a second time, the application exits.
+// Signal handling is released and the context cancelled once stopCh is closed.
 func newSignalContext(stopCh <-chan struct{}) context.Context {
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -101,6 +102,9 @@ func newSignalContext(stopCh <-chan struct{}) context.Context {
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 
 	go func() {
+		defer cancel()
+		defer signal.Stop(c)
+
 		select {
 		case <-c:
 			cancel()
