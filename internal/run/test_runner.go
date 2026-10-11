@@ -253,7 +253,10 @@ func (r *Run) run(ctx context.Context) {
 
 	// Wait for the trigger's run to end or for every worker to stop on its own. Several of
 	// these can happen at once, so decide what happened afterwards, in a fixed order.
-	poolManager.WaitForCompletionOrDone(triggerCtx)
+	select {
+	case <-triggerCtx.Done():
+	case <-poolManager.WaitForCompletion():
+	}
 
 	switch {
 	case ctx.Err() != nil:

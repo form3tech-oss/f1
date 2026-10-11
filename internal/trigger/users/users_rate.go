@@ -26,11 +26,7 @@ func Rate() api.Builder {
 				workers *workers.PoolManager,
 				options options.RunOptions,
 			) {
-				workers.NewContinuousPool(options.Concurrency).Start(ctx)
-
-				// Return once the context ends so the caller can apply its wait-for-completion
-				// timeout, rather than blocking on iterations that may never finish.
-				workers.WaitForCompletionOrDone(ctx)
+				workers.RunContinuousPool(ctx, options.Concurrency)
 			}
 
 			return &api.Trigger{

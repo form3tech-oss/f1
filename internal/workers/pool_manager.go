@@ -86,13 +86,13 @@ func (m *PoolManager) WaitForCompletion() <-chan struct{} {
 	return m.runningWorkers.wait()
 }
 
-// WaitForCompletionOrDone blocks until all running workers have stopped or ctx ends,
-// whichever comes first.
-func (m *PoolManager) WaitForCompletionOrDone(ctx context.Context) {
-	select {
-	case <-ctx.Done():
-	case <-m.WaitForCompletion():
-	}
+// RunContinuousPool starts numWorkers users, which run iterations back to back until ctx
+// ends. It returns only once every running worker has stopped, so scenario teardown never
+// runs while an iteration is still using the scenario. --wait-for-completion-timeout
+// deliberately does not cut this wait short.
+func (m *PoolManager) RunContinuousPool(ctx context.Context, numWorkers int) {
+	m.NewContinuousPool(numWorkers).Start(ctx)
+	<-m.WaitForCompletion()
 }
 
 func (m *PoolManager) MaxIterationsReached() bool {

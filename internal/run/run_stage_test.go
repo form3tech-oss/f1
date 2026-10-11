@@ -727,6 +727,11 @@ func (s *RunTestStage) expect_the_stdout_output_to_include(expectedList []string
 	return s
 }
 
+func (s *RunTestStage) expect_the_stdout_output_not_to_include(unexpected string) *RunTestStage {
+	s.assert.NotContains(s.stdout.String(), unexpected)
+	return s
+}
+
 func (s *RunTestStage) expect_stderr_to_match_json_log(expectedLogLines []logFieldMatchers) *RunTestStage {
 	s.assertJSONLogMatches(s.t, s.stderr.String(), expectedLogLines, "error matching stderr")
 	return s

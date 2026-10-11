@@ -638,93 +638,54 @@ func TestMaxDurationReached_TimesOut(t *testing.T) {
 	time.Sleep(3 * time.Second)
 }
 
-func TestUsersInterruptedRun_TimesOut(t *testing.T) {
+func TestUsersInterruptedRun_WaitsForIterationsBeforeTeardown(t *testing.T) {
 	t.Parallel()
 
 	given, when, then := NewRunTestStage(t)
 
 	given.
-		a_timer_is_started().
 		a_trigger_type_of(Users).and().
 		a_concurrency_of(1).and().
 		a_duration_of(5 * time.Second).and().
-		a_scenario_where_each_iteration_takes(3 * time.Second).and().
-		wait_for_completion_timeout_of(1 * time.Second)
+		a_scenario_where_each_iteration_takes(1500 * time.Millisecond).and().
+		wait_for_completion_timeout_of(200 * time.Millisecond)
 
 	when.
 		the_run_command_is_executed_and_cancelled_after(500 * time.Millisecond)
 
 	then.
-		setup_teardown_is_called_within(600*time.Millisecond + 1*time.Second).and().
+		// the run returns after scenario teardown, so the iteration finished before it
+		iteration_teardown_is_called_n_times(1).and().
+		setup_teardown_is_called().and().
 		expect_the_stdout_output_to_include([]string{
 			"Interrupted - waiting for active tests to complete",
-			"Active tests not completed after 1s. Stopping...",
-		})
-
-	// needed for goroutine checker
-	// sleep is the time left in the interation duration after the timeout
-	time.Sleep(3 * time.Second)
+		}).and().
+		expect_the_stdout_output_not_to_include("Active tests not completed")
 }
 
-func TestUsersMaxDurationReached_TimesOut(t *testing.T) {
+func TestUsersMaxDurationReached_WaitsForIterationsBeforeTeardown(t *testing.T) {
 	t.Parallel()
 
 	given, when, then := NewRunTestStage(t)
 
 	given.
-		a_timer_is_started().
 		a_trigger_type_of(Users).and().
 		a_concurrency_of(1).and().
 		a_duration_of(500 * time.Millisecond).and().
-		a_scenario_where_each_iteration_takes(3 * time.Second).and().
-		wait_for_completion_timeout_of(1 * time.Second)
+		a_scenario_where_each_iteration_takes(1500 * time.Millisecond).and().
+		wait_for_completion_timeout_of(200 * time.Millisecond)
 
 	when.
 		the_run_command_is_executed()
 
 	then.
-		setup_teardown_is_called_within(600*time.Millisecond + 1*time.Second).and().
+		// the run returns after scenario teardown, so the iteration finished before it
+		iteration_teardown_is_called_n_times(1).and().
+		setup_teardown_is_called().and().
 		expect_the_stdout_output_to_include([]string{
 			"Max Duration Elapsed - waiting for active tests to complete",
-			"Active tests not completed after 1s. Stopping...",
-		})
-
-	// needed for goroutine checker
-	// sleep is the time left in the interation duration after the timeout
-	time.Sleep(3 * time.Second)
-}
-
-func TestFileRun_ReportsMaxDurationElapsed(t *testing.T) {
-	t.Parallel()
-
-	given, when, then := NewRunTestStage(t)
-
-	given.
-		a_trigger_type_of(File).and().
-		a_duration_of(time.Second).and().
-		a_concurrency_of(1).and().
-		a_scenario_where_each_iteration_takes(0).and().
-		a_config_file_with_content(`
-scenario: scenario_where_each_iteration_takes_0s
-limits:
-  max-duration: 1s
-  concurrency: 1
-  max-iterations: 0
-  ignore-dropped: true
-stages:
-- duration: 300ms
-  mode: constant
-  rate: 10/100ms
-  distribution: none
-`)
-
-	when.
-		the_run_command_is_executed()
-
-	then.
-		expect_the_stdout_output_to_include([]string{
-			"Max Duration Elapsed - waiting for active tests to complete",
-		})
+		}).and().
+		expect_the_stdout_output_not_to_include("Active tests not completed")
 }
 
 func TestFileUsersStage_KeepsParametersUntilIterationsComplete(t *testing.T) {

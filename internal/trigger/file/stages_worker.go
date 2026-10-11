@@ -84,13 +84,9 @@ func (w *stagesWorker) runStage(
 	if stage.UsersConcurrency == 0 {
 		api.NewIterationWorker(stage.IterationDuration, stage.Rate)(stageCtx, w.output, workers, options)
 	} else {
-		workers.NewContinuousPool(stage.UsersConcurrency).Start(stageCtx)
-
-		// The users stop when stageCtx ends. Let their in-flight iterations finish before
-		// the next stage starts, unless the run ends. This wait is deliberately not bounded
-		// by --wait-for-completion-timeout: it keeps the behaviour stages have always had,
-		// where the next stage only starts once the previous users are done.
-		workers.WaitForCompletionOrDone(ctx)
+		// Let the users' in-flight iterations finish before the next stage starts or, when
+		// the run ends, before scenario teardown.
+		workers.RunContinuousPool(stageCtx, stage.UsersConcurrency)
 	}
 
 	if ctx.Err() != nil {
