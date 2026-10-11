@@ -25,6 +25,13 @@ func NewDistribution(
 	rateFn RateFunction,
 	randomFnArg func(int) int,
 ) (time.Duration, RateFunction, error) {
+	// The constant, ramp, staged and gaussian triggers, and file stages that use them, build
+	// their distribution here. A zero interval would otherwise panic in time.NewTicker when
+	// the run starts.
+	if iterationDuration <= 0 {
+		return iterationDuration, rateFn, fmt.Errorf("iteration frequency %s must be positive", iterationDuration)
+	}
+
 	randomFn := randomFnArg
 	if randomFn == nil {
 		randomFn = rand.Intn

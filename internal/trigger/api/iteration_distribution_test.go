@@ -378,3 +378,18 @@ func repeatSlice(arr []int, times int) []int {
 func repeatValue(value int, times int) []int {
 	return repeatSlice([]int{value}, times)
 }
+
+func TestNewDistribution_RejectsNonPositiveIterationDuration(t *testing.T) {
+	t.Parallel()
+
+	rateFn := func(time.Time) int { return 1 }
+
+	for _, distribution := range []api.DistributionType{
+		api.NoneDistribution, api.RegularDistribution, api.RandomDistribution,
+	} {
+		for _, iterationDuration := range []time.Duration{0, -time.Second} {
+			_, _, err := api.NewDistribution(distribution, iterationDuration, rateFn, nil)
+			require.ErrorContains(t, err, "iteration frequency "+iterationDuration.String()+" must be positive", "%s distribution, %s", distribution, iterationDuration)
+		}
+	}
+}
