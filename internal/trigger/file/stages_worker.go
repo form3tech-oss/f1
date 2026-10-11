@@ -45,23 +45,23 @@ func (w *stagesWorker) run(
 	if stageStart.IsZero() {
 		stageStart = time.Now()
 	}
-	for i, stage := range w.stages {
-		if ctx.Err() != nil {
+	for _, stage := range w.stages {
+		if ctx.Err() != nil || workers.MaxIterationsReached() {
 			return
 		}
 		stageEnd := stageStart.Add(stage.StageDuration)
 		if !waitUntil(ctx, stageStart) {
 			return
 		}
-		if w.start.IsZero() || stageEnd.After(time.Now()) {
-			w.runStage(ctx, workers, stage, stageEnd, options, i == len(w.stages)-1)
-		}
+		w.runStage(ctx, workers, stage, stageEnd, options)
 		stageStart = stageEnd
 	}
 
 	// The run's deadline is the end of the last stage, unless the run's max duration ends
 	// it sooner. Return once it passes, so the runner reports that the duration elapsed.
-	<-ctx.Done()
+	if !workers.MaxIterationsReached() {
+		<-ctx.Done()
+	}
 }
 
 // cleanup restores the environment the current stage replaced. The runner calls it after
@@ -77,12 +77,25 @@ func (w *stagesWorker) runStage(
 	stage runnableStage,
 	stageEnd time.Time,
 	options options.RunOptions,
-	last bool,
 ) {
+	// Stop the stage early to avoid starting a new tick at its end. The margin is at most
+	// half the stage, so a longer stage never runs for less time than a shorter one.
+	margin := min(safeDurationBeforeNextStage, stage.StageDuration/2)
+	stopAt := stageEnd.Add(-margin)
+	// Skip stages that already ended, 0s stages included: they start no iterations.
+	if !time.Now().Before(stopAt) {
+		return
+	}
+
+	// Known limitation: rate stages do not wait for in-flight iterations, so those can see
+	// the next stage's parameters. Fixing this needs per-iteration parameters instead of
+	// process environment variables, which is planned for v3.
+	w.cleanup()
+	// The last stage's parameters stay set when the run ends, for its in-flight iterations.
+	// The runner calls cleanup once it stops waiting for them.
 	w.replacedEnv = setEnvs(stage.Params, w.output)
 
-	// stop the stage early to avoid starting a new tick
-	stageCtx, stageCancel := context.WithDeadline(ctx, stageEnd.Add(-safeDurationBeforeNextStage))
+	stageCtx, stageCancel := context.WithDeadline(ctx, stopAt)
 	defer stageCancel()
 
 	if stage.UsersConcurrency == 0 {
@@ -92,23 +105,6 @@ func (w *stagesWorker) runStage(
 		// the run ends, before scenario teardown.
 		workers.RunContinuousPool(stageCtx, stage.UsersConcurrency)
 	}
-
-	if ctx.Err() != nil {
-		// The run is ending while iterations may still be in flight. Keep the parameters
-		// set for them; the runner calls cleanup once it stops waiting.
-		return
-	}
-
-	if last {
-		// Iterations may still be in flight. Keep the parameters set for them; the runner
-		// calls cleanup once it stops waiting.
-		return
-	}
-
-	// Known limitation: rate stages do not wait for in-flight iterations, so those can see
-	// the next stage's parameters. Fixing this needs per-iteration parameters instead of
-	// process environment variables, which is planned for v3.
-	w.cleanup()
 }
 
 // waitUntil waits until t, and reports false if ctx ended first.

@@ -2,6 +2,7 @@ package workers_test
 
 import (
 	"context"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -83,6 +84,22 @@ func TestPoolManager_StartingPoolsWhileWaitingForCompletion(t *testing.T) {
 	}
 
 	requireClosed(t, manager.WaitForCompletion())
+}
+
+func TestContinuousPool_StartsNoIterationsWhenContextHasEnded(t *testing.T) {
+	t.Parallel()
+
+	var iterations atomic.Int64
+	manager := workers.New(0, newActiveScenario(t, func(*f1_testing.T) { iterations.Add(1) }))
+
+	ctx, cancel := context.WithCancel(t.Context())
+	cancel()
+	for range 1000 {
+		manager.NewContinuousPool(1).Start(ctx)
+		<-manager.WaitForCompletion()
+	}
+
+	require.Zero(t, iterations.Load())
 }
 
 // signalRunningAndWaitForRelease returns an iteration that reports it is running and then

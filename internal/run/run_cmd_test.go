@@ -827,6 +827,86 @@ func TestUsersMaxIterationsReached_ReportedWhenIterationsOutlastTheDeadline(t *t
 		expect_the_stdout_output_to_include([]string{"Max Iterations Reached"})
 }
 
+// A trailing 0s stage runs nothing, so the stage before it is the last one that runs and
+// keeps its parameters for its in-flight iterations.
+func TestFileRateStage_KeepsParametersUntilIterationsCompleteBeforeA0sStage(t *testing.T) {
+	t.Parallel()
+
+	given, when, then := NewRunTestStage(t)
+
+	given.
+		env_var_is_not_set("F1_TEST_RATE_STAGE_BEFORE_0S_PARAM").and().
+		a_trigger_type_of(File).and().
+		a_duration_of(300*time.Millisecond).and().
+		a_concurrency_of(1).and().
+		an_iteration_limit_of(1).and().
+		wait_for_completion_timeout_of(2*time.Second).and().
+		a_scenario_that_reads_env_var_after("F1_TEST_RATE_STAGE_BEFORE_0S_PARAM", 600*time.Millisecond).and().
+		a_config_file_with_content(`
+scenario: scenario_that_reads_env_var_after_600ms
+limits:
+  max-duration: 300ms
+  concurrency: 1
+  max-iterations: 1
+  ignore-dropped: true
+  wait-for-completion-timeout: 2s
+stages:
+- duration: 300ms
+  mode: constant
+  rate: 1/s
+  distribution: none
+  parameters:
+    F1_TEST_RATE_STAGE_BEFORE_0S_PARAM: stage-value
+- duration: 0s
+  mode: users
+  concurrency: 1
+`)
+
+	when.
+		the_run_command_is_executed()
+
+	then.
+		the_iteration_should_have_observed_env_value("stage-value").and().
+		env_var_is_not_set("F1_TEST_RATE_STAGE_BEFORE_0S_PARAM")
+}
+
+func TestFileStages_StopOnceMaxIterationsAreReached(t *testing.T) {
+	t.Parallel()
+
+	given, when, then := NewRunTestStage(t)
+
+	given.
+		a_trigger_type_of(File).and().
+		a_duration_of(10 * time.Second).and().
+		a_concurrency_of(1).and().
+		an_iteration_limit_of(5).and().
+		a_scenario_where_each_iteration_takes(time.Millisecond).and().
+		a_config_file_with_content(`
+scenario: scenario_where_each_iteration_takes_1ms
+limits:
+  max-duration: 10s
+  concurrency: 1
+  max-iterations: 5
+  ignore-dropped: true
+stages:
+- duration: 1s
+  mode: constant
+  rate: 10/100ms
+  distribution: none
+- duration: 10s
+  mode: constant
+  rate: 0/s
+  distribution: none
+`)
+
+	when.
+		the_run_command_is_executed()
+
+	then.
+		the_command_should_have_run_for_approx(100 * time.Millisecond).and().
+		expect_the_stdout_output_to_include([]string{"Max Iterations Reached"})
+}
+
 func TestFileStage_RestoresEnvVarsItOverrides(t *testing.T) {
 	t.Parallel()
 
@@ -862,6 +942,53 @@ stages:
 	then.
 		the_iteration_should_have_observed_env_value("stage-value").and().
 		env_var_has_value("F1_TEST_RESTORED_STAGE_PARAM", "value-before-run")
+}
+
+func TestFileStageDuration_ZeroStartsNoIterationsAnyOtherDoes(t *testing.T) {
+	t.Parallel()
+
+	for _, test := range []struct {
+		name               string
+		usersStageDuration string
+		expectedIterations int64
+	}{
+		{name: "0s", usersStageDuration: "0s", expectedIterations: 0},
+		{name: "shorter than the pause between stages", usersStageDuration: "5ms", expectedIterations: Any},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			t.Parallel()
+
+			given, when, then := NewRunTestStage(t)
+
+			given.
+				a_trigger_type_of(File).and().
+				a_duration_of(1 * time.Second).and().
+				a_concurrency_of(1).and().
+				a_scenario_where_each_iteration_takes(time.Millisecond).and().
+				a_config_file_with_content(`
+scenario: scenario_where_each_iteration_takes_1ms
+limits:
+  max-duration: 1s
+  concurrency: 1
+  max-iterations: 0
+  ignore-dropped: true
+stages:
+- duration: ` + test.usersStageDuration + `
+  mode: users
+  concurrency: 1
+- duration: 100ms
+  mode: constant
+  rate: 0/s
+  distribution: none
+`)
+
+			when.
+				the_run_command_is_executed()
+
+			then.
+				the_number_of_started_iterations_should_be(test.expectedIterations)
+		})
+	}
 }
 
 func TestFinalRunMetrics(t *testing.T) {

@@ -26,6 +26,11 @@ type ContinuousPool struct {
 func (p *ContinuousPool) Start(ctx context.Context) {
 	workerCtx, workerCtxCancel := context.WithCancel(ctx)
 	p.workerCtxCancel = workerCtxCancel
+	// With a context that has already ended, no user starts an iteration. The goroutine
+	// below would set this too, but possibly after a user has started one.
+	if workerCtx.Err() != nil {
+		p.stopWorkers.Store(true)
+	}
 
 	workersStarted := sync.WaitGroup{}
 
