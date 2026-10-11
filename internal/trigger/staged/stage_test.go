@@ -80,6 +80,24 @@ func TestParseStages_Error_Bad_Target(t *testing.T) {
 	assert.Nil(t, stages)
 }
 
+func TestParseStages_Error_Negative_Target(t *testing.T) {
+	t.Parallel()
+
+	value := "1s:5,10s:-5"
+	stages, err := staged.ParseStages(value)
+	require.ErrorContains(t, err, "target -5 in stage 1 can't be negative")
+	assert.Nil(t, stages)
+}
+
+func TestParseStages_Error_Negative_Duration(t *testing.T) {
+	t.Parallel()
+
+	value := "-10s:5"
+	stages, err := staged.ParseStages(value)
+	require.ErrorContains(t, err, "duration -10s in stage 0 can't be negative")
+	assert.Nil(t, stages)
+}
+
 func TestRate_StartTime(t *testing.T) {
 	t.Parallel()
 

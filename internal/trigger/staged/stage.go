@@ -27,10 +27,16 @@ func ParseStages(value string) ([]Stage, error) {
 		if err != nil {
 			return nil, fmt.Errorf("unable to parse duration %s in stage %d: %s", stageElement[0], i, stageElements)
 		}
+		if duration < 0 {
+			return nil, fmt.Errorf("duration %s in stage %d can't be negative", duration, i)
+		}
 
 		target, err := strconv.Atoi(strings.TrimSpace(stageElement[1]))
 		if err != nil {
 			return nil, fmt.Errorf("unable to parse target %s in stage %d: %s", stageElement[1], i, stageElements)
+		}
+		if target < 0 {
+			return nil, fmt.Errorf("target %d in stage %d can't be negative", target, i)
 		}
 
 		stages[i] = Stage{
