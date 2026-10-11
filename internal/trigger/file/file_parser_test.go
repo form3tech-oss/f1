@@ -26,7 +26,6 @@ stages:
 - duration: 5s
   mode: constant
   rate: 6/s
-  jitter: 0
   distribution: none
   parameters:
     FOO: bar
@@ -441,6 +440,36 @@ stages:
 			}
 		})
 	}
+}
+
+func TestFileRate_DefaultJitterIsKept(t *testing.T) {
+	t.Parallel()
+
+	fileContent := `
+scenario: template
+limits:
+  max-duration: 1m
+  concurrency: 50
+  max-iterations: 100
+  ignore-dropped: true
+default:
+  jitter: 50
+stages:
+- duration: 10s
+  mode: constant
+  rate: 1000/s
+  distribution: none
+`
+	now, _ := time.Parse(time.RFC3339, "2020-12-10T10:00:00+00:00")
+
+	stagesToRun, err := file.ParseConfigFile([]byte(fileContent), now)
+	require.NoError(t, err)
+
+	rates := make(map[int]struct{})
+	for i := range 20 {
+		rates[stagesToRun.Stages[0].Rate(now.Add(time.Duration(i)*time.Second))] = struct{}{}
+	}
+	require.Greater(t, len(rates), 1)
 }
 
 func TestFileRate_FileErrors(t *testing.T) {
