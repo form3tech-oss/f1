@@ -165,7 +165,7 @@ func (f *F1) execute(args []string) error {
 	errs := errors.Join(err, profilingErr)
 
 	if errs != nil {
-		return fmt.Errorf("command execution: %w", err)
+		return fmt.Errorf("command execution: %w", errs)
 	}
 
 	return nil
