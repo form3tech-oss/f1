@@ -385,6 +385,28 @@ func (s *RunTestStage) env_var_is_not_set(key string) *RunTestStage {
 	return s
 }
 
+// env_var_is_set_to sets key for the rest of the test, then restores what it was. It
+// can't use t.Setenv, which doesn't allow parallel tests, so each test must use its own key.
+func (s *RunTestStage) env_var_is_set_to(key, value string) *RunTestStage {
+	previous, wasSet := os.LookupEnv(key)
+	s.require.NoError(os.Setenv(key, value))
+	s.t.Cleanup(func() {
+		if wasSet {
+			_ = os.Setenv(key, previous)
+		} else {
+			_ = os.Unsetenv(key)
+		}
+	})
+	return s
+}
+
+func (s *RunTestStage) env_var_has_value(key, expected string) *RunTestStage {
+	value, set := os.LookupEnv(key)
+	s.require.True(set, "%s is not set", key)
+	s.assert.Equal(expected, value)
+	return s
+}
+
 func (s *RunTestStage) the_iteration_should_have_observed_env_value(expected string) *RunTestStage {
 	observed := s.observedEnvValue.Load()
 	s.require.NotNil(observed, "iteration did not record the env var")

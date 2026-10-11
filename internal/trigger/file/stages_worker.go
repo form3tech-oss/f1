@@ -20,9 +20,9 @@ type stagesWorker struct {
 	stages []runnableStage
 	// output is the run's output, set by run.
 	output *ui.Output
-	// activeParams are the parameters of the stage that is running, or of the last stage
-	// if the run ended during it. They are unset by cleanup.
-	activeParams map[string]string
+	// replacedEnv holds what the running stage's parameters replaced, or the last stage's
+	// if the run ended during it. cleanup restores it.
+	replacedEnv previousEnv
 }
 
 func newStagesWorker(stages []runnableStage) *stagesWorker {
@@ -44,11 +44,11 @@ func (w *stagesWorker) run(
 	}
 }
 
-// cleanup unsets the parameters left set when the run ended during a stage. The runner
-// calls it after it stops waiting for in-flight iterations, so they keep their parameters.
+// cleanup restores the environment when the run ended during a stage. The runner calls
+// it after it stops waiting for in-flight iterations, so they keep their parameters.
 func (w *stagesWorker) cleanup() {
-	unsetEnvs(w.activeParams, w.output)
-	w.activeParams = nil
+	restoreEnvs(w.replacedEnv, w.output)
+	w.replacedEnv = nil
 }
 
 func (w *stagesWorker) runStage(
@@ -57,8 +57,7 @@ func (w *stagesWorker) runStage(
 	stage runnableStage,
 	options options.RunOptions,
 ) {
-	setEnvs(stage.Params, w.output)
-	w.activeParams = stage.Params
+	w.replacedEnv = setEnvs(stage.Params, w.output)
 
 	// stop the stage early to avoid starting a new tick
 	stageCtx, stageCancel := context.WithTimeout(ctx, stage.StageDuration-safeDurationBeforeNextStage)
@@ -81,20 +80,35 @@ func (w *stagesWorker) runStage(
 
 	if ctx.Err() != nil {
 		// The run is ending while iterations may still be in flight. Keep the parameters
-		// set for them; cleanup unsets them once the runner stops waiting.
+		// set for them; cleanup restores the environment once the runner stops waiting.
 		return
 	}
 
 	// Known limitation: rate stages do not wait for in-flight iterations, so those can see
 	// the next stage's parameters. Fixing this needs per-iteration parameters instead of
 	// process environment variables, which is planned for v3.
-	unsetEnvs(stage.Params, w.output)
-	w.activeParams = nil
+	restoreEnvs(w.replacedEnv, w.output)
+	w.replacedEnv = nil
 	time.Sleep(safeDurationBeforeNextStage)
 }
 
-func setEnvs(envs map[string]string, output *ui.Output) {
+// previousEnv maps each variable a stage set to its value before the stage, or to nil
+// if it wasn't set.
+//
+// Known limitation: environment variables are process-wide, so runs that overlap in one
+// process and set the same parameter interfere with each other, and restoring can leave
+// one run's value set. Per-iteration parameters in v3 remove this.
+type previousEnv map[string]*string
+
+func setEnvs(envs map[string]string, output *ui.Output) previousEnv {
+	previous := make(previousEnv, len(envs))
 	for key, value := range envs {
+		if old, ok := os.LookupEnv(key); ok {
+			previous[key] = &old
+		} else {
+			previous[key] = nil
+		}
+
 		err := os.Setenv(key, value)
 		if err != nil {
 			output.Display(ui.ErrorMessage{
@@ -103,14 +117,21 @@ func setEnvs(envs map[string]string, output *ui.Output) {
 			})
 		}
 	}
+
+	return previous
 }
 
-func unsetEnvs(envs map[string]string, output *ui.Output) {
-	for key := range envs {
-		err := os.Unsetenv(key)
+func restoreEnvs(previous previousEnv, output *ui.Output) {
+	for key, value := range previous {
+		var err error
+		if value == nil {
+			err = os.Unsetenv(key)
+		} else {
+			err = os.Setenv(key, *value)
+		}
 		if err != nil {
 			output.Display(ui.ErrorMessage{
-				Message: "unable unset environment variables for given scenario",
+				Message: "unable restore environment variables for given scenario",
 				Error:   err,
 			})
 		}

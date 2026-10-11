@@ -733,6 +733,43 @@ stages:
 		env_var_is_not_set("F1_TEST_USERS_STAGE_PARAM")
 }
 
+func TestFileStage_RestoresEnvVarsItOverrides(t *testing.T) {
+	t.Parallel()
+
+	given, when, then := NewRunTestStage(t)
+
+	given.
+		env_var_is_set_to("F1_TEST_RESTORED_STAGE_PARAM", "value-before-run").and().
+		a_trigger_type_of(File).and().
+		a_duration_of(300*time.Millisecond).and().
+		a_concurrency_of(1).and().
+		an_iteration_limit_of(1).and().
+		wait_for_completion_timeout_of(2*time.Second).and().
+		a_scenario_that_reads_env_var_after("F1_TEST_RESTORED_STAGE_PARAM", 100*time.Millisecond).and().
+		a_config_file_with_content(`
+scenario: scenario_that_reads_env_var_after_100ms
+limits:
+  max-duration: 300ms
+  concurrency: 1
+  max-iterations: 1
+  ignore-dropped: true
+  wait-for-completion-timeout: 2s
+stages:
+- duration: 1s
+  mode: users
+  concurrency: 1
+  parameters:
+    F1_TEST_RESTORED_STAGE_PARAM: stage-value
+`)
+
+	when.
+		the_run_command_is_executed()
+
+	then.
+		the_iteration_should_have_observed_env_value("stage-value").and().
+		env_var_has_value("F1_TEST_RESTORED_STAGE_PARAM", "value-before-run")
+}
+
 func TestFinalRunMetrics(t *testing.T) {
 	t.Parallel()
 
