@@ -478,6 +478,30 @@ stages:
 	}
 }
 
+func TestFileRate_UsersStagesDoNotNeedLimitsConcurrency(t *testing.T) {
+	t.Parallel()
+
+	fileContent := `
+scenario: template
+limits:
+  max-duration: 1m
+  concurrency: 0
+  max-iterations: 100
+  ignore-dropped: true
+stages:
+- duration: 5s
+  mode: users
+  concurrency: 5
+`
+	now, _ := time.Parse(time.RFC3339, "2020-12-10T10:00:00+00:00")
+
+	stagesToRun, err := file.ParseConfigFile([]byte(fileContent), now)
+
+	require.NoError(t, err)
+	require.Len(t, stagesToRun.Stages, 1)
+	require.Equal(t, 5, stagesToRun.Stages[0].UsersConcurrency)
+}
+
 func TestFileRate_FileErrors(t *testing.T) {
 	t.Parallel()
 
@@ -513,6 +537,37 @@ limits:
   ignore-dropped: true
 `,
 			expectedError: "missing concurrency",
+		},
+		{
+			fileContent: `
+scenario: template
+limits:
+  max-duration: 1m
+  concurrency: 0
+  max-iterations: 100
+  ignore-dropped: true
+stages:
+- duration: 5s
+  mode: constant
+  rate: 6/s
+  distribution: none
+`,
+			expectedError: "limits.concurrency 0 can't be less than 1, required by rate stage 0",
+		},
+		{
+			fileContent: `
+scenario: template
+limits:
+  max-duration: 1m
+  concurrency: 50
+  max-iterations: 100
+  ignore-dropped: true
+stages:
+- duration: 5s
+  mode: users
+  concurrency: 0
+`,
+			expectedError: "concurrency 0 can't be less than 1 at stage 0",
 		},
 		{
 			fileContent: `

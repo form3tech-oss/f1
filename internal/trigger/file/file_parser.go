@@ -80,6 +80,13 @@ func ParseConfigFile(fileContent []byte, now time.Time) (*RunnableStages, error)
 			if err != nil {
 				return nil, err
 			}
+			// Rate stages run on a pool sized by limits.concurrency; users stages use their own.
+			// The chart command parses the same file, so it also rejects such configs. That is
+			// intended: a config that can't run shouldn't chart either.
+			if parsedStage.UsersConcurrency == 0 && *validatedConfigFile.Limits.Concurrency < 1 {
+				return nil, fmt.Errorf("limits.concurrency %d can't be less than 1, required by rate stage %d",
+					*validatedConfigFile.Limits.Concurrency, idx)
+			}
 			stages = append(stages, *parsedStage)
 		}
 	}
@@ -409,12 +416,13 @@ func (s *Stage) validateGaussianStage(idx int, defaults Stage) (*Stage, error) {
 }
 
 func (s *Stage) validateUsersStage(idx int, defaults Stage) (*Stage, error) {
+	// No nil check needed: ParseConfigFile always runs validateCommonFields first, which
+	// sets defaults.Concurrency to limits.concurrency when it is missing.
 	if s.Concurrency == nil {
-		if defaults.Concurrency == nil {
-			return nil, fmt.Errorf("missing users at stage %d", idx)
-		}
-
 		s.Concurrency = defaults.Concurrency
+	}
+	if *s.Concurrency < 1 {
+		return nil, fmt.Errorf("concurrency %d can't be less than 1 at stage %d", *s.Concurrency, idx)
 	}
 	if s.Parameters == nil {
 		if defaults.Parameters == nil {
