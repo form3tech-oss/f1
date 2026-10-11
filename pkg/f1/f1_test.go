@@ -46,6 +46,23 @@ func TestMissingScenario(t *testing.T) {
 		the_execute_command_returns_an_error("scenario not defined: unknownScenario")
 }
 
+func TestStagedScheduleThatAlreadyEnded(t *testing.T) {
+	given, when, then := newF1Stage(t)
+
+	given.
+		a_scenario_where_each_iteration_takes(time.Millisecond)
+
+	when.
+		the_f1_scenario_is_executed_with_staged_rate_and_args(
+			"--startTime", "2026-01-01T00:00:00Z",
+			"--stages", "10m:10",
+		)
+
+	then.
+		the_execute_command_returns_an_error(
+			"every stage ended before now, as the schedule started at 2026-01-01T00:00:00Z")
+}
+
 func TestWithCustomLogger(t *testing.T) {
 	given, when, then := newF1Stage(t)
 

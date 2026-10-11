@@ -1,20 +1,13 @@
 package staged_test
 
 import (
-	"bytes"
-	"context"
-	"log/slog"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/form3tech-oss/f1/v2/internal/options"
-	"github.com/form3tech-oss/f1/v2/internal/trigger/api"
 	"github.com/form3tech-oss/f1/v2/internal/trigger/staged"
-	"github.com/form3tech-oss/f1/v2/internal/ui"
-	"github.com/form3tech-oss/f1/v2/internal/workers"
 )
 
 func TestParseStages_With_Valid_String(t *testing.T) {
@@ -119,19 +112,18 @@ func TestRate_StartTime(t *testing.T) {
 	}{
 		{
 			name:          "RFC3339 UTC",
-			startTime:     "2024-01-01T10:00:00Z",
-			expectedStart: time.Date(2024, 1, 1, 10, 0, 0, 0, time.UTC),
+			startTime:     "2099-01-01T10:00:00Z",
+			expectedStart: time.Date(2099, 1, 1, 10, 0, 0, 0, time.UTC),
 		},
 		{
 			name:          "RFC3339 offset",
-			startTime:     "2024-01-01T10:00:00-05:00",
-			expectedStart: time.Date(2024, 1, 1, 15, 0, 0, 0, time.UTC),
+			startTime:     "2099-01-01T10:00:00-05:00",
+			expectedStart: time.Date(2099, 1, 1, 15, 0, 0, 0, time.UTC),
 		},
 		{
-			// the original layout matched "+07:00" literally, so these values mean UTC
-			name:          "legacy +07:00 suffix",
-			startTime:     "2024-01-01T10:00:00+07:00",
-			expectedStart: time.Date(2024, 1, 1, 10, 0, 0, 0, time.UTC),
+			name:          "RFC3339 +07:00 offset",
+			startTime:     "2099-01-01T10:00:00+07:00",
+			expectedStart: time.Date(2099, 1, 1, 3, 0, 0, 0, time.UTC),
 		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
@@ -154,72 +146,36 @@ func TestRate_StartTime(t *testing.T) {
 	}
 }
 
-func TestRate_UnparseableStartTime_WarnsAndStartsNow(t *testing.T) {
+func TestRate_Error_UnparseableStartTime(t *testing.T) {
 	t.Parallel()
 
 	builder := staged.Rate()
 	require.NoError(t, builder.Flags.Parse([]string{
 		"--startTime", "2024-01-01 10:00",
 		"--stages", "10s:10",
-		"--distribution", "none",
 	}))
 
-	trigger, err := builder.New(builder.Flags)
-	require.NoError(t, err, "v2 ignores start times it can't parse")
+	_, err := builder.New(builder.Flags)
 
-	// without a start time, the stages start at the first rate calculation
-	now := time.Now()
-	assert.Equal(t, 0, trigger.DryRun(now), "at start")
-	assert.Equal(t, 5, trigger.DryRun(now.Add(5*time.Second)), "mid stage")
-
-	assert.Contains(t, logsWhenTriggered(t, trigger), "ignoring --startTime, stages start now: parsing startTime")
+	require.ErrorContains(t, err, "parsing startTime")
 }
 
-func TestRate_StartTimeAfterEveryStage_Warns(t *testing.T) {
+func TestRate_StartTimeSetsTheSchedule(t *testing.T) {
 	t.Parallel()
 
-	for _, test := range []struct {
-		name        string
-		startTime   time.Time
-		expectsWarn bool
-	}{
-		{name: "every stage ended", startTime: time.Now().Add(-time.Minute), expectsWarn: true},
-		{name: "a stage is still running", startTime: time.Now().Add(-5 * time.Second), expectsWarn: false},
-	} {
-		t.Run(test.name, func(t *testing.T) {
-			t.Parallel()
+	start := time.Now().Add(-time.Hour).UTC().Truncate(time.Second)
 
-			builder := staged.Rate()
-			require.NoError(t, builder.Flags.Parse([]string{
-				"--startTime", test.startTime.UTC().Format(time.RFC3339),
-				"--stages", "10s:10",
-				"--distribution", "none",
-			}))
+	builder := staged.Rate()
+	require.NoError(t, builder.Flags.Parse([]string{
+		"--startTime", start.Format(time.RFC3339),
+		"--stages", "10s:10",
+	}))
 
-			trigger, err := builder.New(builder.Flags)
-			require.NoError(t, err)
+	// A schedule that already ended is still built, so the chart command can plot it.
+	// The run command rejects it.
+	trigger, err := builder.New(builder.Flags)
 
-			const warning = "every stage ended before now with --startTime"
-			if test.expectsWarn {
-				assert.Contains(t, logsWhenTriggered(t, trigger), warning)
-			} else {
-				assert.NotContains(t, logsWhenTriggered(t, trigger), warning)
-			}
-		})
-	}
-}
-
-// logsWhenTriggered starts trigger with an already cancelled context, so it runs no
-// iterations, and returns what it logged.
-func logsWhenTriggered(t *testing.T, trigger *api.Trigger) string {
-	t.Helper()
-
-	var logs bytes.Buffer
-	output := ui.NewOutput(slog.New(slog.NewTextHandler(&logs, nil)), ui.NewDiscardPrinter(), false, false)
-	ctx, cancel := context.WithCancel(t.Context())
-	cancel()
-
-	trigger.Trigger(ctx, output, workers.New(0, nil), options.RunOptions{})
-
-	return logs.String()
+	require.NoError(t, err)
+	assert.True(t, start.Equal(trigger.Start), "start %s, expected %s", trigger.Start, start)
+	assert.Equal(t, 10*time.Second, trigger.Duration)
 }

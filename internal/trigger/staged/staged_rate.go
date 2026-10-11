@@ -1,17 +1,13 @@
 package staged
 
 import (
-	"context"
 	"fmt"
 	"time"
 
 	"github.com/spf13/pflag"
 
-	"github.com/form3tech-oss/f1/v2/internal/options"
 	"github.com/form3tech-oss/f1/v2/internal/trigger/api"
 	"github.com/form3tech-oss/f1/v2/internal/triggerflags"
-	"github.com/form3tech-oss/f1/v2/internal/ui"
-	"github.com/form3tech-oss/f1/v2/internal/workers"
 )
 
 const (
@@ -29,7 +25,7 @@ func Rate() api.Builder {
 		"How frequently iterations should be started")
 	flags.String(flagStartTime, "",
 		"Starting point of stage calculation in RFC3339 format, defaults to now. "+
-			"For compatibility, a +07:00 suffix is read as UTC, as in earlier versions")
+			"The run ends when the last stage does. A --max-duration counts from this time when it is in the future")
 
 	triggerflags.JitterFlag(flags)
 	triggerflags.DistributionFlag(flags)
@@ -60,14 +56,12 @@ func Rate() api.Builder {
 			if err != nil {
 				return nil, fmt.Errorf("getting flag: %w", err)
 			}
-			var startTimeErr error
 			if startTimeStr != "" {
-				parsedStartTime, err := parseStartTime(startTimeStr)
-				if err == nil {
-					startTime = &parsedStartTime
-				} else {
-					startTimeErr = err
+				parsedStartTime, err := time.Parse(time.RFC3339, startTimeStr)
+				if err != nil {
+					return nil, fmt.Errorf("parsing %s: %w", flagStartTime, err)
 				}
+				startTime = &parsedStartTime
 			}
 
 			rates, err := CalculateStagedRate(jitterArg, frequency, stg, distributionTypeArg, startTime)
@@ -81,58 +75,22 @@ func Rate() api.Builder {
 				return nil, fmt.Errorf("stages `%s` must have a total duration above 0", stg)
 			}
 
-			trigger := api.NewIterationWorker(rates.IterationDuration, rates.Rate)
-			switch {
-			case startTimeErr != nil:
-				// Remove in v3: return the parse error from the builder instead. Earlier
-				// versions silently ignored values they couldn't parse, so for v2
-				// compatibility this only warns.
-				trigger = withWarning(
-					fmt.Sprintf("ignoring --%s, stages start now: %s", flagStartTime, startTimeErr), trigger)
-			case startTime != nil && !startTime.Add(rates.Duration).After(time.Now()):
-				trigger = withWarning(
-					fmt.Sprintf("every stage ended before now with --%s %s, so no iterations will start",
-						flagStartTime, startTimeStr), trigger)
+			// With a start time the run ends when the last stage does, so it waits for a start
+			// time in the future and resumes mid-schedule from one in the past.
+			trigger := &api.Trigger{
+				Trigger: api.NewIterationWorker(rates.IterationDuration, rates.Rate),
+				DryRun:  rates.Rate,
+				Description: fmt.Sprintf(
+					"Starting iterations every %s in numbers varying by time: %s, using distribution %s",
+					frequency, stg, distributionTypeArg),
+				Duration: rates.Duration,
+			}
+			if startTime != nil {
+				trigger.Start = *startTime
 			}
 
-			return &api.Trigger{
-					Trigger: trigger,
-					DryRun:  rates.Rate,
-					Description: fmt.Sprintf(
-						"Starting iterations every %s in numbers varying by time: %s, using distribution %s",
-						frequency, stg, distributionTypeArg),
-					Duration: rates.Duration,
-				},
-				nil
+			return trigger, nil
 		},
-	}
-}
-
-// legacyStartTimeLayout is the layout --startTime used to require. Its "+07:00" suffix is
-// matched literally rather than as a zone offset, so such values have always meant UTC.
-// They deliberately keep that meaning so existing scripts don't shift by 7 hours, even
-// though RFC3339 would read +07:00 as an offset. Revisit in v3.
-const legacyStartTimeLayout = "2006-01-02T15:04:05+07:00"
-
-func parseStartTime(value string) (time.Time, error) {
-	if startTime, err := time.Parse(legacyStartTimeLayout, value); err == nil {
-		return startTime, nil
-	}
-
-	startTime, err := time.Parse(time.RFC3339, value)
-	if err != nil {
-		return time.Time{}, fmt.Errorf("parsing %s: %w", flagStartTime, err)
-	}
-
-	return startTime, nil
-}
-
-// withWarning shows message when the run starts, then runs trigger. The builder has no
-// output of its own to warn through.
-func withWarning(message string, trigger api.WorkTriggerer) api.WorkTriggerer {
-	return func(ctx context.Context, output *ui.Output, workers *workers.PoolManager, opts options.RunOptions) {
-		output.Display(ui.WarningMessage{Message: message})
-		trigger(ctx, output, workers, opts)
 	}
 }
 
@@ -160,9 +118,6 @@ func CalculateStagedRate(
 	return &api.Rates{
 		IterationDuration: distributedIterationDuration,
 		Rate:              distributedRateFn,
-		// Known limitation: the duration is the sum of the stages, counted from now rather
-		// than from --startTime, so a start time in the past or future ends the run early or
-		// late relative to the stages. Left for v3.
-		Duration: calculator.MaxDuration(),
+		Duration:          calculator.MaxDuration(),
 	}, nil
 }

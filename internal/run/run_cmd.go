@@ -79,6 +79,12 @@ func runCmdExecute(
 		if err != nil {
 			return fmt.Errorf("creating trigger command: %w", err)
 		}
+		// A schedule that already ended would start no iterations. Only the run rejects it:
+		// the chart command can still plot it.
+		if end := trig.End(time.Now()); !trig.Start.IsZero() && !end.IsZero() && !end.After(time.Now()) {
+			return fmt.Errorf("every stage ended before now, as the schedule started at %s",
+				trig.Start.Format(time.RFC3339))
+		}
 
 		var scenarioName string
 		var duration time.Duration

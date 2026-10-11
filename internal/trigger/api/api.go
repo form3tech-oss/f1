@@ -41,7 +41,36 @@ type Trigger struct {
 	Cleanup     func()
 	Description string
 	Options     Options
-	Duration    time.Duration
+	// Start, if set, is when the trigger's schedule starts. Otherwise it starts with the run.
+	Start time.Time
+	// Duration, if above 0, is how long the trigger's schedule lasts from its start.
+	Duration time.Duration
+}
+
+// End returns when the trigger's schedule ends for a run that starts at runStart, or the
+// zero time if the schedule has no end.
+func (t *Trigger) End(runStart time.Time) time.Time {
+	if t.Duration <= 0 {
+		return time.Time{}
+	}
+	if t.Start.IsZero() {
+		return runStart.Add(t.Duration)
+	}
+	return t.Start.Add(t.Duration)
+}
+
+// Deadline returns when a run that starts at runStart ends: when the trigger's schedule
+// does, or after maxDuration, whichever comes first. maxDuration counts from the
+// schedule's start when that is still to come, so waiting for it doesn't use up the run.
+func (t *Trigger) Deadline(runStart time.Time, maxDuration time.Duration) time.Time {
+	deadline := runStart.Add(maxDuration)
+	if t.Start.After(runStart) {
+		deadline = t.Start.Add(maxDuration)
+	}
+	if end := t.End(runStart); !end.IsZero() && end.Before(deadline) {
+		return end
+	}
+	return deadline
 }
 
 type Options struct {

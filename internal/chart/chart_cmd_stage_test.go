@@ -80,3 +80,8 @@ func (s *ChartTestStage) the_load_style_is_defined_in_the_config_file(filename s
 	s.args = append(s.args, "file", filename, "--chart-duration", "5s")
 	return s
 }
+
+func (s *ChartTestStage) the_schedule_and_chart_start_at(start string) *ChartTestStage {
+	s.args = append(s.args, "--startTime", start, "--chart-start", start)
+	return s
+}

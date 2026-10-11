@@ -234,17 +234,14 @@ func (r *Run) printSummary() {
 }
 
 func (r *Run) run(ctx context.Context) {
-	// if the trigger has a limited duration, restrict the run to that duration.
-	duration := r.options.MaxDuration
-	if r.trigger.Duration > 0 && r.trigger.Duration < r.options.MaxDuration {
-		duration = r.trigger.Duration
-	}
-
-	// Cancel work slightly before end of duration to avoid starting a new iteration
+	// Cancel work slightly before end of the run to avoid starting a new iteration
 	r.result.RecordStarted()
 	defer r.result.RecordTestFinished()
 
-	triggerCtx, triggerCancel := context.WithTimeout(ctx, duration-nextIterationWindow)
+	// The deadline is set from now, when iterations can start, so time spent on setup
+	// doesn't move the end of a schedule with a fixed start.
+	deadline := r.trigger.Deadline(time.Now(), r.options.MaxDuration)
+	triggerCtx, triggerCancel := context.WithDeadline(ctx, deadline.Add(-nextIterationWindow))
 	defer triggerCancel()
 
 	if r.trigger.Cleanup != nil {

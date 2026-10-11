@@ -112,3 +112,20 @@ func TestChartFileConfig(t *testing.T) {
 	then.
 		the_command_is_successful()
 }
+
+// Only the run command rejects a schedule that already ended, so it can still be charted.
+func TestChartStagedScheduleThatAlreadyEnded(t *testing.T) {
+	t.Parallel()
+
+	given, when, then := NewChartTestStage(t)
+
+	given.
+		the_load_style_is_staged("10m:10").and().
+		the_schedule_and_chart_start_at("2026-01-01T00:00:00Z")
+
+	when.
+		i_execute_the_chart_command()
+
+	then.
+		the_command_is_successful()
+}
