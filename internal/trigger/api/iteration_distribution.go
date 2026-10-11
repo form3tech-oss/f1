@@ -21,6 +21,12 @@ func NewDistribution(
 	rateFn RateFunction,
 	randomFnArg func(int) int,
 ) (time.Duration, RateFunction, error) {
+	// Every trigger builds its distribution here, so this covers them all. A zero interval
+	// would otherwise panic in time.NewTicker when the run starts.
+	if iterationDuration <= 0 {
+		return iterationDuration, rateFn, fmt.Errorf("iteration duration %s must be positive", iterationDuration)
+	}
+
 	randomFn := randomFnArg
 	if randomFn == nil {
 		randomFn = rand.Intn

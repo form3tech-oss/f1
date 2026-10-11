@@ -575,6 +575,23 @@ scenario: template
 limits:
   max-duration: 1m
   concurrency: 50
+  max-iterations: 100
+  ignore-dropped: true
+stages:
+- duration: 5s
+  mode: staged
+  stages: 0s:0,5s:10
+  iteration-frequency: 0s
+  distribution: none
+`,
+			expectedError: "iteration duration 0s must be positive",
+		},
+		{
+			fileContent: `
+scenario: template
+limits:
+  max-duration: 1m
+  concurrency: 50
   ignore-dropped: true
 `,
 			expectedError: "missing max-iterations",
