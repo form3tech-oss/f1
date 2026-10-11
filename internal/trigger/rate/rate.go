@@ -22,12 +22,18 @@ func ParseRate(rateArg string) (int, time.Duration, error) {
 			return rate, unit, fmt.Errorf("rate %s can't be negative", rateArg)
 		}
 		unitArg := rateArg[strings.Index(rateArg, "/")+1:]
+		if unitArg == "" {
+			return rate, unit, fmt.Errorf("unable to parse unit %s: missing unit", rateArg)
+		}
 		if !isNumeric(unitArg[0:1]) {
 			unitArg = "1" + unitArg
 		}
 		unit, err = time.ParseDuration(unitArg)
 		if err != nil {
 			return rate, unit, fmt.Errorf("unable to parse unit %s: %w", rateArg, err)
+		}
+		if unit <= 0 {
+			return rate, unit, fmt.Errorf("unit %s must be positive", rateArg)
 		}
 	} else {
 		var err error
