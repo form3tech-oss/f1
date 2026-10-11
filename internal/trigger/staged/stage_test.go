@@ -98,6 +98,17 @@ func TestParseStages_Error_Negative_Duration(t *testing.T) {
 	assert.Nil(t, stages)
 }
 
+func TestRate_Error_No_Total_Duration(t *testing.T) {
+	t.Parallel()
+
+	builder := staged.Rate()
+	require.NoError(t, builder.Flags.Parse([]string{"--stages", "0s:10,0s:20"}))
+
+	_, err := builder.New(builder.Flags)
+
+	require.ErrorContains(t, err, "stages `0s:10,0s:20` must have a total duration above 0")
+}
+
 func TestRate_StartTime(t *testing.T) {
 	t.Parallel()
 

@@ -74,6 +74,12 @@ func Rate() api.Builder {
 			if err != nil {
 				return nil, err
 			}
+			// The run's length comes from the stages, so with no duration it would fall back
+			// to --max-duration and start no iterations. Config-file stages are not checked
+			// here: they take their length from the file stage's own duration.
+			if rates.Duration <= 0 {
+				return nil, fmt.Errorf("stages `%s` must have a total duration above 0", stg)
+			}
 
 			trigger := api.NewIterationWorker(rates.IterationDuration, rates.Rate)
 			if startTimeErr != nil {

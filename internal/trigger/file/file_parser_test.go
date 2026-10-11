@@ -502,6 +502,34 @@ stages:
 	require.Equal(t, 5, stagesToRun.Stages[0].UsersConcurrency)
 }
 
+// A staged stage takes its length from the file stage's duration, so stages that add up
+// to no time are a valid pause.
+func TestFileRate_StagedStageCanPauseWithZeroLengthStages(t *testing.T) {
+	t.Parallel()
+
+	fileContent := `
+scenario: template
+limits:
+  max-duration: 1m
+  concurrency: 1
+  max-iterations: 100
+  ignore-dropped: true
+stages:
+- duration: 30s
+  mode: staged
+  stages: 0s:0
+  iteration-frequency: 1s
+  distribution: none
+`
+	now, _ := time.Parse(time.RFC3339, "2020-12-10T10:00:00+00:00")
+
+	stagesToRun, err := file.ParseConfigFile([]byte(fileContent), now)
+
+	require.NoError(t, err)
+	require.Len(t, stagesToRun.Stages, 1)
+	require.Equal(t, 30*time.Second, stagesToRun.Stages[0].StageDuration)
+}
+
 func TestFileRate_FileErrors(t *testing.T) {
 	t.Parallel()
 
