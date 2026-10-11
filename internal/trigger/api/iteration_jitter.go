@@ -13,7 +13,7 @@ func WithJitter(rate RateFunction, multiple float64) RateFunction {
 	}
 	return func(now time.Time) int {
 		//nolint:gosec // G404: Use of weak random number generator - doesn't need to be secure
-		variationFactor := 1 + (math.Cos(rand.Float64()*2*math.Pi))*multiple/100
+		variationFactor := 1 + math.Cos(rand.Float64()*2*math.Pi)*multiple/100
 		requestedRate := float64(rate(now)) + balance
 		proposed := requestedRate * variationFactor
 		rounded := math.Max(0, math.Round(proposed))

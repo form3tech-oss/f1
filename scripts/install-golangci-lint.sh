@@ -30,7 +30,7 @@ curl -sSfL "$url" -o "$tarball"
 
 signatures="$(dirname "$0")/golangci-lint-$version-checksums.txt"
 readonly signatures
-expected_signature=$(grep "$asset" "$signatures" | cut -d ' ' -f 1)
+expected_signature=$(awk -v f="$asset.tar.gz" '$2 == f { print $1 }' "$signatures")
 readonly expected_signature
 
 echo "$expected_signature  $tarball" | shasum -a 256 --check || { echo "Checksum verification failed for $asset"; exit 1; }

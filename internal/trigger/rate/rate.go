@@ -14,14 +14,14 @@ func ParseRate(rateArg string) (int, time.Duration, error) {
 
 	if strings.Contains(rateArg, "/") {
 		var err error
-		rate, err = strconv.Atoi((rateArg)[0:strings.Index(rateArg, "/")])
+		rate, err = strconv.Atoi(rateArg[0:strings.Index(rateArg, "/")])
 		if err != nil {
 			return rate, unit, fmt.Errorf("unable to parse rate %s: %w", rateArg, err)
 		}
 		if rate < 0 {
 			return rate, unit, fmt.Errorf("rate %s can't be negative", rateArg)
 		}
-		unitArg := (rateArg)[strings.Index(rateArg, "/")+1:]
+		unitArg := rateArg[strings.Index(rateArg, "/")+1:]
 		if !isNumeric(unitArg[0:1]) {
 			unitArg = "1" + unitArg
 		}
