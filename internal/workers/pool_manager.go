@@ -1,6 +1,7 @@
 package workers
 
 import (
+	"context"
 	"errors"
 	"sync"
 	"sync/atomic"
@@ -83,6 +84,15 @@ func New(maxIterations uint64, activeScenario *ActiveScenario) *PoolManager {
 // WaitForCompletion returns a channel that is closed once all running workers have stopped.
 func (m *PoolManager) WaitForCompletion() <-chan struct{} {
 	return m.runningWorkers.wait()
+}
+
+// WaitForCompletionOrDone blocks until all running workers have stopped or ctx ends,
+// whichever comes first.
+func (m *PoolManager) WaitForCompletionOrDone(ctx context.Context) {
+	select {
+	case <-ctx.Done():
+	case <-m.WaitForCompletion():
+	}
 }
 
 func (m *PoolManager) MaxIterationsReached() bool {

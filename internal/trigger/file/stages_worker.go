@@ -7,7 +7,6 @@ import (
 
 	"github.com/form3tech-oss/f1/v2/internal/options"
 	"github.com/form3tech-oss/f1/v2/internal/trigger/api"
-	"github.com/form3tech-oss/f1/v2/internal/trigger/users"
 	"github.com/form3tech-oss/f1/v2/internal/ui"
 	"github.com/form3tech-oss/f1/v2/internal/workers"
 )
@@ -67,16 +66,13 @@ func (w *stagesWorker) runStage(
 	if stage.UsersConcurrency == 0 {
 		api.NewIterationWorker(stage.IterationDuration, stage.Rate)(stageCtx, w.output, workers, options)
 	} else {
-		users.StartPool(stageCtx, workers, stage.UsersConcurrency)
+		workers.NewContinuousPool(stage.UsersConcurrency).Start(stageCtx)
 
 		// The users stop when stageCtx ends. Let their in-flight iterations finish before
 		// the next stage starts, unless the run ends. This wait is deliberately not bounded
 		// by --wait-for-completion-timeout: it keeps the behaviour stages have always had,
 		// where the next stage only starts once the previous users are done.
-		select {
-		case <-ctx.Done():
-		case <-workers.WaitForCompletion():
-		}
+		workers.WaitForCompletionOrDone(ctx)
 	}
 
 	if ctx.Err() != nil {

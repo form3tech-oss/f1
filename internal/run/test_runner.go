@@ -254,13 +254,9 @@ func (r *Run) run(ctx context.Context) {
 	poolManager := workers.New(r.options.MaxIterations, r.activeScenario)
 	r.trigger.Trigger(triggerCtx, r.output, poolManager, r.options)
 
-	// Wait for the trigger's run to end or for every worker to stop on its own. When
-	// several of these happen at once, select picks one at random, so decide what
-	// happened afterwards, in a fixed order.
-	select {
-	case <-triggerCtx.Done():
-	case <-poolManager.WaitForCompletion():
-	}
+	// Wait for the trigger's run to end or for every worker to stop on its own. Several of
+	// these can happen at once, so decide what happened afterwards, in a fixed order.
+	poolManager.WaitForCompletionOrDone(triggerCtx)
 
 	switch {
 	case ctx.Err() != nil:

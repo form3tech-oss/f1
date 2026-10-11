@@ -85,6 +85,56 @@ func TestPoolManager_StartingPoolsWhileWaitingForCompletion(t *testing.T) {
 	requireClosed(t, manager.WaitForCompletion())
 }
 
+func TestPoolManager_WaitForCompletionOrDone_ReturnsWhenContextEnds(t *testing.T) {
+	t.Parallel()
+
+	running := make(chan struct{}, 1)
+	release := make(chan struct{})
+	defer close(release)
+	manager := workers.New(0, newActiveScenario(t, signalRunningAndWaitForRelease(running, release)))
+
+	manager.NewContinuousPool(1).Start(t.Context())
+	<-running
+
+	ctx, cancel := context.WithCancel(t.Context())
+	cancel()
+
+	requireClosed(t, waitInBackground(ctx, manager))
+	requireOpen(t, manager.WaitForCompletion())
+}
+
+func TestPoolManager_WaitForCompletionOrDone_ReturnsWhenWorkersFinish(t *testing.T) {
+	t.Parallel()
+
+	running := make(chan struct{}, 1)
+	release := make(chan struct{})
+	manager := workers.New(0, newActiveScenario(t, signalRunningAndWaitForRelease(running, release)))
+
+	poolCtx, stopPool := context.WithCancel(t.Context())
+	manager.NewContinuousPool(1).Start(poolCtx)
+	<-running
+	stopPool()
+
+	returned := waitInBackground(t.Context(), manager)
+	requireOpen(t, returned)
+
+	close(release)
+
+	requireClosed(t, returned)
+}
+
+// waitInBackground calls WaitForCompletionOrDone and closes the returned channel when
+// it returns.
+func waitInBackground(ctx context.Context, manager *workers.PoolManager) <-chan struct{} {
+	returned := make(chan struct{})
+	go func() {
+		defer close(returned)
+		manager.WaitForCompletionOrDone(ctx)
+	}()
+
+	return returned
+}
+
 // signalRunningAndWaitForRelease returns an iteration that reports it is running and then
 // blocks until release is closed. Reports are dropped once running is full, so iterations
 // started after release never block.
