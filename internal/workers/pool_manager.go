@@ -15,9 +15,60 @@ type iterationState struct {
 
 type PoolManager struct {
 	activeScenario *ActiveScenario
-	runningWorkers sync.WaitGroup
+	runningWorkers workerGroup
 	iteration      atomic.Uint64
 	maxIterations  uint64
+}
+
+// workerGroup counts running workers across all pools. Unlike sync.WaitGroup, it can be
+// waited on any number of times without a goroutine per waiter, and new workers can start
+// while earlier callers are still waiting.
+type workerGroup struct {
+	mu      sync.Mutex
+	count   int
+	stopped chan struct{} // closed when count drops to zero
+}
+
+func (g *workerGroup) Add(n int) {
+	if n < 0 {
+		panic("workers: negative workerGroup Add")
+	}
+	if n == 0 {
+		return
+	}
+
+	g.mu.Lock()
+	defer g.mu.Unlock()
+
+	if g.count == 0 {
+		g.stopped = make(chan struct{})
+	}
+	g.count += n
+}
+
+func (g *workerGroup) Done() {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+
+	if g.count == 0 {
+		panic("workers: workerGroup Done called more times than Add")
+	}
+	g.count--
+	if g.count == 0 {
+		close(g.stopped)
+	}
+}
+
+func (g *workerGroup) wait() <-chan struct{} {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+
+	if g.stopped == nil {
+		g.stopped = make(chan struct{})
+		close(g.stopped)
+	}
+
+	return g.stopped
 }
 
 func New(maxIterations uint64, activeScenario *ActiveScenario) *PoolManager {
@@ -29,13 +80,9 @@ func New(maxIterations uint64, activeScenario *ActiveScenario) *PoolManager {
 	return w
 }
 
+// WaitForCompletion returns a channel that is closed once all running workers have stopped.
 func (m *PoolManager) WaitForCompletion() <-chan struct{} {
-	done := make(chan struct{})
-	go func() {
-		defer close(done)
-		m.runningWorkers.Wait()
-	}()
-	return done
+	return m.runningWorkers.wait()
 }
 
 func (m *PoolManager) MaxIterationsReached() bool {
