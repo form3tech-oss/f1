@@ -70,3 +70,19 @@ func TestCalculatorWithSetStartTimeOutOfRange(t *testing.T) {
 
 	assert.Equal(t, 0, rate)
 }
+
+func TestCalculatorWithStartTimeInTheFuture(t *testing.T) {
+	t.Parallel()
+
+	now := time.Now()
+	startTime := now.Add(1 * time.Hour)
+	calculator := staged.NewRateCalculator([]staged.Stage{
+		{
+			EndTarget: 10,
+			Duration:  10 * time.Second,
+		},
+	}, &startTime)
+
+	assert.Equal(t, 0, calculator.Rate(now))
+	assert.Equal(t, 5, calculator.Rate(startTime.Add(5*time.Second)))
+}

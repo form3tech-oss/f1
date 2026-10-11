@@ -28,9 +28,12 @@ func (s *RateCalculator) Rate(now time.Time) int {
 			s.start = now
 		}
 	}
-	if s.current > len(s.stages)-1 {
+	// No stage has started before the start time.
+	if s.current > len(s.stages)-1 || now.Before(s.start) {
 		return 0
 	}
+	// Skip stages that have already elapsed. With a start time in the past this is
+	// intended: a restarted run resumes at the stage it would have reached.
 	for s.current < len(s.stages) && now.Sub(s.start)+1 > s.stages[s.current].Duration {
 		s.start = s.start.Add(s.stages[s.current].Duration)
 		s.current++
