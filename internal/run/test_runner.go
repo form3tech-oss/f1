@@ -254,37 +254,35 @@ func (r *Run) run(ctx context.Context) {
 	poolManager := workers.New(r.options.MaxIterations, r.activeScenario)
 	r.trigger.Trigger(triggerCtx, r.output, poolManager, r.options)
 
+	// Wait for the trigger's run to end or for every worker to stop on its own. When
+	// several of these happen at once, select picks one at random, so decide what
+	// happened afterwards, in a fixed order.
 	select {
-	case <-ctx.Done():
+	case <-triggerCtx.Done():
+	case <-poolManager.WaitForCompletion():
+	}
+
+	switch {
+	case ctx.Err() != nil:
 		r.output.Display(r.result.Interrupted())
 		r.progressRunner.Restart()
-		select {
-		case <-poolManager.WaitForCompletion():
-		case <-time.After(r.options.WaitForCompletionTimeout):
-			r.output.Display(ui.WarningMessage{
-				Message: fmt.Sprintf("Active tests not completed after %s. Stopping...",
-					r.options.WaitForCompletionTimeout.String()),
-			})
-		}
-
-	case <-triggerCtx.Done():
-		if errors.Is(triggerCtx.Err(), context.DeadlineExceeded) {
-			r.output.Display(r.result.MaxDurationElapsed())
-		} else {
-			r.output.Display(r.result.Interrupted())
-		}
-		select {
-		case <-poolManager.WaitForCompletion():
-		case <-time.After(r.options.WaitForCompletionTimeout):
-			r.output.Display(ui.WarningMessage{
-				Message: fmt.Sprintf("Active tests not completed after %s. Stopping...",
-					r.options.WaitForCompletionTimeout.String()),
-			})
-		}
-	case <-poolManager.WaitForCompletion():
+	case errors.Is(triggerCtx.Err(), context.DeadlineExceeded):
+		r.output.Display(r.result.MaxDurationElapsed())
+	default:
+		// The workers stopped on their own, so there is nothing left to wait for.
 		if poolManager.MaxIterationsReached() {
 			r.output.Display(r.result.MaxIterationsReached())
 		}
+		return
+	}
+
+	select {
+	case <-poolManager.WaitForCompletion():
+	case <-time.After(r.options.WaitForCompletionTimeout):
+		r.output.Display(ui.WarningMessage{
+			Message: fmt.Sprintf("Active tests not completed after %s. Stopping...",
+				r.options.WaitForCompletionTimeout.String()),
+		})
 	}
 }
 
