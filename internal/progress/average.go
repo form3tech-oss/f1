@@ -48,46 +48,58 @@ func (i *IterationDurations) Add(nanoseconds int64) {
 }
 
 func (i *IterationDurations) Snapshot() IterationDurationsSnapshot {
-	average, count := i.average()
+	return durationTotals{
+		sum:   i.sum.Load(),
+		count: i.count.Load(),
+		min:   i.min.Load(),
+		max:   i.max.Load(),
+	}.snapshot()
+}
+
+type durationTotals struct {
+	sum, count, min, max int64
+}
+
+func (t durationTotals) snapshot() IterationDurationsSnapshot {
+	if t.count <= 0 {
+		return IterationDurationsSnapshot{
+			Min: time.Duration(t.min),
+			Max: time.Duration(t.max),
+		}
+	}
 
 	return IterationDurationsSnapshot{
-		Average: time.Duration(average),
-		Count:   count,
-		Min:     time.Duration(i.min.Load()),
-		Max:     time.Duration(i.max.Load()),
+		Average: time.Duration(t.sum / t.count),
+		Count:   uint64(t.count),
+		Min:     time.Duration(t.min),
+		Max:     time.Duration(t.max),
 	}
 }
 
-func (i *IterationDurations) Update(other *IterationDurations) {
-	i.sum.Add(other.sum.Load())
-	i.count.Add(other.count.Load())
-
-	currentMin := other.min.Load()
-	if i.min.Load() == 0 || (i.min.Load() > currentMin && currentMin > 0) {
-		i.min.Store(currentMin)
-	}
-
-	currentMax := other.max.Load()
-	if i.max.Load() < currentMax {
-		i.max.Store(currentMax)
+// drain takes the current values and resets them to zero. Each counter is swapped
+// atomically, so values added concurrently are kept for the next drain rather than lost.
+// The counters are not swapped together, so a value added during a drain can be split
+// across two periods; totals over the whole run stay exact.
+func (i *IterationDurations) drain() durationTotals {
+	return durationTotals{
+		sum:   i.sum.Swap(0),
+		count: i.count.Swap(0),
+		min:   i.min.Swap(0),
+		max:   i.max.Swap(0),
 	}
 }
 
-func (i *IterationDurations) Reset() {
-	i.sum.Store(0)
-	i.count.Store(0)
-	i.max.Store(0)
-	i.min.Store(0)
-}
+func (i *IterationDurations) merge(totals durationTotals) {
+	i.sum.Add(totals.sum)
+	i.count.Add(totals.count)
 
-func (i *IterationDurations) average() (int64, uint64) {
-	count := i.count.Load()
-	if count <= 0 {
-		return 0, 0
+	if i.min.Load() == 0 || (i.min.Load() > totals.min && totals.min > 0) {
+		i.min.Store(totals.min)
 	}
-	sum := i.sum.Load()
 
-	return sum / count, uint64(count)
+	if i.max.Load() < totals.max {
+		i.max.Store(totals.max)
+	}
 }
 
 type DurationStats struct {
@@ -100,9 +112,8 @@ func (d *DurationStats) Record(nanoseconds int64) {
 }
 
 func (d *DurationStats) CollectLifetime() (IterationDurationsSnapshot, IterationDurationsSnapshot) {
-	running := d.running.Snapshot()
-	d.lifetime.Update(&d.running)
-	d.running.Reset()
+	totals := d.running.drain()
+	d.lifetime.merge(totals)
 
-	return running, d.lifetime.Snapshot()
+	return totals.snapshot(), d.lifetime.Snapshot()
 }
