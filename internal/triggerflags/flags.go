@@ -31,7 +31,8 @@ func DistributionFlag(flagSet *pflag.FlagSet) {
 
 	distributions := strings.Join(distributionTypes, "|")
 	flagSet.String(FlagDistribution, string(api.RegularDistribution),
-		"optional parameter to distribute the rate over steps of 100ms, which can be "+distributions)
+		"optional parameter to split each interval into equal steps of at least "+
+			api.MinDistributionStep.String()+" and spread the rate over them, which can be "+distributions)
 }
 
 const FlagJitter = "jitter"

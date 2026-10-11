@@ -17,6 +17,10 @@ func TestRegularRateDistribution(t *testing.T) {
 		iterationDuration        time.Duration
 		rate                     int
 		expectedDistributedRates []int
+		// expectedStep is the tick length, api.MinDistributionStep unless set. Durations
+		// that aren't a multiple of it are split into equal steps that span the whole
+		// duration.
+		expectedStep time.Duration
 	}{
 		{
 			iterationDuration:        100 * time.Millisecond,
@@ -29,6 +33,12 @@ func TestRegularRateDistribution(t *testing.T) {
 			expectedDistributedRates: []int{10},
 		},
 		{
+			iterationDuration:        150 * time.Millisecond,
+			rate:                     3,
+			expectedDistributedRates: []int{3},
+			expectedStep:             150 * time.Millisecond,
+		},
+		{
 			iterationDuration:        200 * time.Millisecond,
 			rate:                     10,
 			expectedDistributedRates: []int{5, 5},
@@ -37,11 +47,13 @@ func TestRegularRateDistribution(t *testing.T) {
 			iterationDuration:        215 * time.Millisecond,
 			rate:                     1,
 			expectedDistributedRates: []int{0, 1},
+			expectedStep:             107500 * time.Microsecond,
 		},
 		{
 			iterationDuration:        299 * time.Millisecond,
 			rate:                     1,
 			expectedDistributedRates: []int{0, 1},
+			expectedStep:             149500 * time.Microsecond,
 		},
 
 		{
@@ -168,7 +180,11 @@ func TestRegularRateDistribution(t *testing.T) {
 				result = append(result, distributedRate(time.Now()))
 			}
 
-			require.Equal(t, 100*time.Millisecond, distributedIterationDuration)
+			expectedStep := test.expectedStep
+			if expectedStep == 0 {
+				expectedStep = api.MinDistributionStep
+			}
+			require.Equal(t, expectedStep, distributedIterationDuration)
 			require.Equal(t, test.expectedDistributedRates, result)
 		})
 	}
@@ -209,7 +225,7 @@ func TestRegularRateDistributionWithVariableRate(t *testing.T) {
 		result[i] = distributedRate(time.Now())
 	}
 
-	require.Equal(t, 100*time.Millisecond, distributedIterationDuration)
+	require.Equal(t, api.MinDistributionStep, distributedIterationDuration)
 	require.Equal(t, expectedDistributedRates, result)
 }
 
@@ -221,6 +237,10 @@ func TestRandomRateDistribution(t *testing.T) {
 		rate                     int
 		randomValues             []int
 		expectedDistributedRates []int
+		// expectedStep is the tick length, api.MinDistributionStep unless set. Durations
+		// that aren't a multiple of it are split into equal steps that span the whole
+		// duration.
+		expectedStep time.Duration
 	}{
 		{
 			iterationDuration:        100 * time.Millisecond,
@@ -229,10 +249,31 @@ func TestRandomRateDistribution(t *testing.T) {
 			expectedDistributedRates: []int{1},
 		},
 		{
+			iterationDuration:        150 * time.Millisecond,
+			rate:                     3,
+			randomValues:             []int{},
+			expectedDistributedRates: []int{3},
+			expectedStep:             150 * time.Millisecond,
+		},
+		{
 			iterationDuration:        200 * time.Millisecond,
 			rate:                     1,
 			randomValues:             []int{5},
 			expectedDistributedRates: []int{1, 0},
+		},
+		{
+			iterationDuration:        250 * time.Millisecond,
+			rate:                     10,
+			randomValues:             []int{3, 4},
+			expectedDistributedRates: []int{3, 7, 4, 6},
+			expectedStep:             125 * time.Millisecond,
+		},
+		{
+			iterationDuration:        299 * time.Millisecond,
+			rate:                     5,
+			randomValues:             []int{5},
+			expectedDistributedRates: []int{5, 0},
+			expectedStep:             149500 * time.Microsecond,
 		},
 		{
 			iterationDuration:        1 * time.Second,
@@ -280,7 +321,11 @@ func TestRandomRateDistribution(t *testing.T) {
 				result = append(result, distributedRate(time.Now()))
 			}
 
-			require.Equal(t, 100*time.Millisecond, distributedIterationDuration)
+			expectedStep := test.expectedStep
+			if expectedStep == 0 {
+				expectedStep = api.MinDistributionStep
+			}
+			require.Equal(t, expectedStep, distributedIterationDuration)
 			require.Equal(t, test.expectedDistributedRates, result)
 		})
 	}
@@ -316,7 +361,7 @@ func TestRandomRateDistributionWithVariableRate(t *testing.T) {
 		result[i] = distributedRate(time.Now())
 	}
 
-	require.Equal(t, 100*time.Millisecond, distributedIterationDuration)
+	require.Equal(t, api.MinDistributionStep, distributedIterationDuration)
 	require.Equal(t, expectedDistributedRates, result)
 }
 

@@ -15,6 +15,10 @@ const (
 	RandomDistribution  DistributionType = "random"
 )
 
+// MinDistributionStep is the shortest step the regular and random distributions split a
+// unit into. Units shorter than two steps aren't split.
+const MinDistributionStep = 100 * time.Millisecond
+
 func NewDistribution(
 	distributionTypeArg DistributionType,
 	iterationDuration time.Duration,
@@ -29,28 +33,38 @@ func NewDistribution(
 	switch distributionTypeArg {
 	case NoneDistribution:
 		return iterationDuration, rateFn, nil
-	case RegularDistribution:
-		distributedIterationDuration, distributedRateFn := withRegularDistribution(iterationDuration, rateFn)
-		return distributedIterationDuration, distributedRateFn, nil
-	case RandomDistribution:
-		distributedIterationDuration, distributedRateFn := withRandomDistribution(iterationDuration, rateFn, randomFn)
-		return distributedIterationDuration, distributedRateFn, nil
+	case RegularDistribution, RandomDistribution:
 	default:
 		return iterationDuration, rateFn, fmt.Errorf("unable to parse distribution %s", distributionTypeArg)
 	}
-}
 
-func withRegularDistribution(iterationDuration time.Duration, rateFn RateFunction) (time.Duration, RateFunction) {
-	distributedIterationDuration := 100 * time.Millisecond
-
-	if iterationDuration <= distributedIterationDuration {
-		return iterationDuration, rateFn
+	tickSteps, distributedIterationDuration := distributionSteps(iterationDuration)
+	if tickSteps == 1 {
+		return iterationDuration, rateFn, nil
 	}
 
+	if distributionTypeArg == RegularDistribution {
+		return distributedIterationDuration, withRegularDistribution(tickSteps, rateFn), nil
+	}
+	return distributedIterationDuration, withRandomDistribution(tickSteps, rateFn, randomFn), nil
+}
+
+// distributionSteps splits iterationDuration into as many steps of at least
+// MinDistributionStep as fit, spread evenly over the whole duration. Durations that aren't
+// a multiple of MinDistributionStep then keep their rate: 215ms is 2 steps of 107.5ms, not
+// 2 steps of 100ms. Durations shorter than two steps are a single step.
+func distributionSteps(iterationDuration time.Duration) (int, time.Duration) {
+	steps := int64(iterationDuration / MinDistributionStep)
+	if steps <= 1 {
+		return 1, iterationDuration
+	}
+	return int(steps), iterationDuration / time.Duration(steps)
+}
+
+func withRegularDistribution(tickSteps int, rateFn RateFunction) RateFunction {
 	rate := 0
 	accRate := 0.0
 	remainingSteps := 0
-	tickSteps := int(iterationDuration.Milliseconds() / distributedIterationDuration.Milliseconds())
 
 	distributedRateFn := func(time time.Time) int {
 		if remainingSteps == 0 {
@@ -73,23 +87,12 @@ func withRegularDistribution(iterationDuration time.Duration, rateFn RateFunctio
 		return roundedAccRate
 	}
 
-	return distributedIterationDuration, distributedRateFn
+	return distributedRateFn
 }
 
-func withRandomDistribution(
-	iterationDuration time.Duration,
-	rateFn RateFunction,
-	randFn func(int) int,
-) (time.Duration, RateFunction) {
-	distributedIterationDuration := 100 * time.Millisecond
-
-	if iterationDuration <= distributedIterationDuration {
-		return iterationDuration, rateFn
-	}
-
+func withRandomDistribution(tickSteps int, rateFn RateFunction, randFn func(int) int) RateFunction {
 	remainingSteps := 0
 	remainingRate := 0
-	tickSteps := int(iterationDuration.Milliseconds() / distributedIterationDuration.Milliseconds())
 
 	distributedRateFn := func(time time.Time) int {
 		if remainingSteps == 0 {
@@ -113,5 +116,5 @@ func withRandomDistribution(
 		return currentRate
 	}
 
-	return distributedIterationDuration, distributedRateFn
+	return distributedRateFn
 }
