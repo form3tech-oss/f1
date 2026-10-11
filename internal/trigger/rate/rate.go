@@ -25,7 +25,7 @@ func ParseRate(rateArg string) (int, time.Duration, error) {
 		if unitArg == "" {
 			return rate, unit, fmt.Errorf("unable to parse unit %s: missing unit", rateArg)
 		}
-		if !isNumeric(unitArg[0:1]) {
+		if !isNumeric(unitArg[0:1]) && unitArg[0] != '.' {
 			unitArg = "1" + unitArg
 		}
 		unit, err = time.ParseDuration(unitArg)

@@ -21,6 +21,8 @@ func TestParseRate(t *testing.T) {
 		{rateArg: "10/s", expectedRate: 10, expectedUnit: time.Second},
 		{rateArg: "10/100ms", expectedRate: 10, expectedUnit: 100 * time.Millisecond},
 		{rateArg: "0/1m", expectedRate: 0, expectedUnit: time.Minute},
+		{rateArg: "10/.5s", expectedRate: 10, expectedUnit: 500 * time.Millisecond},
+		{rateArg: "10/1.5s", expectedRate: 10, expectedUnit: 1500 * time.Millisecond},
 	} {
 		t.Run(test.rateArg, func(t *testing.T) {
 			t.Parallel()
