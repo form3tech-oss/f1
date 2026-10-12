@@ -9,5 +9,12 @@ updates:
   pull-request-branch-name:
     separator: "-"
   open-pull-requests-limit: 10
-  reviewers:
-  - "form3tech/scaling-codeowners"
+- package-ecosystem: github-actions
+  directory: "/"
+  schedule:
+    interval: weekly
+    time: "08:00"
+    timezone: Europe/London
+  pull-request-branch-name:
+    separator: "-"
+  open-pull-requests-limit: 10

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"runtime/debug"
+	"slices"
 	"sync/atomic"
 	"time"
 
@@ -251,10 +252,10 @@ func handlePanic(t *T, recovered any) {
 func (t *T) teardown() {
 	t.tearingDown = true
 
-	for i := len(t.teardownStack) - 1; i >= 0; i-- {
+	for _, teardownFn := range slices.Backward(t.teardownStack) {
 		func() {
 			defer CheckResults(t, nil)
-			t.teardownStack[i]()
+			teardownFn()
 		}()
 	}
 }

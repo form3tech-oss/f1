@@ -37,6 +37,10 @@ linters:
     - varnamelen     # Variable name length (too strict for tests/loops)
     - wsl            # Whitespace/line rules (conflicts with readability)
     - wsl_v5         # WSL v5 variant
+    # Deprecated - replaced by exhaustruct_v5 (configured below)
+    - exhaustruct
+    # Deprecated - module rules are enforced via depguard (configured below)
+    - gomodguard
     # Style - inline error handling preference
     - noinlineerr    # Inline error returns
     # Error handling - requires sentinel for every validation; too verbose for config/parsing errors
@@ -54,9 +58,11 @@ linters:
             - pkg: github.com/giantswarm/retry-go
               desc: Use https://github.com/avast/retry-go/v4
 
-    exhaustruct:
+    exhaustruct_v5:
+      # Only check structs matched by enforce-patterns (v4 'include' behaviour)
+      explicit-mode: true
       # Structs that must have all fields explicitly set
-      include:
+      enforce-patterns:
         - github.com/form3tech-oss/f1/v2/internal/run/views.*
 
     nolintlint:
@@ -77,15 +83,17 @@ linters:
       - common-false-positives
       - legacy
       - std-error-handling
-
     rules:
       # Deprecated Logger/WithLogrusLogger - legacy API support
       - linters: [staticcheck]
         path: \.go
         text: "SA1019: (.*.Logger|testing.WithLogrusLogger)"
 
-      # Test files - relaxed rules for readability
-      - linters: [dupword, lll, unparam, wrapcheck]
+      # Test files - relaxed rules for readability.
+      # goconst is excluded deliberately (project decision, not an oversight):
+      # table-driven tests repeat fixture values (rates, distributions, log fields)
+      # by design, and extracting them into constants makes the tables harder to read.
+      - linters: [dupword, goconst, lll, unparam, wrapcheck]
         path: _test\.go
       - linters: [staticcheck]
         path: _test\.go
@@ -93,11 +101,6 @@ linters:
       - linters: [revive]
         path: _test\.go
         text: "var-naming: don't use underscores in Go names;"
-
-      # Package naming - log, metrics, testing, etc. are intentional
-      - linters: [revive]
-        path: \.go
-        text: "var-naming: avoid (package names that conflict with Go standard library package names|meaningless package names)"
 
       # benchcmd - intentional placeholder assertions for benchmark scenarios
       - linters: [testifylint]

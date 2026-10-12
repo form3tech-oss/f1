@@ -101,7 +101,7 @@ func newDryRun(stagesToRun []runnableStage) api.RateFunction {
 	stageIdx := 0
 
 	return func(time time.Time) int {
-		if stageIdx >= (len(stagesToRun)) {
+		if stageIdx >= len(stagesToRun) {
 			return 0
 		}
 
