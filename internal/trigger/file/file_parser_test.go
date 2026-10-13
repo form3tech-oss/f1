@@ -624,6 +624,22 @@ limits:
   ignore-dropped: true
 stages:
 - duration: 10s
+  mode: staged
+  stages: 0s:0,10s:10
+  iteration-frequency: 0s
+`,
+			expectedError: "iteration-frequency 0s must be positive at stage 0",
+		},
+		{
+			fileContent: `
+scenario: template
+limits:
+  max-duration: 1m
+  concurrency: 50
+  max-iterations: 100
+  ignore-dropped: true
+stages:
+- duration: 10s
   mode: gaussian
 `,
 			expectedError: "missing volume at stage 0",
@@ -658,6 +674,23 @@ stages:
   repeat: 20s
 `,
 			expectedError: "missing iteration-frequency at stage 0",
+		},
+		{
+			fileContent: `
+scenario: template
+limits:
+  max-duration: 1m
+  concurrency: 50
+  max-iterations: 100
+  ignore-dropped: true
+stages:
+- duration: 10s
+  mode: gaussian
+  volume: 100
+  repeat: 20s
+  iteration-frequency: -1s
+`,
+			expectedError: "iteration-frequency -1s must be positive at stage 0",
 		},
 		{
 			fileContent: `

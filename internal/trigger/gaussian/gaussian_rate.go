@@ -66,9 +66,12 @@ func Rate(output *ui.Output) api.Builder {
 			if err != nil {
 				return nil, fmt.Errorf("getting flag: %w", err)
 			}
-			frequency, err := flags.GetDuration("iteration-frequency")
+			frequency, err := flags.GetDuration(flagIterationFrequency)
 			if err != nil {
 				return nil, fmt.Errorf("getting flag: %w", err)
+			}
+			if frequency <= 0 {
+				return nil, fmt.Errorf("--%s %s must be positive", flagIterationFrequency, frequency)
 			}
 			weights, err := flags.GetString(flagWeights)
 			if err != nil {
