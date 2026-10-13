@@ -393,3 +393,35 @@ func TestNewDistribution_RejectsNonPositiveIterationDuration(t *testing.T) {
 		}
 	}
 }
+
+func TestRegularRateDistributionOverALongUnit(t *testing.T) {
+	t.Parallel()
+
+	for _, test := range []struct {
+		iterationDuration time.Duration
+		rate              int
+	}{
+		{iterationDuration: 30 * 24 * time.Hour, rate: 1},
+		{iterationDuration: 30 * 24 * time.Hour, rate: 7},
+		{iterationDuration: 24 * time.Hour, rate: 1_000_003},
+	} {
+		t.Run(fmt.Sprintf("%s, rate %d", test.iterationDuration, test.rate), func(t *testing.T) {
+			t.Parallel()
+
+			rateFn := func(time.Time) int { return test.rate }
+
+			step, distributedRate, err := api.NewDistribution(api.RegularDistribution, test.iterationDuration, rateFn, nil)
+			require.NoError(t, err)
+
+			steps := int(test.iterationDuration / step)
+			total, last := 0, 0
+			for range steps {
+				last = distributedRate(time.Now())
+				total += last
+			}
+
+			require.Equal(t, test.rate, total)
+			require.Positive(t, last, "the last step completes the unit")
+		})
+	}
+}

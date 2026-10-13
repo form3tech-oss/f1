@@ -2,7 +2,6 @@ package api
 
 import (
 	"fmt"
-	"math"
 	"math/rand"
 	"time"
 )
@@ -70,31 +69,25 @@ func distributionSteps(iterationDuration time.Duration) (int, time.Duration) {
 
 func withRegularDistribution(tickSteps int, rateFn RateFunction) RateFunction {
 	rate := 0
-	accRate := 0.0
-	remainingSteps := 0
+	step := tickSteps
 
-	distributedRateFn := func(time time.Time) int {
-		if remainingSteps == 0 {
-			rate = rateFn(time)
-			accRate = 0.0
-			remainingSteps = tickSteps
+	return func(now time.Time) int {
+		if step == tickSteps {
+			rate = rateFn(now)
+			step = 0
 		}
+		step++
 
-		accRate += float64(rate) / float64(tickSteps)
-		accRate = math.Ceil(accRate*10_000_000) / 10_000_000
-		remainingSteps--
-
-		if accRate < 1 {
+		if rate <= 0 {
 			return 0
 		}
 
-		roundedAccRate := int(accRate)
-		accRate -= float64(roundedAccRate)
-
-		return roundedAccRate
+		// Fire the iterations due by the end of this step less those already fired, in
+		// whole numbers, so every unit fires exactly rate iterations however many steps
+		// it has.
+		r, n := int64(rate), int64(tickSteps)
+		return int(r*int64(step)/n - r*int64(step-1)/n)
 	}
-
-	return distributedRateFn
 }
 
 func withRandomDistribution(tickSteps int, rateFn RateFunction, randFn func(int) int) RateFunction {
