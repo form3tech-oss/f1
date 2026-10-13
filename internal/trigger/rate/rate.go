@@ -2,10 +2,11 @@ package rate
 
 import (
 	"fmt"
-	"regexp"
 	"strconv"
 	"strings"
 	"time"
+	"unicode"
+	"unicode/utf8"
 )
 
 func ParseRate(rateArg string) (int, time.Duration, error) {
@@ -22,12 +23,16 @@ func ParseRate(rateArg string) (int, time.Duration, error) {
 			return rate, unit, fmt.Errorf("rate %s can't be negative", rateArg)
 		}
 		unitArg := rateArg[strings.Index(rateArg, "/")+1:]
-		if !isNumeric(unitArg[0:1]) {
+		// allow a bare unit such as "s" or "ms" to mean one of that unit
+		if first, _ := utf8.DecodeRuneInString(unitArg); unicode.IsLetter(first) {
 			unitArg = "1" + unitArg
 		}
 		unit, err = time.ParseDuration(unitArg)
 		if err != nil {
 			return rate, unit, fmt.Errorf("unable to parse unit %s: %w", rateArg, err)
+		}
+		if unit <= 0 {
+			return rate, unit, fmt.Errorf("unit %s must be positive", rateArg)
 		}
 	} else {
 		var err error
@@ -42,9 +47,4 @@ func ParseRate(rateArg string) (int, time.Duration, error) {
 	}
 
 	return rate, unit, nil
-}
-
-func isNumeric(value string) bool {
-	re := regexp.MustCompile("^[0-9]+$")
-	return re.MatchString(value)
 }

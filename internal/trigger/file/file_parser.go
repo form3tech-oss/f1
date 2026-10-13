@@ -328,6 +328,9 @@ func (s *Stage) validateStagedStage(idx int, defaults Stage) (*Stage, error) {
 		}
 		s.IterationFrequency = defaults.IterationFrequency
 	}
+	if *s.IterationFrequency <= 0 {
+		return nil, fmt.Errorf("iteration-frequency %s must be positive at stage %d", *s.IterationFrequency, idx)
+	}
 	if s.Distribution == nil {
 		if defaults.Distribution == nil {
 			return nil, fmt.Errorf("missing distribution at stage %d", idx)
@@ -366,6 +369,9 @@ func (s *Stage) validateGaussianStage(idx int, defaults Stage) (*Stage, error) {
 			return nil, fmt.Errorf("missing iteration-frequency at stage %d", idx)
 		}
 		s.IterationFrequency = defaults.IterationFrequency
+	}
+	if *s.IterationFrequency <= 0 {
+		return nil, fmt.Errorf("iteration-frequency %s must be positive at stage %d", *s.IterationFrequency, idx)
 	}
 	if s.Peak == nil {
 		if defaults.Peak == nil {

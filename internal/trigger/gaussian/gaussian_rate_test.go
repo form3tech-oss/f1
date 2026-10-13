@@ -11,6 +11,7 @@ import (
 
 	"github.com/form3tech-oss/f1/v2/internal/trigger/api"
 	"github.com/form3tech-oss/f1/v2/internal/trigger/gaussian"
+	"github.com/form3tech-oss/f1/v2/internal/ui"
 )
 
 func TestTotalVolumes(t *testing.T) {
@@ -340,6 +341,23 @@ func Test_calculateVolume(t *testing.T) {
 			}
 
 			assert.Equal(t, int64(tt.want), int64(got))
+		})
+	}
+}
+
+func TestRate_RejectsNonPositiveIterationFrequency(t *testing.T) {
+	t.Parallel()
+
+	for _, frequency := range []string{"0s", "-1s"} {
+		t.Run(frequency, func(t *testing.T) {
+			t.Parallel()
+
+			builder := gaussian.Rate(ui.NewDiscardOutput())
+			require.NoError(t, builder.Flags.Parse([]string{"--iteration-frequency", frequency}))
+
+			_, err := builder.New(builder.Flags)
+
+			require.EqualError(t, err, "--iteration-frequency "+frequency+" must be positive")
 		})
 	}
 }

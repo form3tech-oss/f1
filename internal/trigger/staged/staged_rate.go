@@ -45,6 +45,9 @@ func Rate() api.Builder {
 			if err != nil {
 				return nil, fmt.Errorf("getting flag: %w", err)
 			}
+			if frequency <= 0 {
+				return nil, fmt.Errorf("--%s %s must be positive", flagIterationFrequency, frequency)
+			}
 			distributionTypeArg, err := params.GetString(triggerflags.FlagDistribution)
 			if err != nil {
 				return nil, fmt.Errorf("getting flag: %w", err)
