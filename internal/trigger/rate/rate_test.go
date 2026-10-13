@@ -22,7 +22,9 @@ func TestParseRate(t *testing.T) {
 		{rateArg: "10/100ms", expectedRate: 10, expectedUnit: 100 * time.Millisecond},
 		{rateArg: "10/µs", expectedRate: 10, expectedUnit: time.Microsecond},
 		{rateArg: "0/1m", expectedRate: 0, expectedUnit: time.Minute},
+		{rateArg: "10/.5s", expectedRate: 10, expectedUnit: 500 * time.Millisecond},
 		{rateArg: "10/1.5s", expectedRate: 10, expectedUnit: 1500 * time.Millisecond},
+		{rateArg: "10/+1s", expectedRate: 10, expectedUnit: time.Second},
 	} {
 		t.Run(test.rateArg, func(t *testing.T) {
 			t.Parallel()
@@ -46,8 +48,10 @@ func TestParseRate_Errors(t *testing.T) {
 		{rateArg: "-1", expectedError: "rate -1 can't be negative"},
 		{rateArg: "-1/s", expectedError: "rate -1/s can't be negative"},
 		{rateArg: "10/xyz", expectedError: "unable to parse unit 10/xyz"},
+		{rateArg: "10/", expectedError: "unable to parse unit 10/"},
 		{rateArg: "10/0", expectedError: "unit 10/0 must be positive"},
 		{rateArg: "10/0s", expectedError: "unit 10/0s must be positive"},
+		{rateArg: "10/-1s", expectedError: "unit 10/-1s must be positive"},
 	} {
 		t.Run(test.rateArg, func(t *testing.T) {
 			t.Parallel()
