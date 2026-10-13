@@ -29,6 +29,9 @@ func ParseRate(rateArg string) (int, time.Duration, error) {
 		if err != nil {
 			return rate, unit, fmt.Errorf("unable to parse unit %s: %w", rateArg, err)
 		}
+		if unit <= 0 {
+			return rate, unit, fmt.Errorf("unit %s must be positive", rateArg)
+		}
 	} else {
 		var err error
 		rate, err = strconv.Atoi(rateArg)
