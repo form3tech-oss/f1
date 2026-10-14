@@ -506,7 +506,29 @@ limits:
   max-iterations: 100
   ignore-dropped: true
 `,
-			expectedError: "missing concurrency",
+			expectedError: "missing limits.concurrency",
+		},
+		{
+			fileContent: `
+scenario: template
+limits:
+  max-duration: 1m
+  concurrency: 0
+  max-iterations: 100
+  ignore-dropped: true
+`,
+			expectedError: "limits.concurrency 0 can't be less than 1",
+		},
+		{
+			fileContent: `
+scenario: template
+limits:
+  max-duration: 1m
+  concurrency: -1
+  max-iterations: 100
+  ignore-dropped: true
+`,
+			expectedError: "limits.concurrency -1 can't be less than 1",
 		},
 		{
 			fileContent: `

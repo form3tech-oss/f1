@@ -207,7 +207,10 @@ func (c *ConfigFile) validateCommonFields() (*ConfigFile, error) {
 		return nil, errors.New("missing max-duration")
 	}
 	if c.Limits.Concurrency == nil {
-		return nil, errors.New("missing concurrency")
+		return nil, errors.New("missing limits.concurrency")
+	}
+	if *c.Limits.Concurrency < 1 {
+		return nil, fmt.Errorf("limits.concurrency %d can't be less than 1", *c.Limits.Concurrency)
 	}
 	if c.Limits.MaxIterations == nil {
 		return nil, errors.New("missing max-iterations")
