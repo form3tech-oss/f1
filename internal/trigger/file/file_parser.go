@@ -419,11 +419,15 @@ func (s *Stage) validateGaussianStage(idx int, defaults Stage) (*Stage, error) {
 
 func (s *Stage) validateUsersStage(idx int, defaults Stage) (*Stage, error) {
 	if s.Concurrency == nil {
-		if defaults.Concurrency == nil {
-			return nil, fmt.Errorf("missing users at stage %d", idx)
+		// validateCommonFields sets defaults.Concurrency from limits.concurrency, which it has
+		// already checked, so a bad inherited value can only come from default.concurrency.
+		if *defaults.Concurrency < 1 {
+			return nil, fmt.Errorf("default.concurrency %d can't be less than 1, inherited by stage %d",
+				*defaults.Concurrency, idx)
 		}
-
 		s.Concurrency = defaults.Concurrency
+	} else if *s.Concurrency < 1 {
+		return nil, fmt.Errorf("concurrency %d can't be less than 1 at stage %d", *s.Concurrency, idx)
 	}
 	if s.Parameters == nil {
 		if defaults.Parameters == nil {
