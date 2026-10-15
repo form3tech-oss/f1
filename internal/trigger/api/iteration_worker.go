@@ -29,6 +29,11 @@ func NewIterationWorker(iterationDuration time.Duration, rate RateFunction) Work
 			case <-workerCtx.Done():
 				return
 			case start := <-iterationTicker.C:
+				// the context's deadline timer cancels it from a separate goroutine,
+				// which may not have run yet, so don't trigger ticks at or past the deadline.
+				if deadline, ok := workerCtx.Deadline(); ok && !start.Before(deadline) {
+					return
+				}
 				iterationRate := rate(start)
 				pool.Trigger(workerCtx, iterationRate)
 			}
