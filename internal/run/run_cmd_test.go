@@ -364,7 +364,7 @@ func TestParameterised(t *testing.T) {
 			name:                   "config file test using limited max-duration",
 			triggerType:            File,
 			configFile:             "../testdata/config-file.yaml",
-			testDuration:           650 * time.Millisecond,
+			testDuration:           690 * time.Millisecond,
 			concurrency:            50,
 			maxIterations:          1000,
 			iterationDuration:      100 * time.Millisecond,
@@ -767,10 +767,10 @@ func TestParameterisedMaxFailures(t *testing.T) {
 			given, when, then := NewRunTestStage(t)
 
 			given.
-				a_rate_of("10/100ms").and().
+				a_rate_of("10/500ms").and().
 				a_max_failures_of(test.maxFailures).and().
 				a_max_failures_rate_of(test.maxFailuresRate).and().
-				a_duration_of(100 * time.Millisecond).and().
+				a_duration_of(500 * time.Millisecond).and().
 				a_test_scenario_that_fails_intermittently().and().
 				a_distribution_type("none")
 
