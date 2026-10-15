@@ -207,7 +207,10 @@ func (c *ConfigFile) validateCommonFields() (*ConfigFile, error) {
 		return nil, errors.New("missing max-duration")
 	}
 	if c.Limits.Concurrency == nil {
-		return nil, errors.New("missing concurrency")
+		return nil, errors.New("missing limits.concurrency")
+	}
+	if *c.Limits.Concurrency < 1 {
+		return nil, fmt.Errorf("limits.concurrency %d can't be less than 1", *c.Limits.Concurrency)
 	}
 	if c.Limits.MaxIterations == nil {
 		return nil, errors.New("missing max-iterations")
@@ -233,6 +236,9 @@ func (c *ConfigFile) validateCommonFields() (*ConfigFile, error) {
 	}
 	if c.Default.Concurrency == nil {
 		c.Default.Concurrency = c.Limits.Concurrency
+	}
+	if c.Default.Jitter == nil {
+		c.Default.Jitter = new(float64)
 	}
 
 	return c, nil
@@ -413,11 +419,15 @@ func (s *Stage) validateGaussianStage(idx int, defaults Stage) (*Stage, error) {
 
 func (s *Stage) validateUsersStage(idx int, defaults Stage) (*Stage, error) {
 	if s.Concurrency == nil {
-		if defaults.Concurrency == nil {
-			return nil, fmt.Errorf("missing users at stage %d", idx)
+		// validateCommonFields sets defaults.Concurrency from limits.concurrency, which it has
+		// already checked, so a bad inherited value can only come from default.concurrency.
+		if *defaults.Concurrency < 1 {
+			return nil, fmt.Errorf("default.concurrency %d can't be less than 1, inherited by stage %d",
+				*defaults.Concurrency, idx)
 		}
-
 		s.Concurrency = defaults.Concurrency
+	} else if *s.Concurrency < 1 {
+		return nil, fmt.Errorf("concurrency %d can't be less than 1 at stage %d", *s.Concurrency, idx)
 	}
 	if s.Parameters == nil {
 		if defaults.Parameters == nil {

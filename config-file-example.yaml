@@ -1,5 +1,5 @@
 scenario: test            # Scenario name to be executed. On trigger modes this value is provided in the first CLI argument
-default:                  # Default values for stages fields. If no value is provided here or in the stage level, the program will error
+default:                  # Default values for stages fields. If no value is provided here or in the stage level, the program will error, except for jitter (defaults to 0), concurrency (users stages only, defaults to limits.concurrency) and parameters (defaults to none)
   duration: 1s
   mode: constant
   rate: 10/s

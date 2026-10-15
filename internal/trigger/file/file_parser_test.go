@@ -26,7 +26,6 @@ stages:
 - duration: 5s
   mode: constant
   rate: 6/s
-  jitter: 0
   distribution: none
   parameters:
     FOO: bar
@@ -443,6 +442,84 @@ stages:
 	}
 }
 
+func TestFileRate_DefaultJitterIsKept(t *testing.T) {
+	t.Parallel()
+
+	fileContent := `
+scenario: template
+limits:
+  max-duration: 1m
+  concurrency: 50
+  max-iterations: 100
+  ignore-dropped: true
+default:
+  jitter: 50
+stages:
+- duration: 10s
+  mode: constant
+  rate: 1000/s
+  distribution: none
+`
+	now, _ := time.Parse(time.RFC3339, "2020-12-10T10:00:00+00:00")
+
+	stagesToRun, err := file.ParseConfigFile([]byte(fileContent), now)
+	require.NoError(t, err)
+
+	rates := make(map[int]struct{})
+	for i := range 20 {
+		rates[stagesToRun.Stages[0].Rate(now.Add(time.Duration(i)*time.Second))] = struct{}{}
+	}
+	require.Greater(t, len(rates), 1)
+}
+
+func TestFileRate_UsersStageInheritsDefaultConcurrency(t *testing.T) {
+	t.Parallel()
+
+	fileContent := `
+scenario: template
+limits:
+  max-duration: 1m
+  concurrency: 50
+  max-iterations: 100
+  ignore-dropped: true
+default:
+  concurrency: 1
+stages:
+- duration: 5s
+  mode: users
+`
+	now, _ := time.Parse(time.RFC3339, "2020-12-10T10:00:00+00:00")
+
+	stagesToRun, err := file.ParseConfigFile([]byte(fileContent), now)
+
+	require.NoError(t, err)
+	require.Equal(t, 1, stagesToRun.Stages[0].UsersConcurrency)
+}
+
+func TestFileRate_UnusedDefaultConcurrencyIsNotChecked(t *testing.T) {
+	t.Parallel()
+
+	fileContent := `
+scenario: template
+limits:
+  max-duration: 1m
+  concurrency: 50
+  max-iterations: 100
+  ignore-dropped: true
+default:
+  concurrency: 0
+stages:
+- duration: 5s
+  mode: users
+  concurrency: 1
+`
+	now, _ := time.Parse(time.RFC3339, "2020-12-10T10:00:00+00:00")
+
+	_, err := file.ParseConfigFile([]byte(fileContent), now)
+
+	require.NoError(t, err)
+}
+
 func TestFileRate_FileErrors(t *testing.T) {
 	t.Parallel()
 
@@ -477,7 +554,29 @@ limits:
   max-iterations: 100
   ignore-dropped: true
 `,
-			expectedError: "missing concurrency",
+			expectedError: "missing limits.concurrency",
+		},
+		{
+			fileContent: `
+scenario: template
+limits:
+  max-duration: 1m
+  concurrency: 0
+  max-iterations: 100
+  ignore-dropped: true
+`,
+			expectedError: "limits.concurrency 0 can't be less than 1",
+		},
+		{
+			fileContent: `
+scenario: template
+limits:
+  max-duration: 1m
+  concurrency: -1
+  max-iterations: 100
+  ignore-dropped: true
+`,
+			expectedError: "limits.concurrency -1 can't be less than 1",
 		},
 		{
 			fileContent: `
@@ -704,6 +803,68 @@ stages:
 - duration: 10s
 `,
 			expectedError: "missing stage mode at stage 0",
+		},
+		{
+			fileContent: `
+scenario: template
+limits:
+  max-duration: 1m
+  concurrency: 50
+  max-iterations: 100
+  ignore-dropped: true
+stages:
+- duration: 5s
+  mode: users
+  concurrency: 0
+`,
+			expectedError: "concurrency 0 can't be less than 1 at stage 0",
+		},
+		{
+			fileContent: `
+scenario: template
+limits:
+  max-duration: 1m
+  concurrency: 50
+  max-iterations: 100
+  ignore-dropped: true
+stages:
+- duration: 5s
+  mode: users
+  concurrency: -1
+`,
+			expectedError: "concurrency -1 can't be less than 1 at stage 0",
+		},
+		{
+			fileContent: `
+scenario: template
+limits:
+  max-duration: 1m
+  concurrency: 50
+  max-iterations: 100
+  ignore-dropped: true
+default:
+  concurrency: 0
+stages:
+- duration: 5s
+  mode: users
+`,
+			expectedError: "default.concurrency 0 can't be less than 1, inherited by stage 0",
+		},
+		{
+			fileContent: `
+scenario: template
+limits:
+  max-duration: 1m
+  concurrency: 50
+  max-iterations: 100
+  ignore-dropped: true
+default:
+  concurrency: -1
+stages:
+- duration: 5s
+  mode: users
+`,
+			expectedError: "default.concurrency -1 can't be less than 1, inherited by stage 0",
 		},
 		{
 			fileContent: `
