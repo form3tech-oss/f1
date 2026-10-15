@@ -805,12 +805,6 @@ func TestOutput_JSONLogging(t *testing.T) {
 			"iteration_stats": anyValue,
 		},
 		{
-			"message":         "progress",
-			"level":           "info",
-			"scenario":        "scenario_where_each_iteration_takes_200ms",
-			"iteration_stats": anyValue,
-		},
-		{
 			"message":  "Max Iterations Reached - waiting for active tests to complete",
 			"level":    "info",
 			"scenario": "scenario_where_each_iteration_takes_200ms",
@@ -885,12 +879,6 @@ func TestOutput_JSONLogging(t *testing.T) {
 			"scenario": "scenario_where_each_iteration_takes_200ms",
 		},
 
-		{
-			"message":         "progress",
-			"level":           "info",
-			"scenario":        "scenario_where_each_iteration_takes_200ms",
-			"iteration_stats": anyValue,
-		},
 		{
 			"message":         "progress",
 			"level":           "info",
