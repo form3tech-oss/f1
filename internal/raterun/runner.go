@@ -56,12 +56,13 @@ func (r *Runner) Restart() {
 // Start is non-blockig and runs in a go routine. The provided context can be used to manage the
 // lifecycle. Stop() will also terminate the runner.
 func (r *Runner) Start(ctx context.Context) {
-	defer close(r.stopped)
-
 	schedulesCtx, schedulesCtxCancel := context.WithCancel(ctx)
 	r.cancel = schedulesCtxCancel
 
 	go func() {
+		defer close(r.stopped)
+		defer r.schedules.stop()
+
 		for {
 			select {
 			case <-r.restart:
@@ -69,9 +70,13 @@ func (r *Runner) Start(ctx context.Context) {
 			case <-r.schedules.timeUntilNextSchedule():
 				r.schedules.startNext()
 			case <-r.schedules.currentScheduleTicker():
+				// select picks at random when the context is also done, so don't run
+				// after Stop, which waits for this goroutine.
+				if schedulesCtx.Err() != nil {
+					return
+				}
 				r.runFunction(r.schedules.currentFrequency())
 			case <-schedulesCtx.Done():
-				r.schedules.stop()
 				return
 			}
 		}
