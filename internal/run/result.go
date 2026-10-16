@@ -12,6 +12,12 @@ import (
 	"github.com/form3tech-oss/f1/v2/internal/run/views"
 )
 
+// Result is shared by the run and the progress runner, which run in separate goroutines.
+//
+// mu guards the fields copied into resultState, and TestDuration. The setters take it to
+// write them, and state takes it to copy them. Every other method works on that copy
+// without holding mu, so no method ever takes mu while it already holds it. TestDuration
+// is set once the run has finished and is read after that, so it isn't copied.
 type Result struct {
 	startTime     time.Time
 	progressStats *progress.Stats
@@ -51,10 +57,7 @@ func (r *Result) GetTotals() {
 }
 
 func (r *Result) Snapshot() progress.Snapshot {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
-
-	return r.snapshot
+	return r.state().snapshot
 }
 
 func (r *Result) AddError(err error) *Result {
@@ -66,111 +69,69 @@ func (r *Result) AddError(err error) *Result {
 }
 
 func (r *Result) Error() error {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
-
-	if r.errors == nil {
-		return nil
-	}
-
-	if len(r.errors) == 1 {
-		return r.errors[0]
-	}
-
-	errorStrings := make([]string, len(r.errors))
-	for i := range len(r.errors) {
-		errorStrings[i] = fmt.Sprintf("Error %d: %s", i, r.errors[i].Error())
-	}
-
-	return errors.New(strings.Join(errorStrings, "; "))
+	return r.state().err()
 }
 
 func (r *Result) Summary() *views.ViewContext[views.ResultData] {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
+	s := r.state()
 
 	return r.views.Result(views.ResultData{
-		SuccessfulIterationCount:     r.snapshot.SuccessfulIterationDurations.Count,
-		DroppedIterationCount:        r.snapshot.DroppedIterationCount,
-		FailedIterationCount:         r.snapshot.FailedIterationDurations.Count,
-		SuccessfulIterationDurations: r.snapshot.SuccessfulIterationDurations,
-		Duration:                     r.duration(),
-		FailedIterationDurations:     r.snapshot.FailedIterationDurations,
-		Error:                        r.Error(),
-		Failed:                       r.Failed(),
+		SuccessfulIterationCount:     s.snapshot.SuccessfulIterationDurations.Count,
+		DroppedIterationCount:        s.snapshot.DroppedIterationCount,
+		FailedIterationCount:         s.snapshot.FailedIterationDurations.Count,
+		SuccessfulIterationDurations: s.snapshot.SuccessfulIterationDurations,
+		Duration:                     s.duration(),
+		FailedIterationDurations:     s.snapshot.FailedIterationDurations,
+		Error:                        s.err(),
+		Failed:                       s.failed(r.runOptions),
 		LogFilePath:                  r.LogFilePath,
-		Iterations:                   r.snapshot.Iterations(),
-		IterationsStarted:            r.snapshot.IterationsStarted(),
+		Iterations:                   s.snapshot.Iterations(),
+		IterationsStarted:            s.snapshot.IterationsStarted(),
 	})
 }
 
 func (r *Result) Failed() bool {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
-
-	opts := r.runOptions
-
-	return r.Error() != nil ||
-		(!opts.IgnoreDropped && r.snapshot.DroppedIterationCount > 0) ||
-		(opts.MaxFailures == 0 && opts.MaxFailuresRate == 0 && r.snapshot.FailedIterationDurations.Count > 0) ||
-		(opts.MaxFailures > 0 && r.snapshot.FailedIterationDurations.Count > opts.MaxFailures) ||
-		(opts.MaxFailuresRate > 0 && (r.snapshot.FailedIterationsRate() > uint64(opts.MaxFailuresRate)))
+	return r.state().failed(r.runOptions)
 }
 
 func (r *Result) Progress() *views.ViewContext[views.ProgressData] {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
+	s := r.state()
 
 	return r.views.Progress(views.ProgressData{
-		Duration:                              r.duration(),
-		SuccessfulIterationDurationsForPeriod: r.snapshot.SuccessfulIterationDurationsForPeriod,
-		Period:                                r.snapshot.Period,
-		FailedIterationCount:                  r.snapshot.FailedIterationDurations.Count,
-		DroppedIterationCount:                 r.snapshot.DroppedIterationCount,
-		SuccessfulIterationCount:              r.snapshot.SuccessfulIterationDurations.Count,
+		Duration:                              s.duration(),
+		SuccessfulIterationDurationsForPeriod: s.snapshot.SuccessfulIterationDurationsForPeriod,
+		Period:                                s.snapshot.Period,
+		FailedIterationCount:                  s.snapshot.FailedIterationDurations.Count,
+		DroppedIterationCount:                 s.snapshot.DroppedIterationCount,
+		SuccessfulIterationCount:              s.snapshot.SuccessfulIterationDurations.Count,
 	})
 }
 
 func (r *Result) HasDroppedIterations() bool {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
-
-	return r.snapshot.DroppedIterationCount > 0
+	return r.state().snapshot.DroppedIterationCount > 0
 }
 
 func (r *Result) Setup() *views.ViewContext[views.SetupData] {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
-
 	return r.views.Setup(views.SetupData{
 		Error: r.Error(),
 	})
 }
 
 func (r *Result) Teardown() *views.ViewContext[views.TeardownData] {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
-
 	return r.views.Teardown(views.TeardownData{
 		Error: r.Error(),
 	})
 }
 
 func (r *Result) MaxDurationElapsed() *views.ViewContext[views.TimeoutData] {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
-
 	return r.views.Timeout(views.TimeoutData{
-		Duration: r.duration(),
+		Duration: r.state().duration(),
 	})
 }
 
 func (r *Result) Interrupted() *views.ViewContext[views.InterruptData] {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
-
 	return r.views.Interrupt(views.InterruptData{
-		Duration: r.duration(),
+		Duration: r.state().duration(),
 	})
 }
 
@@ -188,18 +149,62 @@ func (r *Result) RecordTestFinished() {
 }
 
 func (r *Result) MaxIterationsReached() *views.ViewContext[views.MaxIterationsReachedData] {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
-
 	return r.views.MaxIterationsReached(views.MaxIterationsReachedData{
-		Duration: r.duration(),
+		Duration: r.state().duration(),
 	})
 }
 
-func (r *Result) duration() time.Duration {
-	if r.startTime.IsZero() {
+// state returns a copy of the fields guarded by mu. It is the only method that takes mu to
+// read them.
+func (r *Result) state() resultState {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	// AddError only appends, so the errors up to the copied length never change and the
+	// copy can share them.
+	return resultState{
+		snapshot:  r.snapshot,
+		errors:    r.errors,
+		startTime: r.startTime,
+	}
+}
+
+// resultState is a copy of the fields of Result that are guarded by mu.
+type resultState struct {
+	snapshot  progress.Snapshot
+	startTime time.Time
+	errors    []error
+}
+
+func (s resultState) err() error {
+	if s.errors == nil {
+		return nil
+	}
+
+	if len(s.errors) == 1 {
+		return s.errors[0]
+	}
+
+	errorStrings := make([]string, len(s.errors))
+	for i := range len(s.errors) {
+		errorStrings[i] = fmt.Sprintf("Error %d: %s", i, s.errors[i].Error())
+	}
+
+	return errors.New(strings.Join(errorStrings, "; "))
+}
+
+func (s resultState) failed(opts options.RunOptions) bool {
+	return s.err() != nil ||
+		(!opts.IgnoreDropped && s.snapshot.DroppedIterationCount > 0) ||
+		(opts.MaxFailures == 0 && opts.MaxFailuresRate == 0 && s.snapshot.FailedIterationDurations.Count > 0) ||
+		(opts.MaxFailures > 0 && s.snapshot.FailedIterationDurations.Count > opts.MaxFailures) ||
+		(opts.MaxFailuresRate > 0 && (s.snapshot.FailedIterationsRate() > uint64(opts.MaxFailuresRate)))
+}
+
+func (s resultState) duration() time.Duration {
+	if s.startTime.IsZero() {
 		return 0
 	}
 
-	return time.Since(r.startTime)
+	return time.Since(s.startTime)
 }
