@@ -34,17 +34,24 @@ type IterationDurations struct {
 	max atomic.Int64
 }
 
+// Add records one duration. It is called by every worker on every iteration.
+//
+// min and max are updated with CompareAndSwap, so concurrent Adds don't overwrite each
+// other's value. Once they settle, most Adds change neither and cost one Load each.
 func (i *IterationDurations) Add(nanoseconds int64) {
 	i.sum.Add(nanoseconds)
 	i.count.Add(1)
 
-	if nanoseconds > i.max.Load() {
-		i.max.Store(nanoseconds)
+	for current := i.max.Load(); nanoseconds > current; current = i.max.Load() {
+		if i.max.CompareAndSwap(current, nanoseconds) {
+			break
+		}
 	}
 
-	currentMin := i.min.Load()
-	if currentMin == 0 || nanoseconds < currentMin {
-		i.min.Store(nanoseconds)
+	for current := i.min.Load(); current == 0 || nanoseconds < current; current = i.min.Load() {
+		if i.min.CompareAndSwap(current, nanoseconds) {
+			break
+		}
 	}
 }
 
