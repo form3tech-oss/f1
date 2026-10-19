@@ -721,6 +721,19 @@ func (s *RunTestStage) assertJSONLogMatches(t *testing.T, output string, expecte
 		assert.Empty(t, output, errMsg)
 	}
 
+	// Progress lines come from a ticker that fires every second. The first one lands well
+	// inside the run, but later ones can land just before or just after the end-of-run lines,
+	// so check only the first.
+	firstProgress := true
+	parsedLines = slices.DeleteFunc(parsedLines, func(line parsedLogLine) bool {
+		if line.parsed["message"] != "progress" {
+			return false
+		}
+		drop := !firstProgress
+		firstProgress = false
+		return drop
+	})
+
 	s.require.Lenf(expectedLogLines, len(parsedLines), "Logs have %d lines, but only %d expectations defined: %s", len(parsedLines), len(expectedLogLines), output)
 
 	for lineIndex, parsedLine := range parsedLines {

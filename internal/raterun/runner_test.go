@@ -2,8 +2,14 @@
 package raterun_test
 
 import (
+	"context"
+	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/form3tech-oss/f1/v2/internal/raterun"
 )
@@ -70,4 +76,23 @@ func Test_RunnerLeaksWhenNotTerminated(t *testing.T) {
 	then.a_go_leak_is_found().and().
 		runner_is_terminated().and().
 		a_go_leak_is_not_found()
+}
+
+func Test_StopWaitsForRunningFunction(t *testing.T) {
+	started := make(chan struct{})
+	startedOnce := sync.Once{}
+	var finished atomic.Bool
+
+	runner, err := raterun.New(func(time.Duration) {
+		startedOnce.Do(func() { close(started) })
+		time.Sleep(100 * time.Millisecond)
+		finished.Store(true)
+	}, []raterun.Schedule{{StartDelay: time.Nanosecond, Frequency: 10 * time.Millisecond}})
+	require.NoError(t, err)
+
+	runner.Start(context.Background())
+	<-started
+	runner.Stop()
+
+	assert.True(t, finished.Load(), "Stop returned while the function was still running")
 }

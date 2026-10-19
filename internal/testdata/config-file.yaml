@@ -32,10 +32,11 @@ stages:
     mode: staged
     stages: "0s:0,200ms:10,100ms:0"
     iteration-frequency: 100ms
-  # [1300ms; 85] 0
+  # [1300ms; 85] 0. The rate follows the wall clock and peaks just after each hour, but
+  # this volume keeps it below 1, so the single tick in this stage never runs an iteration.
   - duration: 300ms
     mode: gaussian
-    volume: 100
+    volume: 50
     repeat: 1h
     iteration-frequency: 1s
     peak: 500ms

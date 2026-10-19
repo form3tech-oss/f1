@@ -67,5 +67,9 @@ func (s *Snapshot) IterationsStarted() uint64 {
 }
 
 func (s *Snapshot) FailedIterationsRate() uint64 {
-	return s.FailedIterationDurations.Count * 100 / s.Iterations()
+	iterations := s.Iterations()
+	if iterations == 0 {
+		return 0
+	}
+	return s.FailedIterationDurations.Count * 100 / iterations
 }

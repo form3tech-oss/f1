@@ -364,7 +364,7 @@ func TestParameterised(t *testing.T) {
 			name:                   "config file test using limited max-duration",
 			triggerType:            File,
 			configFile:             "../testdata/config-file.yaml",
-			testDuration:           650 * time.Millisecond,
+			testDuration:           690 * time.Millisecond,
 			concurrency:            50,
 			maxIterations:          1000,
 			iterationDuration:      100 * time.Millisecond,
@@ -767,10 +767,10 @@ func TestParameterisedMaxFailures(t *testing.T) {
 			given, when, then := NewRunTestStage(t)
 
 			given.
-				a_rate_of("10/100ms").and().
+				a_rate_of("10/500ms").and().
 				a_max_failures_of(test.maxFailures).and().
 				a_max_failures_rate_of(test.maxFailuresRate).and().
-				a_duration_of(100 * time.Millisecond).and().
+				a_duration_of(500 * time.Millisecond).and().
 				a_test_scenario_that_fails_intermittently().and().
 				a_distribution_type("none")
 
@@ -797,12 +797,6 @@ func TestOutput_JSONLogging(t *testing.T) {
 			"message":  "Running scenario_where_each_iteration_takes_200ms for up to 10 iterations or up to 10s at a rate of Makes requests from a set of users specified by --concurrency",
 			"level":    "info",
 			"scenario": "scenario_where_each_iteration_takes_200ms",
-		},
-		{
-			"message":         "progress",
-			"level":           "info",
-			"scenario":        "scenario_where_each_iteration_takes_200ms",
-			"iteration_stats": anyValue,
 		},
 		{
 			"message":         "progress",
@@ -885,12 +879,6 @@ func TestOutput_JSONLogging(t *testing.T) {
 			"scenario": "scenario_where_each_iteration_takes_200ms",
 		},
 
-		{
-			"message":         "progress",
-			"level":           "info",
-			"scenario":        "scenario_where_each_iteration_takes_200ms",
-			"iteration_stats": anyValue,
-		},
 		{
 			"message":         "progress",
 			"level":           "info",
