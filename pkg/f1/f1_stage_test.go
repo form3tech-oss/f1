@@ -115,6 +115,17 @@ func (s *f1Stage) an_unknown_f1_scenario_is_executed() *f1Stage {
 	return s
 }
 
+func (s *f1Stage) the_f1_scenario_is_executed_with_an_unwritable_memprofile() *f1Stage {
+	s.executeErr = s.f1.ExecuteWithArgs([]string{
+		"run", "constant", s.scenario,
+		"--rate", "1/1s",
+		"--max-duration", "100ms",
+		"--memprofile", s.t.TempDir() + "/missing-dir/mem.pprof",
+	})
+
+	return s
+}
+
 func (s *f1Stage) the_execute_command_returns_an_error(message string) *f1Stage {
 	s.require.ErrorContains(s.executeErr, message)
 
