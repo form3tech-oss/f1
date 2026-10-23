@@ -81,6 +81,8 @@ type RunTestStage struct {
 	iterationCleanup         func()
 	f1                       *f1.F1
 	durations                sync.Map
+	stageStarts              map[string][]time.Duration
+	stageStartsMu            sync.Mutex
 	frequency                string
 	rate                     string
 	stages                   string
@@ -397,6 +399,47 @@ func (s *RunTestStage) the_results_should_show_n_successful_iterations(expected 
 
 func (s *RunTestStage) the_number_of_dropped_iterations_should_be(expected uint64) *RunTestStage {
 	s.assert.Equal(expected, s.runResult.Snapshot().DroppedIterationCount, "dropped count does not match expected")
+	return s
+}
+
+// a_scenario_that_records_iteration_starts_by_stage records when each iteration starts, by
+// the STAGE parameter of the config file stage that triggered it
+func (s *RunTestStage) a_scenario_that_records_iteration_starts_by_stage(
+	iterationDuration time.Duration,
+) *RunTestStage {
+	s.scenario = "scenario_that_records_iteration_starts_by_stage"
+	s.stageStarts = map[string][]time.Duration{}
+	s.f1.Add(s.scenario, func(*f1_testing.T) f1_testing.RunFn {
+		return func(*f1_testing.T) {
+			s.stageStartsMu.Lock()
+			stage := os.Getenv("STAGE")
+			s.stageStarts[stage] = append(s.stageStarts[stage], time.Since(s.startTime))
+			s.stageStartsMu.Unlock()
+
+			time.Sleep(iterationDuration)
+		}
+	})
+	return s
+}
+
+// stage_iterations_should_start_at checks stage starts an iteration at each of starts, from
+// the timer start, allowing for them to start up to tolerance late
+func (s *RunTestStage) stage_iterations_should_start_at(
+	stage string,
+	tolerance time.Duration,
+	starts ...time.Duration,
+) *RunTestStage {
+	s.stageStartsMu.Lock()
+	defer s.stageStartsMu.Unlock()
+
+	actual := s.stageStarts[stage]
+	if !s.assert.Len(actual, len(starts), "iterations started by stage %s at %v", stage, actual) {
+		return s
+	}
+	for i, start := range starts {
+		s.assert.GreaterOrEqual(actual[i], start, "stage %s iteration %d", stage, i)
+		s.assert.Less(actual[i], start+tolerance, "stage %s iteration %d", stage, i)
+	}
 	return s
 }
 

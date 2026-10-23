@@ -446,6 +446,28 @@ func TestRegularDistribution(t *testing.T) {
 	then.there_should_be_x_requests_sent_over_y_intervals_of_z_ms(1, 5, 100)
 }
 
+func TestConfigFileStagesKeepToSchedule(t *testing.T) {
+	t.Parallel()
+
+	given, when, then := NewRunTestStage(t)
+
+	given.
+		a_trigger_type_of(File).and().
+		a_config_file_location_of("../testdata/config-file-stage-drift.yaml").and().
+		a_duration_of(5 * time.Second).and().
+		a_scenario_that_records_iteration_starts_by_stage(250 * time.Millisecond)
+
+	when.a_timer_is_started().and().
+		the_run_command_is_executed()
+
+	// the users stage's iteration overruns it by 150ms, which shortens the next stage but
+	// doesn't delay the last one
+	then.
+		stage_iterations_should_start_at("users", 100*time.Millisecond, 0).and().
+		stage_iterations_should_start_at("on-schedule", 100*time.Millisecond,
+			300*time.Millisecond, 400*time.Millisecond)
+}
+
 func TestRandomDistribution(t *testing.T) {
 	t.Parallel()
 

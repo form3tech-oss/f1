@@ -16,11 +16,15 @@ const safeDurationBeforeNextStage = 20 * time.Millisecond
 
 func newStagesWorker(stages []runnableStage) api.WorkTriggerer {
 	return func(ctx context.Context, output *ui.Output, workers *workers.PoolManager, options options.RunOptions) {
+		// schedule each stage from the start of the run, so a stage that overruns shortens
+		// the next one instead of delaying all the stages after it
+		stageEnd := time.Now()
 		for _, stage := range stages {
 			if ctx.Err() != nil {
 				return
 			}
-			runStage(ctx, output, workers, stage, options)
+			stageEnd = stageEnd.Add(stage.StageDuration)
+			runStage(ctx, output, workers, stage, stageEnd, options)
 		}
 	}
 }
@@ -30,13 +34,14 @@ func runStage(
 	output *ui.Output,
 	workers *workers.PoolManager,
 	stage runnableStage,
+	stageEnd time.Time,
 	options options.RunOptions,
 ) {
 	setEnvs(stage.Params, output)
 	defer unsetEnvs(stage.Params, output)
 
 	// stop the stage early to avoid starting a new tick
-	stageCtx, stageCancel := context.WithTimeout(ctx, stage.StageDuration-safeDurationBeforeNextStage)
+	stageCtx, stageCancel := context.WithDeadline(ctx, stageEnd.Add(-safeDurationBeforeNextStage))
 	defer stageCancel()
 
 	stageDone := make(chan struct{})
@@ -58,7 +63,7 @@ func runStage(
 		<-stageDone
 		return
 	case <-stageDone:
-		time.Sleep(safeDurationBeforeNextStage)
+		time.Sleep(time.Until(stageEnd))
 	}
 }
 
