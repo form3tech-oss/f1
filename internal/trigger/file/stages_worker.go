@@ -67,7 +67,7 @@ func setEnvs(envs map[string]string, output *ui.Output) {
 		err := os.Setenv(key, value)
 		if err != nil {
 			output.Display(ui.ErrorMessage{
-				Message: "unable set environment variables for given scenario",
+				Message: "unable to set environment variables for given scenario",
 				Error:   err,
 			})
 		}
@@ -79,7 +79,7 @@ func unsetEnvs(envs map[string]string, output *ui.Output) {
 		err := os.Unsetenv(key)
 		if err != nil {
 			output.Display(ui.ErrorMessage{
-				Message: "unable unset environment variables for given scenario",
+				Message: "unable to unset environment variables for given scenario",
 				Error:   err,
 			})
 		}

@@ -46,6 +46,19 @@ func TestMissingScenario(t *testing.T) {
 		the_execute_command_returns_an_error("scenario not defined: unknownScenario")
 }
 
+func TestProfilingErrorAfterSuccessfulRun(t *testing.T) {
+	given, when, then := newF1Stage(t)
+
+	given.
+		a_scenario_where_each_iteration_takes(0)
+
+	when.
+		the_f1_scenario_is_executed_with_an_unwritable_memprofile()
+
+	then.
+		the_execute_command_returns_an_error("creating memprofile file")
+}
+
 func TestWithCustomLogger(t *testing.T) {
 	given, when, then := newF1Stage(t)
 
