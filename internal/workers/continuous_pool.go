@@ -20,19 +20,21 @@ type ContinuousPool struct {
 	workerCtxCancel    context.CancelFunc
 	iterationStatePool []*iterationState
 	numWorkers         int
+	deadline           deadline
 	stopWorkers        atomic.Bool
 }
 
 func (p *ContinuousPool) Start(ctx context.Context) {
 	workerCtx, workerCtxCancel := context.WithCancel(ctx)
 	p.workerCtxCancel = workerCtxCancel
+	p.deadline = newDeadline(workerCtx)
 
 	workersStarted := sync.WaitGroup{}
 
 	workersStarted.Add(p.numWorkers)
 	p.manager.runningWorkers.Add(p.numWorkers)
 	for _, iterationState := range p.iterationStatePool {
-		go p.startWorker(iterationState, &workersStarted)
+		go p.startWorker(workerCtx, iterationState, &workersStarted)
 	}
 
 	// context.Done() and context.Err() for context that can be cancelled use a Lock.
@@ -49,6 +51,7 @@ func (p *ContinuousPool) maxIterationsReached() {
 }
 
 func (p *ContinuousPool) startWorker(
+	ctx context.Context,
 	iterationState *iterationState,
 	workersStarted *sync.WaitGroup,
 ) {
@@ -61,6 +64,14 @@ func (p *ContinuousPool) startWorker(
 
 	// use and atomic.Bool to control execution to avoid mutex usage in channels and context.Context
 	for !p.stopWorkers.Load() {
+		// don't start iterations past the deadline. Wait for the context to be cancelled
+		// instead, so the pool doesn't complete before it. If the iteration limit is
+		// reached, NextIteration fails and stops the pool instead.
+		if p.deadline.passed() && !p.manager.iterationsExhausted() {
+			<-ctx.Done()
+			return
+		}
+
 		iteration, err := p.manager.NextIteration()
 		if err != nil {
 			p.maxIterationsReached()

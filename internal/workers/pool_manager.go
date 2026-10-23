@@ -65,6 +65,13 @@ func (m *PoolManager) NewContinuousPool(numWorkers int) *ContinuousPool {
 	return newContinuousPool(m, numWorkers)
 }
 
+// iterationsExhausted reports whether all iterations up to maxIterations have been taken,
+// so the next NextIteration fails. Unlike MaxIterationsReached, it is true before a call
+// to NextIteration has gone past the limit.
+func (m *PoolManager) iterationsExhausted() bool {
+	return m.maxIterations > 0 && m.iteration.Load() >= m.maxIterations
+}
+
 func (m *PoolManager) makeIterationStatePool(numWorkers int) []*iterationState {
 	statePool := make([]*iterationState, numWorkers)
 	for i := range numWorkers {

@@ -23,18 +23,21 @@ type TriggerPool struct {
 	jobsAvailableCond  *sync.Cond
 	iterationStatePool []*iterationState
 	numWorkers         int
+	deadline           deadline
 	// jobsToExecute holds a number of pending work to execute
 	jobsToExecute jobCounter
 	stopWorkers   atomic.Bool
 }
 
 // Trigger will trigger the execution of a numJobs in the worker pool,
-// discarding anything that is currently scheduled for execution.
-func (p *TriggerPool) Trigger(ctx context.Context, numJobs int) {
-	if ctx.Err() != nil {
-		return
+// discarding anything that is currently scheduled for execution. It returns false without
+// triggering once ctx is done or the pool's deadline has passed.
+func (p *TriggerPool) Trigger(ctx context.Context, numJobs int) bool {
+	if ctx.Err() != nil || p.deadline.passed() {
+		return false
 	}
 	p.sendJobsForExecution(numJobs)
+	return true
 }
 
 func (p *TriggerPool) Start(ctx context.Context) context.Context {
@@ -45,6 +48,7 @@ func (p *TriggerPool) Start(ctx context.Context) context.Context {
 
 	workerCtx, cancel := context.WithCancel(ctx)
 	p.workerCtxCancel = cancel
+	p.deadline = newDeadline(workerCtx)
 
 	for _, statePool := range p.iterationStatePool {
 		go p.run(statePool, &startedWg)
@@ -87,7 +91,11 @@ func (p *TriggerPool) sendJobsForExecution(numJobs int) {
 
 	p.jobsAvailableCond.L.Unlock()
 
-	for range jobsDiscarded {
+	p.recordDropped(jobsDiscarded)
+}
+
+func (p *TriggerPool) recordDropped(numJobs int64) {
+	for range numJobs {
 		p.manager.activeScenario.RecordDroppedIteration()
 	}
 }
@@ -114,6 +122,15 @@ func (p *TriggerPool) run(
 		}
 
 		if p.jobsToExecute.take() {
+			// don't start iterations past the deadline. Drop this job and the pending ones,
+			// and wait for the context to be cancelled, which stops the pool. Check before
+			// taking an iteration, so dropped jobs don't use up the iteration limit. If the
+			// limit is reached, NextIteration fails and stops the pool instead.
+			if p.deadline.passed() && !p.manager.iterationsExhausted() {
+				p.recordDropped(1 + max(p.jobsToExecute.set(0), 0))
+				continue
+			}
+
 			iteration, err := p.manager.NextIteration()
 			if err != nil {
 				p.maxIterationsReached()

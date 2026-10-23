@@ -15,25 +15,13 @@ func NewIterationWorker(iterationDuration time.Duration, rate RateFunction) Work
 		pool := workers.NewTriggerPool(opts.Concurrency)
 		workerCtx := pool.Start(ctx)
 
-		// the context's deadline timer cancels it from a separate goroutine, which may not
-		// have run yet, so don't trigger at or past the deadline. Check the current time,
-		// not the tick's, as a tick can be read well after it was sent.
-		deadline, hasDeadline := workerCtx.Deadline()
-		trigger := func(tick time.Time) bool {
-			if hasDeadline && !time.Now().Before(deadline) {
-				return false
-			}
-			pool.Trigger(workerCtx, rate(tick))
-			return true
-		}
-
 		// take the start time and start the ticker together, after the pool has started, so
 		// time-based rates see ticks at whole multiples of iterationDuration from startTime.
 		startTime := time.Now()
 		iterationTicker := time.NewTicker(iterationDuration)
 		defer iterationTicker.Stop()
 
-		if !trigger(startTime) {
+		if !pool.Trigger(workerCtx, rate(startTime)) {
 			return
 		}
 
@@ -43,7 +31,7 @@ func NewIterationWorker(iterationDuration time.Duration, rate RateFunction) Work
 			case <-workerCtx.Done():
 				return
 			case start := <-iterationTicker.C:
-				if !trigger(start) {
+				if !pool.Trigger(workerCtx, rate(start)) {
 					return
 				}
 			}
