@@ -2,6 +2,7 @@ package file
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"time"
 
@@ -16,13 +17,35 @@ const safeDurationBeforeNextStage = 20 * time.Millisecond
 
 func newStagesWorker(stages []runnableStage) api.WorkTriggerer {
 	return func(ctx context.Context, output *ui.Output, workers *workers.PoolManager, options options.RunOptions) {
+		// schedule each stage from the start of the run, so a stage that overruns shortens
+		// the next one instead of delaying all the stages after it
+		stageEnd := time.Now()
 		for _, stage := range stages {
-			if ctx.Err() != nil {
+			if ctx.Err() != nil || workers.MaxIterationsReached() {
 				return
 			}
-			runStage(ctx, output, workers, stage, options)
+			stageEnd = stageEnd.Add(stage.StageDuration)
+
+			if timeLeft, skip := skipStage(stage, stageEnd); skip {
+				output.Display(ui.WarningMessage{Message: fmt.Sprintf(
+					"Skipping stage %d, as only %s of its %s is left",
+					stage.Number, max(timeLeft, 0).Round(time.Millisecond), stage.StageDuration)})
+				waitUntil(ctx, stageEnd)
+				continue
+			}
+			runStage(ctx, output, workers, stage, stageEnd, options)
 		}
 	}
+}
+
+// skipStage returns how long a stage has left to run, until safeDurationBeforeNextStage
+// before its scheduled end, and whether to skip it. A stage that starts late is skipped when
+// it has less than half the time its first tick gets on schedule, as starting a whole tick
+// of iterations in less time can drop most of them.
+func skipStage(stage runnableStage, stageEnd time.Time) (time.Duration, bool) {
+	timeLeft := time.Until(stageEnd) - safeDurationBeforeNextStage
+	firstTick := min(stage.IterationDuration, stage.StageDuration) - safeDurationBeforeNextStage
+	return timeLeft, timeLeft <= 0 || timeLeft < firstTick/2
 }
 
 func runStage(
@@ -30,13 +53,14 @@ func runStage(
 	output *ui.Output,
 	workers *workers.PoolManager,
 	stage runnableStage,
+	stageEnd time.Time,
 	options options.RunOptions,
 ) {
 	setEnvs(stage.Params, output)
 	defer unsetEnvs(stage.Params, output)
 
 	// stop the stage early to avoid starting a new tick
-	stageCtx, stageCancel := context.WithTimeout(ctx, stage.StageDuration-safeDurationBeforeNextStage)
+	stageCtx, stageCancel := context.WithDeadline(ctx, stageEnd.Add(-safeDurationBeforeNextStage))
 	defer stageCancel()
 
 	stageDone := make(chan struct{})
@@ -58,7 +82,23 @@ func runStage(
 		<-stageDone
 		return
 	case <-stageDone:
-		time.Sleep(safeDurationBeforeNextStage)
+	}
+
+	// once the iteration limit stops the run, don't wait for the stage's scheduled end
+	if workers.MaxIterationsReached() {
+		return
+	}
+
+	waitUntil(ctx, stageEnd)
+}
+
+// waitUntil waits until t, unless ctx is done first
+func waitUntil(ctx context.Context, t time.Time) {
+	timer := time.NewTimer(time.Until(t))
+	defer timer.Stop()
+	select {
+	case <-ctx.Done():
+	case <-timer.C:
 	}
 }
 

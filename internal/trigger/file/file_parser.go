@@ -80,6 +80,7 @@ func ParseConfigFile(fileContent []byte, now time.Time) (*RunnableStages, error)
 			if err != nil {
 				return nil, err
 			}
+			parsedStage.Number = idx + 1
 			stages = append(stages, *parsedStage)
 		}
 	}

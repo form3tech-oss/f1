@@ -446,6 +446,76 @@ func TestRegularDistribution(t *testing.T) {
 	then.there_should_be_x_requests_sent_over_y_intervals_of_z_ms(1, 5, 100)
 }
 
+func TestConfigFileStagesKeepToSchedule(t *testing.T) {
+	t.Parallel()
+
+	given, when, then := NewRunTestStage(t)
+
+	given.
+		a_trigger_type_of(File).and().
+		a_config_file_location_of("../testdata/config-file-stage-drift.yaml").and().
+		a_duration_of(5*time.Second).and().
+		a_scenario_that_records_iteration_starts_by_stage("DRIFT_STAGE", 200*time.Millisecond)
+
+	when.a_timer_is_started().and().
+		the_run_command_is_executed()
+
+	// the users stage's iteration overruns it by 100ms, which shortens the next stage but
+	// doesn't delay the last one
+	then.
+		stage_iterations_should_start_at("users", 100*time.Millisecond, 0).and().
+		stage_iterations_should_start_at("shortened", 100*time.Millisecond, 200*time.Millisecond).and().
+		stage_iterations_should_start_at("on-schedule", 100*time.Millisecond,
+			500*time.Millisecond, 600*time.Millisecond)
+}
+
+func TestConfigFileSkipsStageWithTooLittleTimeLeft(t *testing.T) {
+	t.Parallel()
+
+	given, when, then := NewRunTestStage(t)
+
+	given.
+		a_trigger_type_of(File).and().
+		a_config_file_location_of("../testdata/config-file-stage-skip.yaml").and().
+		a_duration_of(5*time.Second).and().
+		a_scenario_that_records_iteration_starts_by_stage("SKIP_STAGE", 150*time.Millisecond)
+
+	when.a_timer_is_started().and().
+		the_run_command_is_executed()
+
+	// the users stage's iteration overruns it by 50ms, which leaves the next stage too
+	// little time for its tick. The run skips it and starts the last stage on schedule.
+	then.
+		stage_iterations_should_start_at("users", 100*time.Millisecond, 0).and().
+		stage_iterations_should_start_at("skipped", 100*time.Millisecond).and().
+		stage_iterations_should_start_at("on-schedule", 100*time.Millisecond,
+			200*time.Millisecond, 300*time.Millisecond).and().
+		the_number_of_dropped_iterations_should_be(0).and().
+		expect_the_stdout_output_to_include([]string{"Skipping stage 2, as only"})
+}
+
+func TestConfigFileStopsAtIterationLimit(t *testing.T) {
+	t.Parallel()
+
+	given, when, then := NewRunTestStage(t)
+
+	given.
+		a_trigger_type_of(File).and().
+		a_config_file_location_of("../testdata/config-file.yaml").and().
+		a_duration_of(5 * time.Second).and().
+		an_iteration_limit_of(10).and().
+		a_scenario_where_each_iteration_takes(1 * time.Millisecond)
+
+	when.a_timer_is_started().and().
+		the_run_command_is_executed()
+
+	// the first tick reaches the limit, and the run stops at the second one instead of
+	// waiting for the scheduled end of each of the stages, which take 1.7s in all
+	then.
+		the_number_of_started_iterations_should_be(10).and().
+		the_command_should_have_run_for_less_than(time.Second)
+}
+
 func TestRandomDistribution(t *testing.T) {
 	t.Parallel()
 

@@ -1,0 +1,29 @@
+scenario: test
+default:
+  jitter: 0
+  distribution: none
+limits:
+  max-duration: 5s
+  concurrency: 50
+  max-iterations: 1000
+  ignore-dropped: false
+stages:
+  # [0ms] one user. Its iteration runs past the end of the stage, and the stage waits for it.
+  - duration: 100ms
+    mode: users
+    concurrency: 1
+    parameters:
+      SKIP_STAGE: users
+  # [100ms] only 30ms is left when the users stage's iteration ends at 150ms, less than half
+  # the 80ms its tick of 30 iterations gets on schedule, so it is skipped
+  - duration: 100ms
+    mode: constant
+    rate: 30/100ms
+    parameters:
+      SKIP_STAGE: skipped
+  # [200ms] 0ms: 1; 100ms: 1
+  - duration: 200ms
+    mode: constant
+    rate: 1/100ms
+    parameters:
+      SKIP_STAGE: on-schedule

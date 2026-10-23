@@ -32,6 +32,8 @@ type runnableStage struct {
 	StageDuration     time.Duration
 	IterationDuration time.Duration
 	UsersConcurrency  int
+	// Number is the stage's position in the config file, from 1
+	Number int
 }
 
 func Rate(output *ui.Output) api.Builder {
