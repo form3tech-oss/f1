@@ -32,7 +32,8 @@ func TestChartConstantNoJitter(t *testing.T) {
 		i_execute_the_chart_command()
 
 	then.
-		the_command_is_successful()
+		the_command_is_successful().and().
+		the_output_is_correct()
 }
 
 func TestChartStaged(t *testing.T) {
@@ -41,13 +42,14 @@ func TestChartStaged(t *testing.T) {
 	given, when, then := NewChartTestStage(t)
 
 	given.
-		the_load_style_is_staged("5m:100,2m:0,10s:100")
+		the_load_style_is_staged()
 
 	when.
 		i_execute_the_chart_command()
 
 	then.
-		the_command_is_successful()
+		the_command_is_successful().and().
+		the_output_is_correct()
 }
 
 func TestChartGaussian(t *testing.T) {
@@ -56,14 +58,15 @@ func TestChartGaussian(t *testing.T) {
 	given, when, then := NewChartTestStage(t)
 
 	given.
-		the_load_style_is_gaussian_with_a_volume_of(100000).and().
+		the_load_style_is_gaussian_with_a_volume_of().and().
 		the_chart_starts_at_a_fixed_time()
 
 	when.
 		i_execute_the_chart_command()
 
 	then.
-		the_command_is_successful()
+		the_command_is_successful().and().
+		the_output_is_correct()
 }
 
 func TestChartGaussianWithJitter(t *testing.T) {
@@ -72,7 +75,7 @@ func TestChartGaussianWithJitter(t *testing.T) {
 	given, when, then := NewChartTestStage(t)
 
 	given.
-		the_load_style_is_gaussian_with_a_volume_of(100000).and().
+		the_load_style_is_gaussian_with_a_volume_of().and().
 		jitter_is_applied().and().
 		the_chart_starts_at_a_fixed_time()
 
@@ -95,7 +98,8 @@ func TestChartRamp(t *testing.T) {
 		i_execute_the_chart_command()
 
 	then.
-		the_command_is_successful()
+		the_command_is_successful().and().
+		the_output_is_correct()
 }
 
 func TestChartFileConfig(t *testing.T) {
@@ -104,11 +108,12 @@ func TestChartFileConfig(t *testing.T) {
 	given, when, then := NewChartTestStage(t)
 
 	given.
-		the_load_style_is_defined_in_the_config_file("../testdata/config-file.yaml")
+		the_load_style_is_defined_in_the_config_file()
 
 	when.
 		i_execute_the_chart_command()
 
 	then.
-		the_command_is_successful()
+		the_command_is_successful().and().
+		the_output_is_correct()
 }

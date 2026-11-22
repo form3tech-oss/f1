@@ -68,10 +68,10 @@ func Rate() api.Builder {
 			}
 
 			return &api.Trigger{
-				Trigger: api.NewIterationWorker(rates.IterationDuration, rates.Rate),
+				Trigger: api.NewIterationWorker(rates.IterationDuration, rates.IterationRate),
 				Description: fmt.Sprintf("starting iterations from %s to %s during %v, using distribution %s",
 					startRateArg, endRateArg, duration, distributionTypeArg),
-				DryRun: rates.Rate,
+				Rate: rates.Rate,
 			}, nil
 		},
 	}
@@ -131,7 +131,8 @@ func CalculateRampRate(
 
 	return &api.Rates{
 		IterationDuration: distributedIterationDuration,
-		Rate:              distributedRateFn,
+		IterationRate:     distributedRateFn,
 		Duration:          duration,
+		Rate:              rateFn,
 	}, nil
 }

@@ -47,9 +47,9 @@ func Rate() api.Builder {
 			}
 
 			return &api.Trigger{
-					Trigger:     api.NewIterationWorker(rates.IterationDuration, rates.Rate),
+					Trigger:     api.NewIterationWorker(rates.IterationDuration, rates.IterationRate),
 					Description: fmt.Sprintf("%s constant rate, using distribution %s", rateArg, distributionTypeArg),
-					DryRun:      rates.Rate,
+					Rate:        rates.Rate,
 				},
 				nil
 		},
@@ -72,6 +72,7 @@ func CalculateConstantRate(jitterArg float64, rateArg, distributionTypeArg strin
 
 	return &api.Rates{
 		IterationDuration: distributedIterationDuration,
-		Rate:              distributedRateFn,
+		IterationRate:     distributedRateFn,
+		Rate:              rateFn,
 	}, nil
 }

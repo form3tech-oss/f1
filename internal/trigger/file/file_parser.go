@@ -117,7 +117,7 @@ func (s *Stage) parseStage(stageIdx int, defaults Stage) (*runnableStage, error)
 		return &runnableStage{
 			StageDuration:     *validatedConstantStage.Duration,
 			IterationDuration: rates.IterationDuration,
-			Rate:              rates.Rate,
+			Rate:              rates.IterationRate,
 			Params:            *validatedConstantStage.Parameters,
 		}, nil
 	case "ramp":
@@ -139,7 +139,7 @@ func (s *Stage) parseStage(stageIdx int, defaults Stage) (*runnableStage, error)
 		return &runnableStage{
 			StageDuration:     *validatedRampStage.Duration,
 			IterationDuration: rates.IterationDuration,
-			Rate:              rates.Rate,
+			Rate:              rates.IterationRate,
 			Params:            *validatedRampStage.Parameters,
 		}, nil
 	case "staged":
@@ -161,7 +161,7 @@ func (s *Stage) parseStage(stageIdx int, defaults Stage) (*runnableStage, error)
 		return &runnableStage{
 			StageDuration:     *validatedStagedStage.Duration,
 			IterationDuration: rates.IterationDuration,
-			Rate:              rates.Rate,
+			Rate:              rates.IterationRate,
 			Params:            *validatedStagedStage.Parameters,
 		}, nil
 	case "gaussian":
@@ -181,7 +181,7 @@ func (s *Stage) parseStage(stageIdx int, defaults Stage) (*runnableStage, error)
 		return &runnableStage{
 			StageDuration:     *validatedGaussianStage.Duration,
 			IterationDuration: rates.IterationDuration,
-			Rate:              rates.Rate,
+			Rate:              rates.IterationRate,
 			Params:            *validatedGaussianStage.Parameters,
 		}, nil
 	case "users":

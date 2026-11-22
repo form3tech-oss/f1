@@ -35,7 +35,7 @@ type Constructor func(*pflag.FlagSet) (*Trigger, error)
 
 type Trigger struct {
 	Trigger     WorkTriggerer
-	DryRun      RateFunction
+	Rate        RateFunction
 	Description string
 	Options     Options
 	Duration    time.Duration
@@ -55,7 +55,8 @@ type Options struct {
 }
 
 type Rates struct {
-	Rate              RateFunction
+	IterationRate     RateFunction
 	IterationDuration time.Duration
 	Duration          time.Duration
+	Rate              RateFunction
 }
